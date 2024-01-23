@@ -2,7 +2,7 @@ package cli;
 
 import cli.cmd.CommandFactory;
 import cli.cmd.commands.Command;
-import cli.cmd.execption.CommandException;
+import cli.cmd.exception.CommandException;
 import cli.util.Console;
 
 /**

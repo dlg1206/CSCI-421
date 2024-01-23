@@ -1,4 +1,4 @@
-package cli.cmd.execption;
+package cli.cmd.exception;
 
 /**
  * <b>File:</b> InvalidUsage.java

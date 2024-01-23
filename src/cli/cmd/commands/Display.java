@@ -1,7 +1,7 @@
 package cli.cmd.commands;
 
-import cli.cmd.execption.ExecutionFailure;
-import cli.cmd.execption.InvalidUsage;
+import cli.cmd.exception.ExecutionFailure;
+import cli.cmd.exception.InvalidUsage;
 
 /**
  * <b>File:</b> Display.java

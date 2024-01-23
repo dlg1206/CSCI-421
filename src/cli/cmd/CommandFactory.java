@@ -1,8 +1,8 @@
 package cli.cmd;
 
 import cli.cmd.commands.*;
-import cli.cmd.execption.CommandException;
-import cli.cmd.execption.UnknownCommand;
+import cli.cmd.exception.CommandException;
+import cli.cmd.exception.UnknownCommand;
 
 /**
  * <b>File:</b> CommandFactory.java

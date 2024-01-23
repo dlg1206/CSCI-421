@@ -1,6 +1,6 @@
 package cli.cmd.commands;
 
-import cli.cmd.execption.ExecutionFailure;
+import cli.cmd.exception.ExecutionFailure;
 
 /**
  * <b>File:</b> Command.java
