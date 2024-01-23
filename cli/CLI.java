@@ -1,5 +1,8 @@
 package cli;
 
+import cli.cmd.CommandFactory;
+import cli.cmd.commands.Command;
+import cli.cmd.execption.CommandException;
 import cli.util.Console;
 
 /**
@@ -15,7 +18,7 @@ public class CLI {
      * Code to be executed prior to launching the cli
      */
     private void before(){
-        // TODO - List commands?
+        // TODO - List commands? may remove or move to main for post operations separate from cli
         System.out.println("Hello!");
         System.out.println("exit; - quit the CLI");
     }
@@ -24,7 +27,7 @@ public class CLI {
      * Code to be executed after to launching the cli
      */
     private void after(){
-        // TODO - may remove
+        // TODO - may remove or move to main for post operations separate from cli
         System.out.println("Goodbye!");
     }
 
@@ -61,6 +64,15 @@ public class CLI {
 
             if(stdin.equalsIgnoreCase("exit;"))
                 break;
+
+            // Try to build and execute the command
+            try{
+                Command cmd = CommandFactory.buildCommand(stdin);
+                cmd.execute();
+            } catch (CommandException e){
+                // fail if error with command
+                Console.err(e.getMessage());
+            }
 
         }
 
