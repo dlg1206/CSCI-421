@@ -1,6 +1,6 @@
 package cli.cmd;
 
-import cli.cmd.commands.Command;
+import cli.cmd.commands.*;
 import cli.cmd.execption.CommandException;
 import cli.cmd.execption.UnknownCommand;
 
@@ -17,9 +17,15 @@ public class CommandFactory {
         String cmdKeyword = args.split(" ")[0].replace(";", "");
 
         // Create new Command object based off keyword, error if unrecognized
-        switch(cmdKeyword.toLowerCase()){
-            default:
-                throw new UnknownCommand(cmdKeyword);
-        }
+        // Command constructors handle any bad args / input
+        return switch (cmdKeyword.toLowerCase()) {
+            case "create" -> new CreateTable(args);
+            case "drop" -> new DropTable(args);
+            case "alter" -> new AlterTable(args);
+            case "insert" -> new InsertInto(args);
+            case "display" -> new Display(args);
+            case "select" -> new Select(args);
+            default -> throw new UnknownCommand(cmdKeyword);
+        };
     }
 }
