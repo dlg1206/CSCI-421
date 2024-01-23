@@ -10,9 +10,9 @@ import cli.cmd.execption.InvalidUsage;
  *
  * @author Derek Garcia
  */
-public class CreateTable extends Command{
+public class CreateTable extends Command {
 
-    public CreateTable(String args) throws InvalidUsage{
+    public CreateTable(String args) throws InvalidUsage {
         // TODO
     }
 
