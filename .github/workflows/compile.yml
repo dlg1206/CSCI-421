@@ -14,4 +14,4 @@ jobs:
           distribution: 'temurin'
 
       - name: Compile Code
-        run: find ./src -name "*.java" > sources.txt && javac sources.txt
+        run: find ./src -name "*.java" > sources.txt && javac @sources.txt
