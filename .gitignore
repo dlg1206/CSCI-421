@@ -39,4 +39,4 @@ package.json
 /out/
 
 # Testing files
-/test.java
+test.java
