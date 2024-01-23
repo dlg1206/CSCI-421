@@ -33,3 +33,6 @@ replay_pid*
 commitlint.config.js
 package-lock.json
 package.json
+
+# Compiled
+/out/
