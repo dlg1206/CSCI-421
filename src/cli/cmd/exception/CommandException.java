@@ -3,7 +3,7 @@ package cli.cmd.exception;
 /**
  * <b>File:</b> CommandException.java
  * <p>
- * <b>Description: Generic Command Exception</b>
+ * <b>Description:</b> Generic Command Exception
  *
  * @author Derek Garcia
  */
