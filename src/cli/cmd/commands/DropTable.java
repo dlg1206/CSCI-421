@@ -13,7 +13,11 @@ import cli.cmd.exception.InvalidUsage;
 public class DropTable extends Command {
 
     public DropTable(String args) throws InvalidUsage {
-        // TODO
+        // Drop Table Syntax Validation
+        String[] input = args.strip().split(" ");
+        if (!args.toLowerCase().contains("table") || input.length != 3) {
+            throw new InvalidUsage(args, "Correct Usage: (drop table <table>;)");
+        }
     }
 
     @Override

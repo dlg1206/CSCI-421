@@ -13,7 +13,11 @@ import cli.cmd.exception.InvalidUsage;
 public class Display extends Command {
 
     public Display(String args) throws InvalidUsage {
-        // TODO
+        // Display Info Syntax Validation
+        String[] input = args.strip().split(" ");
+        if (!args.toLowerCase().contains("info") || input.length != 3) {
+            throw new InvalidUsage(args, "Correct Usage: (display info <table>;)");
+        }
     }
 
     @Override

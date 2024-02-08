@@ -13,7 +13,36 @@ import cli.cmd.exception.InvalidUsage;
 public class CreateTable extends Command {
 
     public CreateTable(String args) throws InvalidUsage {
-        // TODO
+        // Create Table Syntax Validation
+        String errorMessage = "Correct Usage: create table <table_name> (" +
+                            "<column_name> <data_type> [constraints], ...);";
+        if(!args.contains("(")){
+            throw new InvalidUsage(args, errorMessage);
+        }
+        int indexOfOpen = args.indexOf("(");
+        String firstPart = args.substring(0, indexOfOpen);
+        String secondPart = args.substring(indexOfOpen + 1);
+        
+        String[] command = firstPart.split(" ");
+        if (!command[1].equalsIgnoreCase("table") || command.length < 3) {
+            throw new InvalidUsage(args, errorMessage);
+        }
+
+        if(!secondPart.contains(")")){
+            throw new InvalidUsage(args, errorMessage);
+        }
+        String columns[] = secondPart.strip().substring(0, secondPart.length()-2).split(",");
+        if(columns.length < 1){
+            throw new InvalidUsage(args, errorMessage);
+        }
+
+        for (String col : columns) {
+            if(col.strip().split(" ").length < 3){
+                throw new InvalidUsage(args, errorMessage);
+            }
+        }
+        
+
     }
 
     @Override

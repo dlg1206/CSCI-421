@@ -13,7 +13,20 @@ import cli.cmd.exception.InvalidUsage;
 public class InsertInto extends Command {
 
     public InsertInto(String args) throws InvalidUsage {
-        // TODO
+        // Insert Into Syntax Validation
+        if (!args.contains("values")) {
+            throw new InvalidUsage(args, "Correct Usage: (insert into <name> values <tuples>);");
+        }
+        
+        String[] values = args.strip().split("values");
+        if (values.length != 2 || values[1].isEmpty()) {
+            throw new InvalidUsage(args, "Correct Usage: (insert into <name> values <tuples>);");
+        }
+        
+        String[] input1 = values[0].strip().split("\\s+");
+        if (input1.length != 3 || !input1[1].equalsIgnoreCase("into")) {
+            throw new InvalidUsage(args, "Correct Usage: (insert into <name> values <tuples>);");
+        }
     }
 
     @Override
