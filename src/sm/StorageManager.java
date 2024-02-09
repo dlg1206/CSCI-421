@@ -96,12 +96,12 @@ public class StorageManager {
             return false;
         }
 
-        public Byte[] getPage(int tableID, int pageNum){
+        public Page getPage(int tableID, int pageNum){
             // Read page from disk if not in buffer
             if( !isPageInBuffer(tableID, pageNum) )
                 readToBuffer(tableID, pageNum);
 
-            return readFromBuffer(tableID, pageNum).data;
+            return readFromBuffer(tableID, pageNum);
         }
 
 
@@ -122,17 +122,29 @@ public class StorageManager {
     }
 
     // CREATE
-    public void insertRecord(int tableID, DataType primaryKey, List<DataType> record){
+    public void insertRecord(int tableID, List<DataType> record){
 
     }
 
     // READ
     public List<DataType> getRecord(int tableID, DataType primaryKey){
+        /*
+
+         */
         return null;
     }
 
     // READ
-    public List<List<DataType>> getAllRecords(){
+    public List<List<DataType>> getAllRecords(int tableID){
+        /*
+        List<List<DataType>> records = new ArrayList<>()
+        int numPages = getPageCount(tableID)
+        for i=0, i<numPages, i++
+            Page p = this.buffer.getPage(tableID, i);
+            records.addAdd(p.getAllRecords())
+         return records
+         */
+
          return null;
     }
 
