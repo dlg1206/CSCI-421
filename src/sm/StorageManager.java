@@ -18,13 +18,18 @@ public class StorageManager {
     private class PageBuffer{
 
         private record Page(int tableID, int number, Byte[] data){
-            public int getNumberOfRecords(){
+            private int getNumberOfRecords(){
                 // parse data byte array to get number of records
                 return -1;
             }
 
-            public Byte[] getRecordBytes(){
+            private Byte[] getRecordBytes(){
                 // truncate # records from data byte array
+                return null;
+            }
+
+            public List<List<DataType>> getAllRecords(){
+                // parse bytes into records and return
                 return null;
             }
         }
