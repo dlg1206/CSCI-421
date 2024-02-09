@@ -48,43 +48,42 @@ public class StorageManager {
         }
 
         private Page readFromBuffer(int tableID, int pageNum){
-            /*
-            Page page = null;     // assume not in buf
+
+            Page page = null;     // assume not in buffer
+
             // Check buffer for page
-            for p : this.buffer
-                if p.tableId == tableID && p.number == pageNumber
-                    page = p
-                    break
+            for( Page p : this.buffer ){
+                // Find page
+                if(p.tableID == tableID && p.number == pageNum){
+                    page = p;
+                    break;
+                }
+            }
 
-             // Update access if in buffer
-             if page != null
-                this.buffer.remove(page)
-                this.buffer.add(page)
+            // Update access if in buffer
+            this.buffer.remove(page);
+            this.buffer.add(page);
 
-             return page;
-             */
-            return null;
+            return page;
         }
 
         private boolean isPageInBuffer(int tableID, int pageNum){
-            /*
-            for p : this.buffer
-                if p.tableId == tableID && p.number == pageNumber
-                    return true
-             */
+
+            for( Page p : this.buffer ){
+                // Find page
+                if(p.tableID == tableID && p.number == pageNum)
+                    return true;
+            }
+
             return false;
         }
 
-
         public Byte[] getPage(int tableID, int pageNum){
-            /*
+            // Read page from disk if not in buffer
             if( !isPageInBuffer(tableID, pageNum) )
                 readToBuffer(tableID, pageNum);
 
             return readFromBuffer(tableID, pageNum).data;
-
-             */
-            return null;
         }
 
     }
