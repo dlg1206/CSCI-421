@@ -15,7 +15,6 @@ import java.util.List;
  */
 public class StorageManager {
 
-
     private class PageBuffer{
 
         private record Page(int tableID, int number, Byte[] data){}
@@ -89,45 +88,43 @@ public class StorageManager {
     }
 
 
+    private final PageBuffer buffer;
+    private final String databasePath;
 
-     private int getPageCount(int tableID){
-         return 1;
-     }
 
-     private Byte[] getPage(int tableID, int pageNum){
-         return null;
-     }
+    public StorageManager(int bufferSize, int pageSize, String databasePath){
+        this.buffer = new PageBuffer(bufferSize, pageSize);
+        this.databasePath = databasePath;
+    }
+
+    private int getPageCount(int tableID){
+        return 1;
+    }
 
     // CREATE
     public void insertRecord(int tableID, DataType primaryKey, List<DataType> record){
 
     }
 
-     // READ
-     public List<DataType> getRecord(int tableID, DataType primaryKey){
-         return null;
-     }
+    // READ
+    public List<DataType> getRecord(int tableID, DataType primaryKey){
+        return null;
+    }
 
-     // READ
+    // READ
     public List<List<DataType>> getAllRecords(){
          return null;
     }
 
 
      // UPDATE
-     public void updateRecord(int tableID, DataType primaryKey, List<DataType> record){
+    public void updateRecord(int tableID, DataType primaryKey, List<DataType> record){
 
-     }
+    }
 
     // DELETE
     public void deleteRecord(int tableID, DataType primaryKey){
 
     }
-
-
-
-
-
-
 
 }
