@@ -1,37 +1,55 @@
 package cli.catalog;
 
-import java.io.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class Catalog implements Serializable {
+public class Catalog implements ICatalog {
 
-    public int PageSize;
-    public Map<String, Table> Tables;
-    public int NextNum = 1;
-    private final String CatalogLocation;
+    private final int PageSize;
+    private final int BufferSize;
+    private final Map<String, Table> Tables;
+    private int NextNum = 1;
+    private final String CatalogLocation; // TODO: Integrate with the storage manager
 
-
-    public Catalog(int pageSize, String catalogLocation) {
+    public Catalog(int pageSize, int bufferSize, String catalogLocation) {
         Tables = new HashMap<>();
         PageSize = pageSize;
+        BufferSize = bufferSize;
         CatalogLocation = catalogLocation;
         write();
     }
 
-    public void createTable(String name, Map<String, Attribute> attributes) {
-        Tables.put(name, new Table(NextNum, attributes));
+    public void createTable(String name, List<Attribute> attributes) {
+        Tables.put(name, new Table(name, NextNum, attributes));
         NextNum++;
         write();
     }
 
+    @Override
+    public int getPageSize() {
+        return PageSize;
+    }
+
+    @Override
+    public int getBufferSie() {
+        return BufferSize;
+    }
+
+    @Override
     public Set<String> getExistingTableNames() {
         return Tables.keySet();
     }
 
-    public int getTableNum(String name) {
-        return Tables.get(name).Number;
+    @Override
+    public int getTableNumber(String name) {
+        return Tables.get(name).getNumber();
+    }
+
+    @Override
+    public Table getRecordSchema(String tableName) {
+        return Tables.get(tableName);
     }
 
     public void deleteTable(String name) {
@@ -40,37 +58,6 @@ public class Catalog implements Serializable {
     }
 
     public void write() {
-        try {
-            FileOutputStream fileOutputStream = new FileOutputStream(CatalogLocation);
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
-            objectOutputStream.writeObject(this);
-        } catch (FileNotFoundException fnfe) {
-            System.out.println("The catalog file could not be created. Quitting.");
-            System.exit(1);
-        } catch (IOException ioe) {
-            System.out.println("The Object output stream could created for the catalog. Quitting.");
-            System.exit(2);
-        }
+        //TODO: Integrate with the storage manager
     }
-
-    public static Catalog InitializeDB(String dbLoc, int pageSize) {
-        String catalogPath = dbLoc + "catalog.db";
-        File catalogLoc = new File(catalogPath);
-        if (catalogLoc.exists()) {
-            try {
-                FileInputStream fileInputStream = new FileInputStream(catalogPath);
-                ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-                return (Catalog) objectInputStream.readObject();
-            } catch (FileNotFoundException fnfe) {
-                System.out.println("The catalog file is missing. Quitting.");
-                System.exit(3);
-            } catch (IOException ioe) {
-                System.out.println("The Object input stream could created for the catalog. Quitting.");
-                System.out.println(ioe.getMessage());
-                System.exit(4);
-            } catch (Exception ignored){}
-        }
-        return new Catalog(pageSize, catalogPath);
-    }
-
 }
