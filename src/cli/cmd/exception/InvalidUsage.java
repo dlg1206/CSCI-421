@@ -15,6 +15,6 @@ public class InvalidUsage extends CommandException{
      * @param msg Reason for failure
      */
     public InvalidUsage(String command, String msg){
-        super("Invalid Usage (" + command +" ): " + msg);
+        super("Invalid Usage (" + command + "): " + msg);
     }
 }
