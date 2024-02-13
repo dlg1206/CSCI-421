@@ -98,34 +98,6 @@ public class StorageManager {
         }
 
         /**
-         * Read page from the Page Buffer
-         *
-         * @param tableID Table ID to read from
-         * @param pageNum Page number to read from
-         * @return page
-         */
-        private Page readFromBuffer(int tableID, int pageNum){
-
-            Page page = null;     // assume not in buffer
-
-            // Check buffer for page
-            for( Page p : this.buffer ){
-                // Find page
-                if(p.tableID == tableID && p.number == pageNum){
-                    page = p;
-                    break;
-                }
-            }
-
-            // Update access if in buffer
-            this.buffer.remove(page);
-            this.buffer.add(page);
-
-            return page;
-        }
-
-
-        /**
          * Check if page is in the buffer
          *
          * @param tableID Table ID to read from
@@ -143,21 +115,38 @@ public class StorageManager {
             return false;
         }
 
-
         /**
-         * Return a page object from the buffer
+         * Read page from the Page Buffer
          *
          * @param tableID Table ID to read from
          * @param pageNum Page number to read from
-         * @return Page
+         * @return page
          */
-        public Page getPage(int tableID, int pageNum){
+        public Page readFromBuffer(int tableID, int pageNum){
+
+            Page page = null;     // assume not in buffer
+
             // Read page from disk if not in buffer
+            // set to first to reduce search time
             if( !isPageInBuffer(tableID, pageNum) )
                 readToBuffer(tableID, pageNum);
 
-            return readFromBuffer(tableID, pageNum);
+            // Check buffer for page
+            for( Page p : this.buffer ){
+                // Find page
+                if(p.tableID == tableID && p.number == pageNum){
+                    page = p;
+                    break;
+                }
+            }
+
+            // Update access if in buffer
+            this.buffer.remove(page);
+            this.buffer.add(page);
+
+            return page;
         }
+
     }
 
 
