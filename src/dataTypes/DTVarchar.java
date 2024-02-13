@@ -2,27 +2,20 @@ package dataTypes;
 
 public class DTVarchar implements DataType {
     private String value;
-    private int length;
 
-    public DTVarchar(byte[] byteValue, int length) {
+    public DTVarchar(byte[] byteValue) {
         if (byteValue == null)
             return;
 
         this.value = new String(byteValue);
-        this.length = length;
     }
 
-    public DTVarchar(String strValue, int length) {
+    public DTVarchar(String strValue) {
         this.value = strValue;
-        this.length = length;
     }
 
     public String getValue() {
         return value;
-    }
-
-    public int getLength() {
-        return length;
     }
 
     @Override
@@ -37,6 +30,6 @@ public class DTVarchar implements DataType {
 
     @Override
     public void printValue() {
-        System.out.println("Varchar: " + value + ", Length: " + length);
+        System.out.println("Varchar: " + value);
     }
 }

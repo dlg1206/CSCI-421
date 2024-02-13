@@ -2,27 +2,20 @@ package dataTypes;
 
 public class DTChar implements DataType {
     private String value;
-    private int length;
 
-    public DTChar(byte[] byteValue, int length) {
+    public DTChar(byte[] byteValue) {
         if (byteValue == null)
             return;
 
         this.value = new String(byteValue);
-        this.length = length;
     }
 
-    public DTChar(String strValue, int length) {
+    public DTChar(String strValue) {
         this.value = strValue;
-        this.length = length;
     }
 
     public String getValue() {
         return value;
-    }
-
-    public int getLength() {
-        return length;
     }
 
     @Override
@@ -37,7 +30,7 @@ public class DTChar implements DataType {
 
     @Override
     public void printValue() {
-        System.out.println("Char: " + value + ", Length: " + length);
+        System.out.println("Char: " + value);
     }
 }
 
