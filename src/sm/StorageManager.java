@@ -9,14 +9,25 @@ import java.util.List;
 /**
  * <b>File:</b> StorageManager.java
  * <p>
- * <b>Description:</b>
+ * <b>Description:</b> Handles read write operations with hardware
  *
  * @author Derek Garcia
  */
 public class StorageManager {
 
-    private class PageBuffer{
 
+    /**
+     * Private page buffer used by Storage Manager
+     */
+    private static class PageBuffer{
+
+        /**
+         * Utility Page object to hold metadata about page
+         *
+         * @param tableID Table ID of the page
+         * @param number Page Number
+         * @param data Raw binary data of the page
+         */
         private record Page(int tableID, int number, Byte[] data){
             private int getNumberOfRecords(){
                 // parse data byte array to get number of records
@@ -38,16 +49,32 @@ public class StorageManager {
         private final int capacity;
         private final int pageSize;
 
+
+        /**
+         * Create a new Page Buffer
+         *
+         * @param bufferSize Max buffer size in number of pages
+         * @param pageSize Max page size in number of records
+         */
         public PageBuffer(int bufferSize, int pageSize){
             this.buffer = Arrays.asList(new Page[bufferSize]);
             this.capacity = bufferSize;
             this.pageSize = pageSize;
         }
 
+
         private void writeToDisk(int tableID, Page page){
+            // TODO
             // write to disk
         }
 
+
+        /**
+         * Read Page binary from Table file to buffer
+         *
+         * @param tableID Table ID to read from
+         * @param pageNum Page number to read from
+         */
         private void readToBuffer(int tableID, int pageNum){
             /*
             // Make room if needed
@@ -70,6 +97,13 @@ public class StorageManager {
              */
         }
 
+        /**
+         * Read page from the Page Buffer
+         *
+         * @param tableID Table ID to read from
+         * @param pageNum Page number to read from
+         * @return page
+         */
         private Page readFromBuffer(int tableID, int pageNum){
 
             Page page = null;     // assume not in buffer
@@ -90,6 +124,14 @@ public class StorageManager {
             return page;
         }
 
+
+        /**
+         * Check if page is in the buffer
+         *
+         * @param tableID Table ID to read from
+         * @param pageNum Page number to read from
+         * @return true if in buffer, false otherwise
+         */
         private boolean isPageInBuffer(int tableID, int pageNum){
 
             for( Page p : this.buffer ){
@@ -101,6 +143,14 @@ public class StorageManager {
             return false;
         }
 
+
+        /**
+         * Return a page object from the buffer
+         *
+         * @param tableID Table ID to read from
+         * @param pageNum Page number to read from
+         * @return Page
+         */
         public Page getPage(int tableID, int pageNum){
             // Read page from disk if not in buffer
             if( !isPageInBuffer(tableID, pageNum) )
@@ -108,8 +158,6 @@ public class StorageManager {
 
             return readFromBuffer(tableID, pageNum);
         }
-
-
     }
 
 
@@ -117,25 +165,32 @@ public class StorageManager {
     private static String databasePath;
 
 
+    /**
+     * Create a new Storage Manager with a page buffer
+     *
+     * @param bufferSize Max buffer size in number of pages
+     * @param pageSize Max page size in number of records
+     * @param databasePath Path to database directory
+     */
     public StorageManager(int bufferSize, int pageSize, String databasePath){
         this.buffer = new PageBuffer(bufferSize, pageSize);
         StorageManager.databasePath = databasePath;
     }
 
+
     private int getPageCount(int tableID){
-        return 1;
+        // TODO
+        return -1;
     }
 
     // CREATE
     public void insertRecord(int tableID, List<DataType> record){
-
+        // TODO
     }
 
     // READ
     public List<DataType> getRecord(int tableID, DataType primaryKey){
-        /*
-
-         */
+        // TODO
         return null;
     }
 
@@ -149,19 +204,19 @@ public class StorageManager {
             records.addAdd(p.getAllRecords())
          return records
          */
-
+        // TODO
          return null;
     }
 
 
      // UPDATE
     public void updateRecord(int tableID, DataType primaryKey, List<DataType> record){
-
+        // TODO
     }
 
     // DELETE
     public void deleteRecord(int tableID, DataType primaryKey){
-
+        // TODO
     }
 
 }
