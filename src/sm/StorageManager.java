@@ -2,7 +2,6 @@ package sm;
 
 import sm.tmp.DataType;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,6 +13,15 @@ import java.util.List;
  * @author Derek Garcia
  */
 public class StorageManager {
+    /*
+     ┌―――――――――――――――――――[FULL WRITE]―――――――――――――――――┐
+     ╭―――――╮                      ╭―――――╮                    ╭―――――╮
+     │        │ ──[writeToBuffer]──> │        │ ──[writeToDisk]──> │        │
+     │   SM   │                      │   PB   │                    │  DISK  │
+     │        │ <─[readFromBuffer]── │        │ <─[readFromDisk]── │        │
+     ╰―――――╯                      ╰―――――╯                    ╰―――――╯
+     └―――――――――――――――――――[FULL READ]――――――――――――――――――┘
+     */
 
 
     /**
@@ -62,41 +70,6 @@ public class StorageManager {
             this.pageSize = pageSize;
         }
 
-
-        private void writeToDisk(int tableID, Page page){
-            // TODO
-            // write to disk
-        }
-
-
-        /**
-         * Read Page binary from Table file to buffer
-         *
-         * @param tableID Table ID to read from
-         * @param pageNum Page number to read from
-         */
-        private void readToBuffer(int tableID, int pageNum){
-            /*
-            // Make room if needed
-            if this.buffer.size() == this.capacity{
-                writeToDisk(
-                    tableID,
-                    this.buffer.remove( this.capacity - 1 )
-                );
-            }
-
-
-            // Read new page into buffer. Add to first b/c assume going to be accessed
-            int offset = pageCount + pageSize * pageNum;
-            this.buffer.add( new Page(
-                tableID,
-                pageNum,
-                sys.loadBytes(tableID) + offset;  // ie load 1 page however it's done
-                )
-            );
-             */
-        }
-
         /**
          * Check if page is in the buffer
          *
@@ -115,6 +88,49 @@ public class StorageManager {
             return false;
         }
 
+        private void writeToDisk(Page page){
+            // TODO - need table path?
+            // write to disk
+        }
+
+
+        /**
+         * Read Page binary from Table file from disk to buffer
+         *
+         * @param tableID Table ID to read from
+         * @param pageNum Page number to read from
+         */
+        private void readFromDisk(int tableID, int pageNum){
+
+            // Make room if needed
+            if(this.buffer.size() == this.capacity)
+                writeToDisk(this.buffer.remove( this.capacity - 1 ));
+
+            // Read new page into buffer. Add to first b/c assume going to be accessed
+            int offset = this.pageSize * pageNum;   // todo add offset for table/page metadata?
+//            this.buffer.add( new Page(
+//                tableID,
+//                pageNum,
+//                sys.loadBytes(tableID) + offset  // ie load 1 page however it's done
+//                )
+//            );
+
+        }
+
+        /**
+         * Write page to buffer
+         *
+         * @param page Page to add to buffer
+         */
+       public void writeToBuffer(Page page){
+
+           // Make room if needed
+           if(this.buffer.size() == this.capacity)
+               writeToDisk(this.buffer.remove( this.capacity - 1 ));
+
+           this.buffer.add(page);
+       }
+
         /**
          * Read page from the Page Buffer
          *
@@ -129,9 +145,9 @@ public class StorageManager {
             // Read page from disk if not in buffer
             // set to first to reduce search time
             if( !isPageInBuffer(tableID, pageNum) )
-                readToBuffer(tableID, pageNum);
+                readFromDisk(tableID, pageNum);
 
-            // Check buffer for page
+            // Get page from buffer
             for( Page p : this.buffer ){
                 // Find page
                 if(p.tableID == tableID && p.number == pageNum){
