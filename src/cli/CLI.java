@@ -8,7 +8,7 @@ import cli.util.Console;
 /**
  * <b>File:</b> CLI.java
  * <p>
- * <b>Description: Main interface for CLI operations</b>
+ * <b>Description:</b> Main interface for CLI operations
  *
  * @author Derek Garcia
  */

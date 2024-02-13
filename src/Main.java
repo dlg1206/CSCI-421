@@ -1,7 +1,7 @@
 /**
 * <b>File:</b> Main.java
 * <p>
-* <b>Description: Entrypoint to the project</b>
+* <b>Description:</b> Entrypoint to the project
 * @author Derek Garcia
 */
 public class Main {

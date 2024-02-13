@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  * <b>File:</b> Console.java
  * <p>
- * <b>Description: Wrapper for command-line printing</b>
+ * <b>Description:</b> Wrapper for command-line printing
  *
  * @author Derek Garcia
  */

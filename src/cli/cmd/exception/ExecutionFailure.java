@@ -3,7 +3,7 @@ package cli.cmd.exception;
 /**
  * <b>File:</b> ExecutionFailure.java
  * <p>
- * <b>Description: Error while command was running</b>
+ * <b>Description:</b> Error while command was running
  *
  * @author Derek Garcia
  */

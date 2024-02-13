@@ -7,7 +7,7 @@ import cli.cmd.exception.UnknownCommand;
 /**
  * <b>File:</b> CommandFactory.java
  * <p>
- * <b>Description: Create Command Objects using input from user</b>
+ * <b>Description:</b> Create Command Objects using input from user
  *
  * @author Derek Garcia
  */

@@ -3,7 +3,7 @@ package cli.cmd.exception;
 /**
  * <b>File:</b> InvalidUsage.java
  * <p>
- * <b>Description: Execution when command usage is wrong</b>
+ * <b>Description:</b> Execution when command usage is wrong
  *
  * @author Derek Garcia
  */
