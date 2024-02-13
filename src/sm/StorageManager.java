@@ -2,6 +2,7 @@ package sm;
 
 import sm.tmp.DataType;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,7 +54,7 @@ public class StorageManager {
             }
         }
 
-        private final List<Page> buffer;
+        private final List<Page> buffer = new ArrayList<>();
         private final int capacity;
         private final int pageSize;
 
@@ -65,7 +66,6 @@ public class StorageManager {
          * @param pageSize Max page size in number of records
          */
         public PageBuffer(int bufferSize, int pageSize){
-            this.buffer = Arrays.asList(new Page[bufferSize]);
             this.capacity = bufferSize;
             this.pageSize = pageSize;
         }
@@ -128,7 +128,8 @@ public class StorageManager {
            if(this.buffer.size() == this.capacity)
                writeToDisk(this.buffer.remove( this.capacity - 1 ));
 
-           this.buffer.add(page);
+           // Push list
+           this.buffer.add(0, page);
        }
 
         /**
@@ -156,9 +157,9 @@ public class StorageManager {
                 }
             }
 
-            // Update access if in buffer
+            // Push to top of buffer
             this.buffer.remove(page);
-            this.buffer.add(page);
+            this.buffer.add(0, page);
 
             return page;
         }
@@ -196,6 +197,7 @@ public class StorageManager {
     // READ
     public List<DataType> getRecord(int tableID, DataType primaryKey){
         // TODO
+        var Page = new PageBuffer.Page(1, 2, null);
         return null;
     }
 
