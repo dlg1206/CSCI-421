@@ -2,7 +2,7 @@ package dataTypes;
 
 import java.nio.ByteBuffer;
 
-public class DTInteger implements DataType {
+public class DTInteger implements DataType, Comparable<DataType> {
     private Integer value;
 
     public DTInteger(byte[] byteValue) {
@@ -36,5 +36,13 @@ public class DTInteger implements DataType {
     @Override
     public void printValue() {
         System.out.println("Integer: " + value);
+    }
+
+    @Override
+    public int compareTo(DataType o) {
+        if (o instanceof DTInteger) {
+            return ((DTInteger) o).value.compareTo(this.value);
+        }
+        return -1;
     }
 }

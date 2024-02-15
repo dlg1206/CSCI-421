@@ -1,6 +1,6 @@
 package dataTypes;
 
-public class DTVarchar implements DataType {
+public class DTVarchar implements DataType, Comparable<DataType> {
     private String value;
 
     public DTVarchar(byte[] byteValue) {
@@ -31,5 +31,13 @@ public class DTVarchar implements DataType {
     @Override
     public void printValue() {
         System.out.println("Varchar: " + value);
+    }
+
+    @Override
+    public int compareTo(DataType o) {
+        if (o instanceof DTVarchar) {
+            return ((DTVarchar) o).value.compareTo(this.value);
+        }
+        return -1;
     }
 }
