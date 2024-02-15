@@ -1,14 +1,8 @@
-package cli.catalog;
+package catalog;
+
+import dataTypes.AttributeType;
 
 public class Attribute implements IAttribute {
-    private enum AttributeType {
-        INTEGER,
-        DOUBLE,
-        BOOLEAN,
-        CHAR,
-        VARCHAR
-    }
-
     private final String Name;
     private final AttributeType Type;
     private Integer MaxDataLength;
@@ -19,6 +13,14 @@ public class Attribute implements IAttribute {
     public Attribute(String name, String type, boolean unique, boolean nullable, boolean primaryKey) {
         Name = name;
         Type = AttributeType.valueOf(type.toUpperCase());
+        Unique = unique;
+        Nullable = nullable;
+        PrimaryKey = primaryKey;
+    }
+
+    public Attribute(String name, AttributeType type, boolean unique, boolean nullable, boolean primaryKey) {
+        Name = name;
+        Type = type;
         Unique = unique;
         Nullable = nullable;
         PrimaryKey = primaryKey;
@@ -35,8 +37,8 @@ public class Attribute implements IAttribute {
     }
 
     @Override
-    public String getDataType() {
-        return Type.name();
+    public AttributeType getDataType() {
+        return Type;
     }
 
     @Override

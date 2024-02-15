@@ -1,8 +1,10 @@
-package cli.catalog;
+package catalog;
+
+import dataTypes.AttributeType;
 
 public interface IAttribute {
     String getName();
-    String getDataType();
+    AttributeType getDataType();
     boolean isNullable();
     int getMaxDataLength() throws NotSupportedConstraint;
     boolean isUnique();

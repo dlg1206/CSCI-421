@@ -1,4 +1,4 @@
-package cli.catalog;
+package catalog;
 
 /**
  * <b>File:</b> NotSupportedConstraint.java

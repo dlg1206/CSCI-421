@@ -1,4 +1,4 @@
-package cli.catalog;
+package catalog;
 
 import java.util.List;
 import java.util.Map;
