@@ -1,7 +1,5 @@
 package sm;
 
-import dataTypes.DataType;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,30 +11,6 @@ import java.util.List;
  * @author Derek Garcia
  */
 class PageBuffer{
-
-    /**
-     * Utility Page object to hold metadata about page
-     *
-     * @param tableID Table ID of the page
-     * @param number Page Number
-     * @param data Raw binary data of the page
-     */
-    private record Page(int tableID, int number, Byte[] data){
-        private int getNumberOfRecords(){
-            // parse data byte array to get number of records
-            return -1;
-        }
-
-        private Byte[] getRecordBytes(){
-            // truncate # records from data byte array
-            return null;
-        }
-
-        public List<List<DataType>> getAllRecords(){
-            // parse bytes into records and return
-            return null;
-        }
-    }
 
     private final List<Page> buffer = new ArrayList<>();
     private final int capacity;
@@ -65,7 +39,7 @@ class PageBuffer{
 
         for( Page p : this.buffer ){
             // Find page
-            if(p.tableID == tableID && p.number == pageNum)
+            if(p.tableID() == tableID && p.number() == pageNum)
                 return true;
         }
 
@@ -135,7 +109,7 @@ class PageBuffer{
         // Get page from buffer
         for( Page p : this.buffer ){
             // Find page
-            if(p.tableID == tableID && p.number == pageNum){
+            if(p.tableID() == tableID && p.number() == pageNum){
                 page = p;
                 break;
             }
