@@ -1,6 +1,8 @@
 package cli.cmd.commands;
 
+import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
+import sm.StorageManager;
 
 /**
  * <b>File:</b> Command.java
@@ -19,5 +21,5 @@ public abstract class Command {
     /**
      * Execute the command
      */
-    public abstract void execute() throws ExecutionFailure;
+    public abstract void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure;
 }

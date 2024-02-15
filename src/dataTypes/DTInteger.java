@@ -42,4 +42,9 @@ public class DTInteger implements DataType {
     public void printValue() {
         System.out.println("Integer: " + value);
     }
+
+    @Override
+    public String stringValue() {
+        return value.toString();
+    }
 }

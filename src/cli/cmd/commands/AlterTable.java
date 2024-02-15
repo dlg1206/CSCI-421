@@ -1,7 +1,9 @@
 package cli.cmd.commands;
 
+import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+import sm.StorageManager;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -41,7 +43,7 @@ public class AlterTable extends Command {
     }
 
     @Override
-    public void execute() throws ExecutionFailure {
+    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
         // TODO
     }
 }

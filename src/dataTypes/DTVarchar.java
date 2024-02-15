@@ -32,4 +32,9 @@ public class DTVarchar implements DataType {
     public void printValue() {
         System.out.println("Varchar: " + value);
     }
+
+    @Override
+    public String stringValue() {
+        return value;
+    }
 }

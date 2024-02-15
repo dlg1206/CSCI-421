@@ -32,5 +32,10 @@ public class DTChar implements DataType {
     public void printValue() {
         System.out.println("Char: " + value);
     }
+
+    @Override
+    public String stringValue() {
+        return value;
+    }
 }
 

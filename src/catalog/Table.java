@@ -1,20 +1,17 @@
 package catalog;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public class Table implements ITable {
 
     private final String Name;
     private final int Number;
-    private final Map<String, Attribute> Attributes;
+    private final List<Attribute> Attributes;
 
     public Table(String name, int number, List<Attribute> attributes) {
         Name = name;
-        Attributes = attributes.stream()
-                .collect(Collectors.toMap(Attribute::getName, Function.identity()));
+        Attributes = attributes;
         Number = number;
     }
 
@@ -30,16 +27,17 @@ public class Table implements ITable {
 
     @Override
     public List<Attribute> getAttributes() {
-        return Attributes.values().stream().toList();
+        return Attributes;
     }
 
     @Override
     public void addAttribute(Attribute attribute) {
-        Attributes.put(attribute.getName(), attribute);
+        // This does not check for unique attribute names, that should be handled by the command.
+        Attributes.add(attribute);
     }
 
     @Override
     public void removeAttribute(String name) {
-        Attributes.remove(name);
+        Attributes.removeIf(a -> Objects.equals(a.getName(), name));
     }
 }
