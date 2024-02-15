@@ -2,7 +2,7 @@ package dataTypes;
 
 import java.nio.ByteBuffer;
 
-public class DTInteger implements DataType {
+public class DTInteger implements DataType, Comparable<DataType> {
     private Integer value;
 
     public DTInteger(byte[] byteValue) {
@@ -12,16 +12,11 @@ public class DTInteger implements DataType {
         this.value = ByteBuffer.wrap(byteValue).getInt();
     }
 
-    public DTInteger(String strValue) {
+    public DTInteger(String strValue) throws NumberFormatException {
         if (strValue == null)
             return;
 
-        try {
-            this.value = java.lang.Integer.parseInt(strValue);
-        }
-        catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
+        this.value = java.lang.Integer.parseInt(strValue);
     }
 
     public Integer getValue() {
@@ -46,5 +41,12 @@ public class DTInteger implements DataType {
     @Override
     public String stringValue() {
         return value.toString();
+    }
+
+    public int compareTo(DataType o) {
+        if (o instanceof DTInteger) {
+            return ((DTInteger) o).value.compareTo(this.value);
+        }
+        return -1;
     }
 }

@@ -1,6 +1,6 @@
 package dataTypes;
 
-public class DTChar implements DataType {
+public class DTChar implements DataType, Comparable<DataType> {
     private String value;
 
     public DTChar(byte[] byteValue) {
@@ -36,6 +36,13 @@ public class DTChar implements DataType {
     @Override
     public String stringValue() {
         return value;
+    }
+
+    public int compareTo(DataType o) {
+        if (o instanceof DTChar) {
+            return ((DTChar) o).value.compareTo(this.value);
+        }
+        return -1;
     }
 }
 

@@ -9,14 +9,27 @@ public class TestDataTypes {
         ArrayList<DataType> data = new ArrayList<DataType>();
 
         data.add(new DTBoolean("True"));
-        data.add(new DTBoolean("1")); // gives False
+        data.add(new DTBoolean("True")); // gives False
         data.add(new DTInteger("5"));
+        data.add(new DTInteger("10"));
         data.add(new DTDouble("10.0"));
         data.add(new DTChar("Hello"));
         data.add(new DTVarchar("World"));
 
+        // compare data
+        // gives 0 if values are equal
+        // 1 if val2 > val1
+        // -1 if val2 < val1
+        // note: if data types don't match, -1 is given
+        // this shouldn't matter as we wouldn't compare different data types
+        System.out.println("Compare Data");
+        System.out.println(data.get(0).compareTo(data.get(1))); // 0, True == True
+        System.out.println(data.get(2).compareTo(data.get(3))); // 1, 10 > 5
+        System.out.println(data.get(3).compareTo(data.get(2))); // -1, 5 < 10
+        System.out.println(data.get(5).compareTo(data.get(6))); // -1, data types don't match
+
         // print out values
-        System.out.println("Print Original Values");
+        System.out.println("\nPrint Original Values");
         for (DataType d: data) {
             d.printValue();
         }

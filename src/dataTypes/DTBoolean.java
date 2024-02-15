@@ -1,6 +1,6 @@
 package dataTypes;
 
-public class DTBoolean implements DataType {
+public class DTBoolean implements DataType, Comparable<DataType> {
     private Boolean value;
 
     public DTBoolean(byte[] byteValue) {
@@ -39,5 +39,12 @@ public class DTBoolean implements DataType {
     @Override
     public String stringValue() {
         return value ? "T" : "F";
+    }
+  
+    public int compareTo(DataType o) {
+        if (o instanceof DTBoolean) {
+            return ((DTBoolean) o).value.compareTo(this.value);
+        }
+        return -1;
     }
 }
