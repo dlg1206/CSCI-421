@@ -12,16 +12,11 @@ public class DTDouble implements DataType {
         this.value = ByteBuffer.wrap(byteValue).getDouble();
     }
 
-    public DTDouble(String strValue) {
+    public DTDouble(String strValue) throws NumberFormatException {
         if (strValue == null)
             return;
 
-        try {
-            this.value = java.lang.Double.parseDouble(strValue);
-        }
-        catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
+        this.value = java.lang.Double.parseDouble(strValue);
     }
 
     public Double getValue() {

@@ -12,16 +12,11 @@ public class DTInteger implements DataType {
         this.value = ByteBuffer.wrap(byteValue).getInt();
     }
 
-    public DTInteger(String strValue) {
+    public DTInteger(String strValue) throws NumberFormatException {
         if (strValue == null)
             return;
 
-        try {
-            this.value = java.lang.Integer.parseInt(strValue);
-        }
-        catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
+        this.value = java.lang.Integer.parseInt(strValue);
     }
 
     public Integer getValue() {
