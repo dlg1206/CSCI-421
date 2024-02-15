@@ -1,9 +1,9 @@
 package sm;
 
-import sm.tmp.DataType;
+
+import dataTypes.DataType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
