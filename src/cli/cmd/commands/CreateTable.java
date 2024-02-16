@@ -1,8 +1,12 @@
 package cli.cmd.commands;
 
+import java.util.Set;
+
 import catalog.ICatalog;
+
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+
 import sm.StorageManager;
 
 /**
@@ -13,6 +17,8 @@ import sm.StorageManager;
  * @author Derek Garcia
  */
 public class CreateTable extends Command {
+
+    private ICatalog catalog;
 
     public CreateTable(String args) throws InvalidUsage {
         // Create Table Syntax Validation
@@ -43,7 +49,15 @@ public class CreateTable extends Command {
                 throw new InvalidUsage(args, errorMessage);
             }
         }
-        
+
+        // Create Table Semantical Validation
+        String [] tempLst = args.toLowerCase().split("table");
+        String tableName = tempLst[1].substring(0, tempLst[1].indexOf("("));
+
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(tableName)){
+            throw new InvalidUsage(args, "Table " + tableName + " Already Exists");
+        }
 
     }
 
@@ -53,7 +67,7 @@ public class CreateTable extends Command {
     }
 
     @Override
-    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
+    public void execute() throws ExecutionFailure {
         // TODO
     }
 }

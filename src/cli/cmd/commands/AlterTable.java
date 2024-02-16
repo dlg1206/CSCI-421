@@ -1,9 +1,16 @@
 package cli.cmd.commands;
 
-import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+
 import sm.StorageManager;
+
+import catalog.ICatalog;
+import catalog.Table;
+import catalog.Attribute;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -13,6 +20,9 @@ import sm.StorageManager;
  * @author Derek Garcia
  */
 public class AlterTable extends Command {
+
+    private ICatalog catalog;
+
     public AlterTable(String args) throws InvalidUsage {
         // Alter Table Syntax Validation
         String[] input = args.strip().split(" ");
@@ -34,7 +44,36 @@ public class AlterTable extends Command {
             throw new InvalidUsage(args, errorMessage);
         }
 
-        
+        String[] tempName = args.toLowerCase().split("table");
+        String tableName = tempName[1].split(" ")[1];
+        System.out.println(tableName);
+
+        // Alter Table Semantic Validation
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(tableName)){
+            throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
+        }
+
+        Table table = catalog.getRecordSchema(tableName);
+        List<Attribute> attributes = table.getAttributes();
+
+        if(args.contains("drop")){
+            tempName = args.split("drop");
+            String attributeName = tempName[0];
+            Boolean checkExist = true;
+            for (Attribute att : attributes) {
+                if(att.getName().equals(attributeName)){
+                    checkExist = false;
+                }
+            }
+            if(checkExist){
+                throw new InvalidUsage(args, "This Table does not Contain the Attribute: " + tableName);
+            }
+        }
+
+
+
+
     }
 
     @Override
@@ -43,7 +82,7 @@ public class AlterTable extends Command {
     }
 
     @Override
-    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
+    public void execute() throws ExecutionFailure {
         // TODO
     }
 }

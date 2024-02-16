@@ -28,7 +28,7 @@ public class DropTable extends Command {
         String table = input[2];
         Set<String> allTables = catalog.getExistingTableNames();
         if(!allTables.contains(table)){
-            throw new InvalidUsage(args, "This Table does not Exist in the Catalog");
+            throw new InvalidUsage(args, "Table " + table + " does not Exist in the Catalog");
         }
     }
 
