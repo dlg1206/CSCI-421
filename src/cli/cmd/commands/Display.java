@@ -1,7 +1,10 @@
 package cli.cmd.commands;
 
+
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+import catalog.Catalog;
+import java.util.Set;
 
 /**
  * <b>File:</b> Display.java
@@ -12,12 +15,22 @@ import cli.cmd.exception.InvalidUsage;
  */
 public class Display extends Command {
 
+    private Catalog catalog;
+
     public Display(String args) throws InvalidUsage {
         // Display Info Syntax Validation
         String[] input = args.strip().split(" ");
         if (!args.toLowerCase().contains("info") || input.length != 3) {
             throw new InvalidUsage(args, "Correct Usage: (display info <table>;)");
         }
+        // Display Info Semantical Validation
+        String table = input[2];
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(table)){
+            throw new InvalidUsage(args, "This Table does not Exist in the Catalog");
+        }
+        
+
     }
 
     @Override
