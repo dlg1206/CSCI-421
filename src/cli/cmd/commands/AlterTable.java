@@ -1,7 +1,15 @@
 package cli.cmd.commands;
 
+import catalog.Attribute;
+import catalog.Catalog;
+import catalog.Table;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+
+import catalog.Catalog;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -11,6 +19,9 @@ import cli.cmd.exception.InvalidUsage;
  * @author Derek Garcia
  */
 public class AlterTable extends Command {
+
+    private Catalog catalog;
+
     public AlterTable(String args) throws InvalidUsage {
         // Alter Table Syntax Validation
         String[] input = args.strip().split(" ");
@@ -31,6 +42,35 @@ public class AlterTable extends Command {
         if (!isValid) {
             throw new InvalidUsage(args, errorMessage);
         }
+
+        String[] tempName = args.toLowerCase().split("table");
+        String tableName = tempName[1].split(" ")[1];
+        System.out.println(tableName);
+
+        // Alter Table Semantic Validation
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(tableName)){
+            throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
+        }
+
+        Table table = catalog.getRecordSchema(tableName);
+        List<Attribute> attributes = table.getAttributes();
+
+        if(args.contains("drop")){
+            tempName = args.split("drop");
+            String attributeName = tempName[0];
+            Boolean checkExist = true;
+            for (Attribute att : attributes) {
+                if(att.getName().equals(attributeName)){
+                    checkExist = false;
+                }
+            }
+            if(checkExist){
+                throw new InvalidUsage(args, "This Table does not Contain the Attribute: " + tableName);
+            }
+        }
+
+        
 
         
     }

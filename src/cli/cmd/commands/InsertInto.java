@@ -68,7 +68,7 @@ public class InsertInto extends Command {
         }
         // Insert Into Semantical Validation
         if(!catalog.getExistingTableNames().contains(tableName)){
-            throw new InvalidUsage(args, "This Table Does Not Exist in the Catalog");
+            throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
         }
         Table table = catalog.getRecordSchema(tableName);
         List<Attribute> attributes = table.getAttributes();
@@ -98,13 +98,12 @@ public class InsertInto extends Command {
 
     public static List<String> splitStringWithQuotes(String input) {
         List<String> tokens = new ArrayList<>();
-        // The updated pattern below will now correctly handle the "3" and "\"baz\"" case
         Pattern pattern = Pattern.compile("(?<=\\))|(?=\\()|\"[^\"]*\"|(\\S+?)(?=(\\s|$))");
         Matcher matcher = pattern.matcher(input);
 
         while (matcher.find()) {
             String match = matcher.group();
-            if (!match.isEmpty()) { // avoid adding empty strings due to the lookaround matches at the start and end
+            if (!match.isEmpty()) { 
                 tokens.add(match);
             }
         }
@@ -112,12 +111,12 @@ public class InsertInto extends Command {
         // Post-processing to handle cases like 3"baz" 
         List<String> processedTokens = new ArrayList<>();
         for (String token : tokens) {
-            if (token.matches("\\d+\"[^\"]*\"")) { // matches a number directly followed by a quoted string
+            if (token.matches("\\d+\"[^\"]*\"")) { 
                 // Split into number and quoted string
                 Matcher numberQuotedStringMatcher = Pattern.compile("(\\d+)(\"[^\"]*\")").matcher(token);
                 if (numberQuotedStringMatcher.find()) {
-                    processedTokens.add(numberQuotedStringMatcher.group(1)); // number part
-                    processedTokens.add(numberQuotedStringMatcher.group(2)); // quoted string part
+                    processedTokens.add(numberQuotedStringMatcher.group(1)); 
+                    processedTokens.add(numberQuotedStringMatcher.group(2)); 
                 }
             } else {
                 processedTokens.add(token);
