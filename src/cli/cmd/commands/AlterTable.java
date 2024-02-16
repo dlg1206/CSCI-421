@@ -45,7 +45,7 @@ public class AlterTable extends Command {
 
         String[] tempName = args.toLowerCase().split("table");
         String tableName = tempName[1].split(" ")[1];
-        System.out.println(tableName);
+
 
         // Alter Table Semantic Validation
         Set<String> allTables = catalog.getExistingTableNames();
@@ -58,7 +58,8 @@ public class AlterTable extends Command {
 
         if(args.contains("drop")){
             tempName = args.split("drop");
-            String attributeName = tempName[0];
+            String attributeName = tempName[1].substring(0,tempName[1].indexOf(";")).strip();
+            System.out.println(attributeName);
             Boolean checkExist = true;
             for (Attribute att : attributes) {
                 if(att.getName().equals(attributeName)){
