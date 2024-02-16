@@ -1,8 +1,9 @@
 package cli.cmd.commands;
 
-import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+import catalog.ICatalog;
+import java.util.Set;
 import sm.StorageManager;
 
 /**
@@ -14,12 +15,22 @@ import sm.StorageManager;
  */
 public class Display extends Command {
 
+    private ICatalog catalog;
+
     public Display(String args) throws InvalidUsage {
         // Display Info Syntax Validation
         String[] input = args.strip().split(" ");
         if (!args.toLowerCase().contains("info") || input.length != 3) {
             throw new InvalidUsage(args, "Correct Usage: (display info <table>;)");
         }
+        // Display Info Semantical Validation
+        String table = input[2];
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(table)){
+            throw new InvalidUsage(args, "This Table does not Exist in the Catalog");
+        }
+
+
     }
 
     @Override
@@ -28,7 +39,7 @@ public class Display extends Command {
     }
 
     @Override
-    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
+    public void execute() throws ExecutionFailure {
         // TODO
     }
 }
