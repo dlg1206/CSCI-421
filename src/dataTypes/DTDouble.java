@@ -39,6 +39,10 @@ public class DTDouble implements DataType, Comparable<DataType> {
     }
 
     @Override
+    public String stringValue() {
+        return value.toString();
+    }
+
     public int compareTo(DataType o) {
         if (o instanceof DTDouble) {
             return ((DTDouble) o).value.compareTo(this.value);

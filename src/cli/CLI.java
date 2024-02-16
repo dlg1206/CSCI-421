@@ -1,9 +1,11 @@
 package cli;
 
+import catalog.Catalog;
 import cli.cmd.CommandFactory;
 import cli.cmd.commands.Command;
 import cli.cmd.exception.CommandException;
 import cli.util.Console;
+import sm.StorageManager;
 
 /**
  * <b>File:</b> CLI.java
@@ -13,6 +15,14 @@ import cli.util.Console;
  * @author Derek Garcia
  */
 public class CLI {
+
+    private Catalog DBCatalog;
+    private StorageManager DBStorageManager;
+
+    public CLI(Catalog catalog, StorageManager storageManager) {
+        DBCatalog = catalog;
+        DBStorageManager = storageManager;
+    }
 
     /**
      * Code to be executed prior to launching the cli
@@ -68,7 +78,7 @@ public class CLI {
             // Try to build and execute the command
             try{
                 Command cmd = CommandFactory.buildCommand(stdin);
-                cmd.execute();
+                cmd.execute(DBCatalog, DBStorageManager);
             } catch (CommandException e){
                 // fail if error with command
                 Console.err(e.getMessage());

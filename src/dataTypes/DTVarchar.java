@@ -34,6 +34,10 @@ public class DTVarchar implements DataType, Comparable<DataType> {
     }
 
     @Override
+    public String stringValue() {
+        return value;
+    }
+
     public int compareTo(DataType o) {
         if (o instanceof DTVarchar) {
             return ((DTVarchar) o).value.compareTo(this.value);

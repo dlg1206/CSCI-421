@@ -31,6 +31,11 @@ public class Attribute implements IAttribute {
         MaxDataLength = maxDataLength;
     }
 
+    public Attribute(String name, AttributeType type, int maxDataLength, boolean unique, boolean nullable, boolean primaryKey) {
+        this(name, type, unique, nullable, primaryKey);
+        MaxDataLength = maxDataLength;
+    }
+
     @Override
     public String getName() {
         return Name;

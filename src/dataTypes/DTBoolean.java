@@ -37,6 +37,10 @@ public class DTBoolean implements DataType, Comparable<DataType> {
     }
 
     @Override
+    public String stringValue() {
+        return value ? "T" : "F";
+    }
+  
     public int compareTo(DataType o) {
         if (o instanceof DTBoolean) {
             return ((DTBoolean) o).value.compareTo(this.value);

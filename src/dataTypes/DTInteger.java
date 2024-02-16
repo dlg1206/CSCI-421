@@ -39,6 +39,10 @@ public class DTInteger implements DataType, Comparable<DataType> {
     }
 
     @Override
+    public String stringValue() {
+        return value.toString();
+    }
+
     public int compareTo(DataType o) {
         if (o instanceof DTInteger) {
             return ((DTInteger) o).value.compareTo(this.value);
