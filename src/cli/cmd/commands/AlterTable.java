@@ -3,6 +3,7 @@ package cli.cmd.commands;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 
+import dataTypes.AttributeType;
 import sm.StorageManager;
 
 import catalog.ICatalog;
@@ -24,33 +25,38 @@ public class AlterTable extends Command {
     private ICatalog catalog;
     private StorageManager sm;
 
+    private String tableName;
+    private String attributeName;
+    private AttributeType newType = null;
+    private Integer maxDataLength = null;
+
     public AlterTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
         this.sm = storageManager;
 
         // Alter Table Syntax Validation
-        String[] input = args.strip().split(" ");
+        List<String> input = getInput(args);
         String errorMessage = "Correct Usage: (alter table <name> drop <a_name>;" +
                             "\n alter table <name> add <a_name> <a_type>;" +
                             "\n alter table <name> add <a_name> <a_type> default <value>);";
 
-        if (input.length < 5 || !input[1].equalsIgnoreCase("table")) {
+        if (input.size() < 5 || !input.get(1).equalsIgnoreCase("table")) {
             throw new InvalidUsage(args, errorMessage);
         }
 
-        boolean isValid = switch (input.length) {
-            case 5 -> input[3].equalsIgnoreCase("drop");
-            case 6 -> input[3].equalsIgnoreCase("add");
-            default -> input[3].equalsIgnoreCase("add") && input[6].equalsIgnoreCase("default");
+        boolean isValid = switch (input.size()) {
+            case 5 -> input.get(3).equalsIgnoreCase("drop");
+            case 6 -> input.get(3).equalsIgnoreCase("add");
+            case 8 -> input.get(3).equalsIgnoreCase("add") && input.get(6).equalsIgnoreCase("default");
+            default -> false;
         };
 
         if (!isValid) {
             throw new InvalidUsage(args, errorMessage);
         }
 
-        String[] tempName = args.toLowerCase().split("table");
-        String tableName = tempName[1].split(" ")[1];
+        tableName = input.get(2);
 
 
         // Alter Table Semantic Validation
@@ -62,18 +68,46 @@ public class AlterTable extends Command {
         Table table = catalog.getRecordSchema(tableName);
         List<Attribute> attributes = table.getAttributes();
 
-        if(args.contains("drop")){
-            tempName = args.split("drop");
-            String attributeName = tempName[1].substring(0,tempName[1].indexOf(";")).strip();
-            Boolean checkExist = true;
-            for (Attribute att : attributes) {
-                if(att.getName().equals(attributeName)){
-                    checkExist = false;
+        attributeName = input.get(4).toLowerCase();
+        List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).toList();
+        if (input.get(3).equalsIgnoreCase("drop")){
+            if (!tableAttributeNames.contains(attributeName)){
+                throw new InvalidUsage(args, "The table '%s' does not contain the attribute '%s'.".formatted(tableName, attributeName));
+            }
+        }
+        else {
+            if (tableAttributeNames.contains(attributeName)){
+                throw new InvalidUsage(args, "The table '%s' already contains the attribute '%s'.".formatted(tableName, attributeName));
+            }
+
+            String[] newAttributeData = input.get(5).split("\\(");
+            String typeString = newAttributeData[0].toUpperCase();
+
+            try {
+                newType = AttributeType.valueOf(typeString);
+            } catch (IllegalArgumentException iae) {
+                throw new InvalidUsage(args, "'%s' is not a valid attribute type.".formatted(typeString));
+            }
+
+            switch (newType) {
+                case INTEGER, DOUBLE, BOOLEAN -> {
+                    if (newAttributeData.length != 1) {
+                        throw new InvalidUsage(args, "Attributes of type INTEGER, DOUBLE, or BOOLEAN do not require a max length.");
+                    }
+                }
+                default -> {
+                    if (newAttributeData.length != 2) {
+                        throw new InvalidUsage(args, "Attributes of type CHAR or VARCHAR require a max length.");
+                    }
+                    String maxLengthString = newAttributeData[1];
+                    try {
+                        maxDataLength = Integer.parseInt(maxLengthString.substring(1, maxLengthString.length() - 1));
+                    } catch (NumberFormatException nfe) {
+                        throw new InvalidUsage(args, "The attribute's max length must be an integer.");
+                    }
                 }
             }
-            if(checkExist){
-                throw new InvalidUsage(args, "This Table does not Contain the Attribute: " + tableName);
-            }
+
         }
     }
 
