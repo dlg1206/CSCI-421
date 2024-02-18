@@ -2,15 +2,18 @@ package cli.cmd.commands;
 
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+
 import dataTypes.AttributeType;
 import dataTypes.DTBoolean;
 import dataTypes.DTChar;
 import dataTypes.DTDouble;
 import dataTypes.DTInteger;
 import dataTypes.DTVarchar;
+
 import catalog.ICatalog;
 import catalog.Attribute;
 import catalog.Table;
+
 import sm.StorageManager;
 
 import java.util.ArrayList;
@@ -45,7 +48,7 @@ public class InsertInto extends Command {
             throw new InvalidUsage(args, "Correct Usage: (insert into <name> values <tuples>);");
         }
         
-        String[] input1 = values[0].strip().split(" ");
+        String[] input1 = values[0].strip().split("\\s+");
         if (input1.length != 3 || !input1[1].equalsIgnoreCase("into")) {
             throw new InvalidUsage(args, "Correct Usage: (insert into <name> values <tuples>);");
         }
@@ -84,14 +87,9 @@ public class InsertInto extends Command {
                     case BOOLEAN -> result = new DTBoolean(stringVal);
                     case CHAR -> result = new DTChar(stringVal);
                     case VARCHAR -> result = new DTVarchar(stringVal);
-
-
                 }
-
             }
-
         }
-
     }
 
     public static List<String> splitStringWithQuotes(String input) {
@@ -101,7 +99,7 @@ public class InsertInto extends Command {
 
         while (matcher.find()) {
             String match = matcher.group();
-            if (!match.isEmpty()) { 
+            if (!match.isEmpty()) {
                 tokens.add(match);
             }
         }
@@ -109,12 +107,12 @@ public class InsertInto extends Command {
         // Post-processing to handle cases like 3"baz"
         List<String> processedTokens = new ArrayList<>();
         for (String token : tokens) {
-            if (token.matches("\\d+\"[^\"]*\"")) { 
+            if (token.matches("\\d+\"[^\"]*\"")) {
                 // Split into number and quoted string
                 Matcher numberQuotedStringMatcher = Pattern.compile("(\\d+)(\"[^\"]*\")").matcher(token);
                 if (numberQuotedStringMatcher.find()) {
-                    processedTokens.add(numberQuotedStringMatcher.group(1)); 
-                    processedTokens.add(numberQuotedStringMatcher.group(2)); 
+                    processedTokens.add(numberQuotedStringMatcher.group(1));
+                    processedTokens.add(numberQuotedStringMatcher.group(2));
                 }
             } else {
                 processedTokens.add(token);

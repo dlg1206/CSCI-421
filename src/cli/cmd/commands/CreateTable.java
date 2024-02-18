@@ -58,7 +58,6 @@ public class CreateTable extends Command {
         if(!allTables.contains(tableName)){
             throw new InvalidUsage(args, "Table " + tableName + " Already Exists");
         }
-
     }
 
     @Override

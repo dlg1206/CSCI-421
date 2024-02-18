@@ -29,8 +29,6 @@ public class Display extends Command {
         if(!allTables.contains(table)){
             throw new InvalidUsage(args, "Table " + table + " does not Exist in the Catalog");
         }
-
-
     }
 
     @Override

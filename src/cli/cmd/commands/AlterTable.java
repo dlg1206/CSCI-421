@@ -70,10 +70,6 @@ public class AlterTable extends Command {
                 throw new InvalidUsage(args, "This Table does not Contain the Attribute: " + tableName);
             }
         }
-
-
-
-
     }
 
     @Override
