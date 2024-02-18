@@ -22,8 +22,13 @@ import java.util.Set;
 public class AlterTable extends Command {
 
     private ICatalog catalog;
+    private StorageManager sm;
 
-    public AlterTable(String args) throws InvalidUsage {
+    public AlterTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Alter Table Syntax Validation
         String[] input = args.strip().split(" ");
         String errorMessage = "Correct Usage: (alter table <name> drop <a_name>;" +

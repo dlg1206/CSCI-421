@@ -19,8 +19,13 @@ import sm.StorageManager;
 public class CreateTable extends Command {
 
     private ICatalog catalog;
+    private StorageManager sm;
 
-    public CreateTable(String args) throws InvalidUsage {
+    public CreateTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Create Table Syntax Validation
         String errorMessage = "Correct Usage: create table <table_name> (" +
                             "<column_name> <data_type> [constraints], ...);";

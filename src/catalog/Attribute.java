@@ -52,10 +52,7 @@ public class Attribute implements IAttribute {
     }
 
     @Override
-    public int getMaxDataLength() throws NotSupportedConstraint {
-        if (MaxDataLength == null) {
-            throw new NotSupportedConstraint("Max Data Length is only supported on Varchar and Char DataTypes.");
-        }
+    public int getMaxDataLength() {
         return MaxDataLength;
     }
 

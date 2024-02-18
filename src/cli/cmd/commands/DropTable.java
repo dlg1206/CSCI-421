@@ -17,8 +17,13 @@ import sm.StorageManager;
 public class DropTable extends Command {
 
     private ICatalog catalog;
+    private StorageManager sm;
 
-    public DropTable(String args) throws InvalidUsage {
+    public DropTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Drop Table Syntax Validation
         String[] input = args.strip().split(" ");
         if (!args.toLowerCase().contains("table") || input.length != 3) {

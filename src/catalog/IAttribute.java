@@ -6,7 +6,7 @@ public interface IAttribute {
     String getName();
     AttributeType getDataType();
     boolean isNullable();
-    int getMaxDataLength() throws NotSupportedConstraint;
+    int getMaxDataLength();
     boolean isUnique();
     boolean isPrimaryKey();
 }

@@ -21,5 +21,5 @@ public abstract class Command {
     /**
      * Execute the command
      */
-    public abstract void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure;
+    public abstract void execute() throws ExecutionFailure;
 }

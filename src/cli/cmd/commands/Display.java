@@ -16,8 +16,13 @@ import sm.StorageManager;
 public class Display extends Command {
 
     private ICatalog catalog;
+    private StorageManager sm;
 
-    public Display(String args) throws InvalidUsage {
+    public Display(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Display Info Syntax Validation
         String[] input = args.strip().split(" ");
         if (!args.toLowerCase().contains("info") || input.length != 3) {
