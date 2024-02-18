@@ -31,7 +31,7 @@ public class Select extends Command {
     private static final int EXTRA_SPACES = 2;
     private static final String TABLE_DNE_MSG = "Table %s does not exist in the Catalog";
 
-    String tableName;
+    private final String tableName;
 
     public Select(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
