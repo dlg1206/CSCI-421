@@ -10,15 +10,7 @@ public class Attribute implements IAttribute {
     private final boolean Nullable;
     private final boolean PrimaryKey;
 
-    public Attribute(String name, String type, boolean unique, boolean nullable, boolean primaryKey) {
-        Name = name;
-        Type = AttributeType.valueOf(type.toUpperCase());
-        Unique = unique;
-        Nullable = nullable;
-        PrimaryKey = primaryKey;
-    }
-
-    public Attribute(String name, AttributeType type, boolean unique, boolean nullable, boolean primaryKey) {
+    private Attribute(String name, AttributeType type, boolean unique, boolean nullable, boolean primaryKey) {
         Name = name;
         Type = type;
         Unique = unique;
@@ -26,13 +18,39 @@ public class Attribute implements IAttribute {
         PrimaryKey = primaryKey;
     }
 
-    public Attribute(String name, String type, int maxDataLength, boolean unique, boolean nullable, boolean primaryKey) {
-        this(name, type, unique, nullable, primaryKey);
+    public Attribute(String name, String type, boolean unique, boolean nullable) {
+        this(name, AttributeType.valueOf(type.toUpperCase()), unique, nullable, false);
+    }
+
+    public Attribute(String name, AttributeType type, boolean unique, boolean nullable) {
+        this(name, type, unique, nullable, false);
+    }
+
+    public Attribute(String name, String type, int maxDataLength, boolean unique, boolean nullable) {
+        this(name, AttributeType.valueOf(type.toUpperCase()), unique, nullable, false);
         MaxDataLength = maxDataLength;
     }
 
-    public Attribute(String name, AttributeType type, int maxDataLength, boolean unique, boolean nullable, boolean primaryKey) {
-        this(name, type, unique, nullable, primaryKey);
+    public Attribute(String name, AttributeType type, int maxDataLength, boolean unique, boolean nullable) {
+        this(name, type, unique, nullable, false);
+        MaxDataLength = maxDataLength;
+    }
+
+    public Attribute(String name, String type) {
+        this(name, AttributeType.valueOf(type.toUpperCase()), true, false, true);
+    }
+
+    public Attribute(String name, AttributeType type) {
+        this(name, type, true, false, true);
+    }
+
+    public Attribute(String name, String type, int maxDataLength) {
+        this(name, AttributeType.valueOf(type.toUpperCase()), true, false, true);
+        MaxDataLength = maxDataLength;
+    }
+
+    public Attribute(String name, AttributeType type, int maxDataLength) {
+        this(name, type, true, false, true);
         MaxDataLength = maxDataLength;
     }
 
