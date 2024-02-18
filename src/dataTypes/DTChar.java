@@ -4,11 +4,14 @@ public class DTChar implements DataType, Comparable<DataType> {
     private String value;
     private int maxLength;
 
+    private final String padding = "\0";
+
     public DTChar(byte[] byteValue, int maxLength) {
         if (byteValue == null)
             return;
-        
-        this.value = new String(byteValue);
+
+        // replace removes any padding that was added when writing to hardware
+        this.value = new String(byteValue).replace(padding, "");
         this.maxLength = maxLength;
     }
 
@@ -23,7 +26,9 @@ public class DTChar implements DataType, Comparable<DataType> {
 
     @Override
     public byte[] convertToBytes() {
-        return value.getBytes();
+        // add padding to reach max length
+        int paddingLen = maxLength - value.length();
+        return (value + padding.repeat(paddingLen)).getBytes();
     }
 
     @Override
