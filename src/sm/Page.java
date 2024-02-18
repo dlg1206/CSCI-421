@@ -6,6 +6,7 @@ import catalog.Attribute;
 import catalog.NotSupportedConstraint;
 import dataTypes.*;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,6 +49,7 @@ class Page {
         this.records = convertToRecords(data);
     }
 
+    // used whe reading a page from hardware
     private List<Record> convertToRecords(byte[] data) {
         List<Record> records = new ArrayList<>();
         int numRecords = data[0];
@@ -114,13 +116,13 @@ class Page {
 
                         // check if attribute is null
                         if (getBit(bitmap, j) == 1) {
-                            dataTypes.add(new DTChar((byte[]) null));
+                            dataTypes.add(new DTChar((byte[]) null, 0));
                         }
                         else {
                             try {
                                 int length = attributes.get(j).getMaxDataLength(); // get max length of char
 
-                                dataTypes.add(new DTChar(Arrays.copyOfRange(data, dataIdx, dataIdx + length)));
+                                dataTypes.add(new DTChar(Arrays.copyOfRange(data, dataIdx, dataIdx + length), length));
                                 dataIdx += length;
                             } catch (NotSupportedConstraint e) {
                                 e.printStackTrace();
@@ -164,6 +166,15 @@ class Page {
         return (b >> bitPos) & 1;
     }
 
+    public static void setBit(byte[] ba, int pos, int val) {
+        int posByte = pos/8;
+        int posBit = pos%8;
+        byte oldByte = ba[posByte];
+        oldByte = (byte) (((0xFF7F>>posBit) & oldByte) & 0x00FF);
+        byte newByte = (byte) ((val<<(8-(posBit+1))) | oldByte);
+        ba[posByte] = newByte;
+    }
+
     /**
      * Get all records from page
      *
@@ -173,9 +184,52 @@ class Page {
         return records;
     }
 
+    // used when writing a page to hardware
     public byte[] convertToBytes () {
-        // TODO
-        return null;
+        ByteArrayOutputStream pageData = new ByteArrayOutputStream();
+
+        // write number of records (1 byte)
+        pageData.write((char) records.size());
+
+        int bitmapSize = ((attributes.size()-1) / 8) + 1;
+
+        // write each record
+        for (Record record: records) {
+            byte[] bitmap = new byte[bitmapSize];
+
+            ByteArrayOutputStream recordData = new ByteArrayOutputStream();
+
+            for (int i = 0; i < record.data.size(); i++) {
+                DataType dataType = record.data.get(i);
+
+                // if null, set bit in null bitmap
+                // don't write any data
+                if (dataType.isNull()) {
+                    setBit(bitmap, i, 1);
+                    continue;
+                }
+
+                if (dataType instanceof DTVarchar) {
+                    byte[] varcharData = dataType.convertToBytes();
+
+                    // for varchar, must write 1 byte for the length
+                    recordData.write((char) varcharData.length);
+                    recordData.writeBytes(varcharData);
+                }
+                else {
+                    recordData.writeBytes(dataType.convertToBytes());
+                }
+
+            }
+
+            pageData.writeBytes(bitmap);
+            pageData.writeBytes(recordData.toByteArray());
+
+        }
+
+        // TODO pad page using page size?
+
+        return pageData.toByteArray();
     }
 
 }
