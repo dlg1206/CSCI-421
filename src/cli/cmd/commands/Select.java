@@ -40,11 +40,11 @@ public class Select extends Command {
         this.sm = storageManager;
 
         // Select String Syntax Validation
-        String[] userInput = args.strip().split(" ");
-        if(userInput.length != 4 || !userInput[1].equals("*") || !userInput[2].equalsIgnoreCase("from")){
+        List<String> input = getInput(args);
+        if(input.size() != 4 || !input.get(1).equals("*") || !input.get(2).equalsIgnoreCase("from")){
             throw new InvalidUsage(args, "Correct Usage: (Select * From <table name>;)");
         }
-        tableName = userInput[3].replace(";", "");
+        tableName = input.get(3);
 
         Set<String> allTables = catalog.getExistingTableNames();
 
