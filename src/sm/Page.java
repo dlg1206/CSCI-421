@@ -120,7 +120,6 @@ class Page {
                             try {
                                 int length = attributes.get(j).getMaxDataLength(); // get max length of char
 
-                                // TODO padding must be removed
                                 dataTypes.add(new DTChar(Arrays.copyOfRange(data, dataIdx, dataIdx + length)));
                                 dataIdx += length;
                             } catch (NotSupportedConstraint e) {

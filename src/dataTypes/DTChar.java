@@ -2,16 +2,19 @@ package dataTypes;
 
 public class DTChar implements DataType, Comparable<DataType> {
     private String value;
+    private int maxLength;
 
-    public DTChar(byte[] byteValue) {
+    public DTChar(byte[] byteValue, int maxLength) {
         if (byteValue == null)
             return;
-
+        
         this.value = new String(byteValue);
+        this.maxLength = maxLength;
     }
 
-    public DTChar(String strValue) {
+    public DTChar(String strValue, int maxLength) {
         this.value = strValue;
+        this.maxLength = maxLength;
     }
 
     public String getValue() {
