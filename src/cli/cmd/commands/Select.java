@@ -2,7 +2,6 @@ package cli.cmd.commands;
 
 import catalog.Attribute;
 import catalog.ICatalog;
-import catalog.NotSupportedConstraint;
 import catalog.Table;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;

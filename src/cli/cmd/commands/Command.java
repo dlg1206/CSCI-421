@@ -1,8 +1,6 @@
 package cli.cmd.commands;
 
-import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
-import sm.StorageManager;
 
 import java.util.Arrays;
 import java.util.List;
