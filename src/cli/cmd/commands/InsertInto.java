@@ -29,7 +29,7 @@ public class InsertInto extends Command {
     private final StorageManager sm;
     private final List<List<DataType>> parsedValues = new ArrayList<>();
 
-    private String tableName;
+    private final String tableName;
 
     private static final String CORRECT_USAGE_MSG = "Correct Usage: (insert into <name> values <tuples>);";
     private static final String TABLE_DNE_MSG = "Table %s does not exist in the Catalog";

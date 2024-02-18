@@ -17,8 +17,8 @@ import sm.StorageManager;
  */
 public class Display extends Command {
 
-    private ICatalog catalog;
-    private StorageManager sm;
+    private final ICatalog catalog;
+    private final StorageManager sm;
 
     private final String tableName;
 

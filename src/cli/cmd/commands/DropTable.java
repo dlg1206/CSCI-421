@@ -20,7 +20,7 @@ public class DropTable extends Command {
     private final ICatalog catalog;
     private final StorageManager sm;
 
-    private String tableName;
+    private final String tableName;
 
     public DropTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 

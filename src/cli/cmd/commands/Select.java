@@ -24,8 +24,8 @@ import java.util.stream.Stream;
  */
 public class Select extends Command {
 
-    private ICatalog catalog;
-    private StorageManager sm;
+    private final ICatalog catalog;
+    private final StorageManager sm;
 
     private static final int MIN_WIDTH = 3;
     private static final int EXTRA_SPACES = 2;

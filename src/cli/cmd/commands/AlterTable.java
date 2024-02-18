@@ -22,11 +22,11 @@ import java.util.Set;
  */
 public class AlterTable extends Command {
 
-    private ICatalog catalog;
-    private StorageManager sm;
+    private final ICatalog catalog;
+    private final StorageManager sm;
 
-    private String tableName;
-    private String attributeName;
+    private final String tableName;
+    private final String attributeName;
     private AttributeType newType = null;
     private Integer maxDataLength = null;
 
@@ -37,9 +37,10 @@ public class AlterTable extends Command {
 
         // Alter Table Syntax Validation
         List<String> input = getInput(args);
-        String errorMessage = "Correct Usage: (alter table <name> drop <a_name>;" +
-                            "\n alter table <name> add <a_name> <a_type>;" +
-                            "\n alter table <name> add <a_name> <a_type> default <value>);";
+        String errorMessage = """
+                Correct Usage: (alter table <name> drop <a_name>;
+                 alter table <name> add <a_name> <a_type>;
+                 alter table <name> add <a_name> <a_type> default <value>);""";
 
         if (input.size() < 5 || !input.get(1).equalsIgnoreCase("table")) {
             throw new InvalidUsage(args, errorMessage);
