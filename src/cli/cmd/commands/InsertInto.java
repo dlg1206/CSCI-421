@@ -29,6 +29,8 @@ public class InsertInto extends Command {
     private final StorageManager sm;
     private final List<List<DataType>> parsedValues = new ArrayList<>();
 
+    private String tableName;
+
     private static final String CORRECT_USAGE_MSG = "Correct Usage: (insert into <name> values <tuples>);";
     private static final String TABLE_DNE_MSG = "Table %s does not exist in the Catalog";
     private static final String UNEQUAL_ATTR_MSG = "Table %s expects %s attributes and you provided %s for tuple #%s";
@@ -56,7 +58,7 @@ public class InsertInto extends Command {
         if (input1.length != 3 || !input1[1].equalsIgnoreCase("into")) {
             throw new InvalidUsage(args, CORRECT_USAGE_MSG);
         }
-        String tableName = input1[2];
+        tableName = input1[2];
         String valuesString = values[1].replace(";", " ").replace(")", "");
 
         // Takes all values and puts them in a list where each element is its own tuple
