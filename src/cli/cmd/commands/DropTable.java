@@ -1,5 +1,7 @@
 package cli.cmd.commands;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import cli.cmd.exception.ExecutionFailure;
@@ -16,8 +18,10 @@ import sm.StorageManager;
  */
 public class DropTable extends Command {
 
-    private ICatalog catalog;
-    private StorageManager sm;
+    private final ICatalog catalog;
+    private final StorageManager sm;
+
+    private String tableName;
 
     public DropTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
@@ -25,15 +29,15 @@ public class DropTable extends Command {
         this.sm = storageManager;
 
         // Drop Table Syntax Validation
-        String[] input = args.strip().split(" ");
-        if (!args.toLowerCase().contains("table") || input.length != 3) {
+        List<String> input = getInput(args);
+        if (!args.toLowerCase().contains("table") || input.size() != 3) {
             throw new InvalidUsage(args, "Correct Usage: (drop table <table>;)");
         }
         // Display Info Semantical Validation
-        String table = input[2];
+        tableName = input.get(2);
         Set<String> allTables = catalog.getExistingTableNames();
-        if(!allTables.contains(table)){
-            throw new InvalidUsage(args, "Table " + table + " does not Exist in the Catalog");
+        if(!allTables.contains(tableName)){
+            throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
         }
     }
 
