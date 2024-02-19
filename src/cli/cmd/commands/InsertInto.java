@@ -114,7 +114,7 @@ public class InsertInto extends Command {
                                 throw new InvalidUsage(args,
                                         INVALID_ATTR_LENGTH_MSG.formatted(attr.getName(), attr.getMaxDataLength(), i));
                             }
-                            result = new DTChar(stringVal);
+                            result = new DTChar(stringVal, attr.getMaxDataLength());
                         }
                         case VARCHAR -> {
                             if (!stringVal.startsWith("\"") || !stringVal.endsWith("\"")) {
