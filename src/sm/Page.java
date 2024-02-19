@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Derek Garcia, Ryan Nowak
  */
-class Page {
+public class Page {
     private int tableID;
     private int number;
     private List<List<DataType>> records = new ArrayList<>();
@@ -28,12 +28,20 @@ class Page {
         this.number = number;
     }
 
-    public void addRecord(List<DataType> record){
-        this.records.add(record);
-    }
+    public void insertRecord(int primaryKeyIndex, List<DataType> record){
 
-    public void addRecords(List<List<DataType>> records){
-        this.records.addAll(records);
+        for(List<DataType> storedRecord : this.records){
+            // -1, s < toAdd. 0, s = r, 1 s > r
+            if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
+                this.records.add(
+                        this.records.indexOf(storedRecord),
+                        record
+                );
+                return;
+            }
+        }
+        // append to end
+        this.records.add(record);
     }
 
 
