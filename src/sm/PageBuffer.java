@@ -39,7 +39,7 @@ class PageBuffer{
 
         for( Page p : this.buffer ){
             // Find page
-            if(p.tableID() == tableID && p.number() == pageNum)
+            if(p.getTableID() == tableID && p.getNumber() == pageNum)
                 return true;
         }
 
@@ -109,7 +109,7 @@ class PageBuffer{
         // Get page from buffer
         for( Page p : this.buffer ){
             // Find page
-            if(p.tableID() == tableID && p.number() == pageNum){
+            if(p.getTableID() == tableID && p.getNumber() == pageNum){
                 page = p;
                 break;
             }

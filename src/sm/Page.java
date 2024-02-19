@@ -5,33 +5,37 @@ package sm;
  * <p>
  * <b>Description:</b> Utility Page object to hold metadata about page
  *
- * @author Derek Garcia
+ * @author Derek Garcia, Ryan Nowak
  */
+class Page {
+    private int tableID;
+    private int number;
+    private byte[] data;
 
-import dataTypes.DataType;
-
-import java.util.List;
-
-/**
- * Create new Page
- *
- * @param tableID Table ID of the page
- * @param number Page Number
- * @param data Raw binary data of the page
- */
-record Page(int tableID, int number, Byte[] data){
-    private int getNumberOfRecords(){
-        // parse data byte array to get number of records
-        return -1;
+    /**
+     * Create new Page
+     *
+     * @param tableID Table ID of the page
+     * @param number  Page Number
+     * @param data    Raw binary data of the page
+     */
+    public Page(int tableID, int number, byte[] data) {
+        this.tableID = tableID;
+        this.number = number;
+        this.data = data;
     }
 
-    private Byte[] getRecordBytes(){
-        // truncate # records from data byte array
-        return null;
+    public int getTableID() {
+        return this.tableID;
     }
 
-    public List<List<DataType>> getAllRecords(){
-        // parse bytes into records and return
-        return null;
+    public int getNumber() {
+        return this.number;
     }
+
+    public byte[] getData() {
+        return this.data;
+    }
+
+
 }

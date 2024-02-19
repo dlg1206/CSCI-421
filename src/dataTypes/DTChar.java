@@ -2,16 +2,22 @@ package dataTypes;
 
 public class DTChar implements DataType, Comparable<DataType> {
     private String value;
+    private int maxLength;
 
-    public DTChar(byte[] byteValue) {
+    private final String padding = "\0";
+
+    public DTChar(byte[] byteValue, int maxLength) {
         if (byteValue == null)
             return;
 
-        this.value = new String(byteValue);
+        // replace removes any padding that was added when writing to hardware
+        this.value = new String(byteValue).replace(padding, "");
+        this.maxLength = maxLength;
     }
 
-    public DTChar(String strValue) {
+    public DTChar(String strValue, int maxLength) {
         this.value = strValue;
+        this.maxLength = maxLength;
     }
 
     public String getValue() {
@@ -20,7 +26,9 @@ public class DTChar implements DataType, Comparable<DataType> {
 
     @Override
     public byte[] convertToBytes() {
-        return value.getBytes();
+        // add padding to reach max length
+        int paddingLen = maxLength - value.length();
+        return (value + padding.repeat(paddingLen)).getBytes();
     }
 
     @Override
