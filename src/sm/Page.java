@@ -1,5 +1,10 @@
 package sm;
 
+import dataTypes.DataType;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * <b>File:</b> Page.java
  * <p>
@@ -10,20 +15,30 @@ package sm;
 class Page {
     private int tableID;
     private int number;
-    private byte[] data;
+    private List<List<DataType>> records = new ArrayList<>();
 
     /**
      * Create new Page
      *
      * @param tableID Table ID of the page
      * @param number  Page Number
-     * @param data    Raw binary data of the page
      */
-    public Page(int tableID, int number, byte[] data) {
+    public Page(int tableID, int number) {
         this.tableID = tableID;
         this.number = number;
-        this.data = data;
     }
+
+    public void addRecord(List<DataType> record){
+        this.records.add(record);
+    }
+
+    public void addRecords(List<List<DataType>> records){
+        this.records.addAll(records);
+    }
+
+
+
+
 
     public int getTableID() {
         return this.tableID;
@@ -31,10 +46,6 @@ class Page {
 
     public int getNumber() {
         return this.number;
-    }
-
-    public byte[] getData() {
-        return this.data;
     }
 
 

@@ -4,6 +4,7 @@ package sm;
 import dataTypes.DataType;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -97,10 +98,12 @@ public class StorageManager {
 
         int pageCount = df.getPageCount();
 
+        // If no records, just add to page
         if( pageCount == 0 ){
-            // todo - add new page to buffer
-            // this.buffer.writeToBuffer(new Page());
-            return;     // return page number?
+            Page page = new Page(tableID, 0);
+            page.addRecord(record);
+            this.buffer.writeToBuffer( page );
+            return;
         }
 
         // Iterate through all pages and attempt to insert the record
