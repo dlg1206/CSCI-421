@@ -13,7 +13,7 @@ import sm.StorageManager;
  * <p>
  * <b>Description: Command to create a new table in the database</b>
  *
- * @author Derek Garcia
+ * @author Derek Garcia, Clinten Hopkins
  */
 public class DropTable extends Command {
 
@@ -47,6 +47,6 @@ public class DropTable extends Command {
 
     @Override
     public void execute() throws ExecutionFailure {
-        // TODO
+        catalog.deleteTable(tableName);
     }
 }
