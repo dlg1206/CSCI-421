@@ -47,7 +47,7 @@ public class StorageManager {
         StorageManager.databasePath = databasePath;
     }
 
-    private void splitTableFile(TableFile df, int splitPageNum){
+    private void splitTableFile(TableFile tf, int splitPageNum){
         /*
         TableSwapFile dsf = df.createSwapFile();
         int pageCount = df.getPageCount();
@@ -102,9 +102,9 @@ public class StorageManager {
     // CREATE
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
-        TableFile df = new TableFile(databasePath, tableID);
+        TableFile tf = new TableFile(databasePath, tableID);
 
-        int pageCount = df.getPageCount();
+        int pageCount = tf.getPageCount();
         int pki = getPrimaryKeyIndex(attributes);
 
         // If no records, just add to page
@@ -115,17 +115,25 @@ public class StorageManager {
             return;
         }
 
+
         // Iterate through all pages and attempt to insert the record
+
         for( int pageNum = 0; pageNum < pageCount; pageNum++){
             Page page = this.buffer.readFromBuffer(tableID, pageNum);
-            /*
-            boolean recordInserted = page.insertRecord(record);
-            if( recordInserted && page.isOverfull() )
-                splitTableFile(pageNum)
+            boolean recordInserted = page.insertRecord(pki, record);
 
-            if( recordInserted )
+            // Record added, split if needed and break
+            if(recordInserted) {
+                if (page.isOverfull())
+                    splitTableFile(tf, pageNum);
                 break;
-             */
+            }
+
+            // Reach end of pages and not inserted, append to end and split if needed
+            if(pageNum == pageCount - 1){
+                page.appendRecord(record);
+                splitTableFile(tf, pageNum);
+            }
         }
 
 

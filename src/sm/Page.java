@@ -41,15 +41,16 @@ class Page {
             }
         }
 
-        // append to end if there's space
-        if(this.records.size() <= this.maxCapacity){
-            this.records.add(record);
-            return true;
-        }
-
         // Record wasn't added
         return false;
+    }
 
+    public void appendRecord(List<DataType> record){
+        this.records.add(record);
+    }
+
+    public boolean isOverfull(){
+        return this.records.size() > this.maxCapacity;
     }
 
 
