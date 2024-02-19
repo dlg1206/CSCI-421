@@ -1,8 +1,10 @@
 package cli.cmd;
 
+import catalog.ICatalog;
 import cli.cmd.commands.*;
 import cli.cmd.exception.CommandException;
 import cli.cmd.exception.UnknownCommand;
+import sm.StorageManager;
 
 /**
  * <b>File:</b> CommandFactory.java
@@ -12,19 +14,19 @@ import cli.cmd.exception.UnknownCommand;
  * @author Derek Garcia
  */
 public class CommandFactory {
-    public static Command buildCommand(String args) throws CommandException {
+    public static Command buildCommand(String args, ICatalog catalog, StorageManager storageManager) throws CommandException {
         // Parse the command keyword
         String cmdKeyword = args.split(" ")[0].replace(";", "");
 
         // Create new Command object based off keyword, error if unrecognized
         // Command constructors handle any bad args / input
         return switch (cmdKeyword.toLowerCase()) {
-            case "create" -> new CreateTable(args);
-            case "drop" -> new DropTable(args);
-            case "alter" -> new AlterTable(args);
-            case "insert" -> new InsertInto(args);
-            case "display" -> new Display(args);
-            case "select" -> new Select(args);
+            case "create" -> new CreateTable(args, catalog, storageManager);
+            case "drop" -> new DropTable(args, catalog, storageManager);
+            case "alter" -> new AlterTable(args, catalog, storageManager);
+            case "insert" -> new InsertInto(args, catalog, storageManager);
+            case "display" -> new Display(args, catalog, storageManager);
+            case "select" -> new Select(args, catalog, storageManager);
             default -> throw new UnknownCommand(cmdKeyword);
         };
     }

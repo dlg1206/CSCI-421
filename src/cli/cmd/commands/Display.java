@@ -1,8 +1,11 @@
 package cli.cmd.commands;
 
-import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
+import catalog.ICatalog;
+
+import java.util.List;
+import java.util.Set;
 import sm.StorageManager;
 
 /**
@@ -14,11 +17,26 @@ import sm.StorageManager;
  */
 public class Display extends Command {
 
-    public Display(String args) throws InvalidUsage {
+    private final ICatalog catalog;
+    private final StorageManager sm;
+
+    private final String tableName;
+
+    public Display(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Display Info Syntax Validation
-        String[] input = args.strip().split(" ");
-        if (!args.toLowerCase().contains("info") || input.length != 3) {
+        List<String> input = getInput(args);
+        if (!args.toLowerCase().contains("info") || input.size() != 3) {
             throw new InvalidUsage(args, "Correct Usage: (display info <table>;)");
+        }
+        // Display Info Semantical Validation
+        tableName = input.get(2);
+        Set<String> allTables = catalog.getExistingTableNames();
+        if(!allTables.contains(tableName)){
+            throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
         }
     }
 
@@ -28,7 +46,7 @@ public class Display extends Command {
     }
 
     @Override
-    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
+    public void execute() throws ExecutionFailure {
         // TODO
     }
 }

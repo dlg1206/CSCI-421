@@ -1,8 +1,9 @@
 package cli.cmd.commands;
 
-import catalog.ICatalog;
 import cli.cmd.exception.ExecutionFailure;
-import sm.StorageManager;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * <b>File:</b> Command.java
@@ -21,5 +22,11 @@ public abstract class Command {
     /**
      * Execute the command
      */
-    public abstract void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure;
+    public abstract void execute() throws ExecutionFailure;
+
+    List<String> getInput (String args) {
+        List<String> input = Arrays.asList(args.substring(0, args.length() - 1).strip().split(" "));
+        input.removeIf(String::isEmpty);
+        return input;
+    }
 }

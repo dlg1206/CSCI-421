@@ -2,7 +2,6 @@ package cli.cmd.commands;
 
 import catalog.Attribute;
 import catalog.ICatalog;
-import catalog.NotSupportedConstraint;
 import catalog.Table;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
@@ -25,18 +24,32 @@ import java.util.stream.Stream;
  */
 public class Select extends Command {
 
+    private final ICatalog catalog;
+    private final StorageManager sm;
+
     private static final int MIN_WIDTH = 3;
     private static final int EXTRA_SPACES = 2;
+    private static final String TABLE_DNE_MSG = "Table %s does not exist in the Catalog";
 
-    String tableName;
+    private final String tableName;
 
-    public Select(String args) throws InvalidUsage {
+    public Select(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
+
+        this.catalog = catalog;
+        this.sm = storageManager;
+
         // Select String Syntax Validation
-        String[] userInput = args.strip().split(" ");
-        if(userInput.length != 4 || !userInput[1].equals("*") || !userInput[2].equalsIgnoreCase("from")){
+        List<String> input = getInput(args);
+        if(input.size() != 4 || !input.get(1).equals("*") || !input.get(2).equalsIgnoreCase("from")){
             throw new InvalidUsage(args, "Correct Usage: (Select * From <table name>;)");
         }
-        tableName = userInput[3].replace(";", "");
+        tableName = input.get(3);
+
+        Set<String> allTables = catalog.getExistingTableNames();
+
+        if (!allTables.contains(tableName)) {
+            throw new InvalidUsage(args, TABLE_DNE_MSG.formatted(tableName));
+        }
     }
 
     @Override
@@ -45,13 +58,7 @@ public class Select extends Command {
     }
 
     @Override
-    public void execute(ICatalog catalog, StorageManager sm) throws ExecutionFailure {
-
-        Set<String> allTables = catalog.getExistingTableNames();
-
-        if (!allTables.contains(tableName)) {
-            throw new ExecutionFailure("No such table %s".formatted(tableName));
-        }
+    public void execute() throws ExecutionFailure {
 
         int tableNum = catalog.getTableNumber(tableName);
 
@@ -72,18 +79,16 @@ public class Select extends Command {
         for (Attribute attr : attrs) {
             switch (attr.getDataType()) {
                 case AttributeType.BOOLEAN, AttributeType.DOUBLE, AttributeType.INTEGER ->
-                        widths.add(Stream.of(attr.getName().length() + EXTRA_SPACES, MIN_WIDTH + EXTRA_SPACES)
-                                .mapToInt(v -> v)
-                                .max()
-                                .orElseThrow(NoSuchElementException::new));
-                case AttributeType.VARCHAR, AttributeType.CHAR -> {
-                    try {
-                        widths.add(Stream.of(attr.getMaxDataLength() + EXTRA_SPACES, attr.getName().length() + EXTRA_SPACES, MIN_WIDTH + EXTRA_SPACES)
-                                .mapToInt(v -> v)
-                                .max()
-                                .orElseThrow(NoSuchElementException::new));
-                    } catch (NotSupportedConstraint ignore) {}
-                }
+                    widths.add(Stream.of(attr.getName().length() + EXTRA_SPACES, MIN_WIDTH + EXTRA_SPACES)
+                            .mapToInt(v -> v)
+                            .max()
+                            .orElseThrow(NoSuchElementException::new));
+                case AttributeType.VARCHAR, AttributeType.CHAR ->
+                    widths.add(Stream.of(attr.getMaxDataLength() + EXTRA_SPACES, attr.getName().length() + EXTRA_SPACES, MIN_WIDTH + EXTRA_SPACES)
+                            .mapToInt(v -> v)
+                            .max()
+                            .orElseThrow(NoSuchElementException::new));
+
             }
         }
 

@@ -77,8 +77,8 @@ public class CLI {
 
             // Try to build and execute the command
             try{
-                Command cmd = CommandFactory.buildCommand(stdin);
-                cmd.execute(DBCatalog, DBStorageManager);
+                Command cmd = CommandFactory.buildCommand(stdin, DBCatalog, DBStorageManager);
+                cmd.execute();
             } catch (CommandException e){
                 // fail if error with command
                 Console.err(e.getMessage());
