@@ -3,6 +3,10 @@ package sm;
 
 import dataTypes.DataType;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,8 +74,11 @@ public class StorageManager {
     }
 
     // CREATE
-    public void insertRecord(int tableID, List<DataType> record){
-        // TODO
+    public void insertRecord(int tableID, List<DataType> record) throws IOException {
+        // create file if DNE
+        File tableFile = new File(databasePath + "/" + tableID + ".db");
+        if( !tableFile.exists() )
+            Files.write(tableFile.toPath(), new byte[0]);
     }
 
     // READ
