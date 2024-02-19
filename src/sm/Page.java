@@ -12,36 +12,44 @@ import java.util.List;
  *
  * @author Derek Garcia, Ryan Nowak
  */
-public class Page {
+class Page {
+    private int maxCapacity;
     private int tableID;
     private int number;
+
     private List<List<DataType>> records = new ArrayList<>();
 
     /**
      * Create new Page
      *
      * @param tableID Table ID of the page
-     * @param number  Page Number
+     * @param pageNum  Page Number
+     * @param maxCapacity Max number of records page can hold
      */
-    public Page(int tableID, int number) {
+    public Page(int maxCapacity, int tableID, int pageNum) {
+        this.maxCapacity = maxCapacity;
         this.tableID = tableID;
-        this.number = number;
+        this.number = pageNum;
     }
 
-    public void insertRecord(int primaryKeyIndex, List<DataType> record){
-
+    public boolean insertRecord(int primaryKeyIndex, List<DataType> record){
         for(List<DataType> storedRecord : this.records){
-            // -1, s < toAdd. 0, s = r, 1 s > r
+            // > 0 means record is less than stored
             if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
-                this.records.add(
-                        this.records.indexOf(storedRecord),
-                        record
-                );
-                return;
+                this.records.add( this.records.indexOf(storedRecord),record );
+                return true;
             }
         }
-        // append to end
-        this.records.add(record);
+
+        // append to end if there's space
+        if(this.records.size() <= this.maxCapacity){
+            this.records.add(record);
+            return true;
+        }
+
+        // Record wasn't added
+        return false;
+
     }
 
 

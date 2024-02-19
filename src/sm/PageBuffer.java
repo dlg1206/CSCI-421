@@ -122,4 +122,15 @@ class PageBuffer{
         return page;
     }
 
+    /**
+     * Create a new page with a preset capacity
+     *
+     * @param tableID Table ID
+     * @param pageNum Page number
+     * @return new page
+     */
+    public Page createNewPage(int tableID, int pageNum){
+        return new Page(this.pageSize, tableID, pageNum);
+    }
+
 }
