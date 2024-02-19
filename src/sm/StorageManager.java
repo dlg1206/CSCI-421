@@ -1,10 +1,10 @@
 package sm;
 
 
+import catalog.Attribute;
 import dataTypes.DataType;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -73,6 +73,14 @@ public class StorageManager {
         return -1;
     }
 
+    private int getPrimaryKeyIndex(List<Attribute> attributes){
+        for( int i = 0; i < attributes.size(); i ++){
+            if(attributes.get(i).isPrimaryKey())
+                return i;
+        }
+        return -1; // err, but that won't happen :)
+    }
+
 
     public int getPageSize(){
         return this.pageSize;
@@ -92,17 +100,18 @@ public class StorageManager {
     }
 
     // CREATE
-    public void insertRecord(int tableID, List<DataType> record) throws IOException {
+    public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
         TableFile df = new TableFile(databasePath, tableID);
 
         int pageCount = df.getPageCount();
+        int pki = getPrimaryKeyIndex(attributes);
 
         // If no records, just add to page
         if( pageCount == 0 ){
-            Page page = new Page(tableID, 0);
-            page.addRecord(record);
-            this.buffer.writeToBuffer( page );
+            Page page = this.buffer.createNewPage(tableID, 0);
+            page.insertRecord(pki, record);
+            this.buffer.writeToBuffer(page);
             return;
         }
 
