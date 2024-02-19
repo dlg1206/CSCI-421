@@ -20,12 +20,11 @@ import sm.StorageManager;
  * <p>
  * <b>Description: Command to create a new table in the database</b>
  *
- * @author Derek Garcia
+ * @author Derek Garcia, Clinten Hopkins
  */
 public class CreateTable extends Command {
 
     private final ICatalog catalog;
-    private final StorageManager sm;
 
     private final List<Attribute> attributes = new ArrayList<>();
     private final String tableName;
@@ -33,7 +32,6 @@ public class CreateTable extends Command {
     public CreateTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
-        this.sm = storageManager;
 
         // Create Table Syntax Validation
         String errorMessage = "Correct Usage: create table <table_name> (" +
@@ -68,7 +66,6 @@ public class CreateTable extends Command {
         }
 
         for (String col : columns) {
-            System.out.println(col);
             String[] attrData = col.strip().split(" ");
 
             String attrName = attrData[0].strip();
@@ -155,6 +152,6 @@ public class CreateTable extends Command {
 
     @Override
     public void execute() throws ExecutionFailure {
-        // TODO
+        catalog.createTable(tableName, attributes);
     }
 }
