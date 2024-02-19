@@ -13,10 +13,9 @@ import java.nio.file.Files;
  *
  * @author Derek Garcia
  */
-class DatabaseFile{
+class TableFile {
     private static final String FILE_EXTENSION = ".db";
     private final String filePath;
-    private final int tableID;
 
     /**
      * Create a new Database file if DNE or load from existing file
@@ -25,9 +24,8 @@ class DatabaseFile{
      * @param tableID ID of table
      * @throws IOException Fails to write to file
      */
-    public DatabaseFile(String databasePath, int tableID) throws IOException {
+    public TableFile(String databasePath, int tableID) throws IOException {
         this.filePath = databasePath + "/" + tableID + FILE_EXTENSION;
-        this.tableID = tableID;
 
         // create file if DNE
         File tableFile = new File(this.filePath);
@@ -48,19 +46,4 @@ class DatabaseFile{
             return is.read(result, 0, 0);
         }
     }
-
-    /**
-     * @return Full file path
-     */
-    public String getFilePath(){
-        return this.filePath;
-    }
-
-    /**
-     * @return Table ID
-     */
-    public int getTableID(){
-        return this.tableID;
-    }
-
 }

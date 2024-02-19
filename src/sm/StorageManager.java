@@ -3,11 +3,7 @@ package sm;
 
 import dataTypes.DataType;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,11 +46,32 @@ public class StorageManager {
         StorageManager.databasePath = databasePath;
     }
 
+    private void splitTableFile(TableFile df, int splitPageNum){
+        /*
+        TableSwapFile dsf = df.createSwapFile();
+        int pageCount = df.getPageCount();
+        int swpPageNum = 0;
+        for( int pageNum = 0; pageNum < pageCount; pageNum++){
+            Page page = this.buffer.readFromBuffer(df.getTableID, pageNum);
 
+            // add split page
+            if( pageNum == splitPageNum )
+                this.buffer.writeToBuffer( new Page ( ... page.split(), swpPageNum++ ) );
+
+            // add rest of page
+            this.buffer.writeToBuffer( new Page ( ... page, swpPageNum++ ) );
+
+        }
+
+        dsf.close();            // closes swap and overwrites old
+        this.buffer.flush();    // remove any conflict data
+
+         */
     public int getPageCount(int tableID){
         // TODO
         return -1;
     }
+
 
     public int getPageSize(){
         return this.pageSize;
@@ -75,10 +92,31 @@ public class StorageManager {
 
     // CREATE
     public void insertRecord(int tableID, List<DataType> record) throws IOException {
-        // create file if DNE
-        File tableFile = new File(databasePath + "/" + tableID + ".db");
-        if( !tableFile.exists() )
-            Files.write(tableFile.toPath(), new byte[0]);
+
+        TableFile df = new TableFile(databasePath, tableID);
+
+        int pageCount = df.getPageCount();
+
+        if( pageCount == 0 ){
+            // todo - add new page to buffer
+            // this.buffer.writeToBuffer(new Page());
+            return;     // return page number?
+        }
+
+        // Iterate through all pages and attempt to insert the record
+        for( int pageNum = 0; pageNum < pageCount; pageNum++){
+            Page page = this.buffer.readFromBuffer(tableID, pageNum);
+            /*
+            boolean recordInserted = page.insertRecord(record);
+            if( recordInserted && page.isOverfull() )
+                splitTableFile(pageNum)
+
+            if( recordInserted )
+                break;
+             */
+        }
+
+
     }
 
     // READ
@@ -101,7 +139,7 @@ public class StorageManager {
          return null;
     }
 
-   
+
 
 
      // UPDATE
