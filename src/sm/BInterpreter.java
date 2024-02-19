@@ -94,14 +94,10 @@ public class BInterpreter {
                             dataTypes.add(new DTChar((byte[]) null, 0));
                         }
                         else {
-                            try {
-                                int length = attributes.get(j).getMaxDataLength(); // get max length of char
+                            int length = attributes.get(j).getMaxDataLength(); // get max length of char
 
-                                dataTypes.add(new DTChar(Arrays.copyOfRange(data, dataIdx, dataIdx + length), length));
-                                dataIdx += length;
-                            } catch (NotSupportedConstraint e) {
-                                e.printStackTrace();
-                            }
+                            dataTypes.add(new DTChar(Arrays.copyOfRange(data, dataIdx, dataIdx + length), length));
+                            dataIdx += length;
                         }
                         break;
 
