@@ -203,7 +203,7 @@ public class InsertInto extends Command {
                 if (sm.getRecord(tableNumber, tuple.get(PKIndex)) != null)
                     sm.insertRecord(tableNumber, attrs, tuple);
                 else
-                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex)));
+                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
