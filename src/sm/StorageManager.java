@@ -1,9 +1,10 @@
 package sm;
 
 
+import catalog.Attribute;
 import dataTypes.DataType;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -47,6 +48,14 @@ public class StorageManager {
     }
 
 
+    private int getPrimaryKeyIndex(List<Attribute> attributes){
+        for( int i = 0; i < attributes.size(); i ++){
+            if(attributes.get(i).isPrimaryKey())
+                return i;
+        }
+        return -1; // err, but that won't happen :)
+    }
+
     public int getPageCount(int tableID){
         // TODO
         return -1;
@@ -69,9 +78,49 @@ public class StorageManager {
         return allRecords.size();
     }
 
-    // CREATE
-    public void insertRecord(int tableID, List<DataType> record){
-        // TODO
+    /**
+     * CREATE
+     *
+     * Insert record into table file
+     *
+     * @param tableID ID of table file
+     * @param attributes Constraints of data types
+     * @param record record contents
+     * @throws IOException failed to write to file
+     */
+    public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
+
+        TableFile tf = new TableFile(databasePath, tableID);
+        int pageCount = tf.getPageCount();
+        int pki = getPrimaryKeyIndex(attributes);
+
+        // If no records, just add to page
+        if( pageCount == 0 ){
+            Page page = this.buffer.createNewPage(tableID, 0);
+            page.insertRecord(pki, record);
+            this.buffer.writeToBuffer(page);
+            return;
+        }
+
+        // Iterate through all pages and attempt to insert the record
+        for( int pageNum = 0; pageNum < pageCount; pageNum++){
+            Page page = this.buffer.readFromBuffer(tableID, pageNum);
+            boolean recordInserted = page.insertRecord(pki, record);
+
+            // Record added, split if needed and break
+            if(recordInserted) {
+                if (page.isOverfull())
+                    tf.splitPageInFile(this.buffer, pageNum);
+                break;
+            }
+
+            // Reach end of pages and not inserted, append to end and split if needed
+            if(pageNum == pageCount - 1){
+                page.appendRecord(record);
+                if (page.isOverfull())
+                    tf.splitPageInFile(this.buffer, pageNum);
+            }
+        }
     }
 
     // READ
@@ -94,7 +143,7 @@ public class StorageManager {
          return null;
     }
 
-   
+
 
 
      // UPDATE

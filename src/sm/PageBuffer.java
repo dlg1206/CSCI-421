@@ -11,7 +11,6 @@ import java.util.List;
  * @author Derek Garcia
  */
 class PageBuffer{
-
     private final List<Page> buffer = new ArrayList<>();
     private final int capacity;
     private final int pageSize;
@@ -39,7 +38,7 @@ class PageBuffer{
 
         for( Page p : this.buffer ){
             // Find page
-            if(p.getTableID() == tableID && p.getNumber() == pageNum)
+            if(p.getTableID() == tableID && p.getPageNumber() == pageNum)
                 return true;
         }
 
@@ -48,6 +47,7 @@ class PageBuffer{
 
     private void writeToDisk(Page page){
         // TODO - need table path?
+        // NOTE - marked negative are .swp.db extension
         // write to disk
     }
 
@@ -109,7 +109,7 @@ class PageBuffer{
         // Get page from buffer
         for( Page p : this.buffer ){
             // Find page
-            if(p.getTableID() == tableID && p.getNumber() == pageNum){
+            if(p.getTableID() == tableID && p.getPageNumber() == pageNum){
                 page = p;
                 break;
             }
@@ -120,6 +120,26 @@ class PageBuffer{
         this.buffer.add(0, page);
 
         return page;
+    }
+
+    /**
+     * Create a new page with a preset capacity
+     *
+     * @param tableID Table ID
+     * @param pageNum Page number
+     * @return new page
+     */
+    public Page createNewPage(int tableID, int pageNum){
+        return new Page(this.pageSize, tableID, pageNum);
+    }
+
+
+    /**
+     * Write entire buffer to disk
+     */
+    public void flush(){
+        while(!this.buffer.isEmpty())
+            writeToDisk(this.buffer.remove(0));
     }
 
 }
