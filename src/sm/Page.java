@@ -15,7 +15,7 @@ import java.util.List;
 class Page {
     private int maxCapacity;
     private int tableID;
-    private int number;
+    private int pageNumber;
 
     private List<List<DataType>> records = new ArrayList<>();
 
@@ -29,16 +29,24 @@ class Page {
     public Page(int maxCapacity, int tableID, int pageNum) {
         this.maxCapacity = maxCapacity;
         this.tableID = tableID;
-        this.number = pageNum;
+        this.pageNumber = pageNum;
     }
 
     public boolean insertRecord(int primaryKeyIndex, List<DataType> record){
+
+        // Ordered insert
         for(List<DataType> storedRecord : this.records){
             // > 0 means record is less than stored
             if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
                 this.records.add( this.records.indexOf(storedRecord),record );
                 return true;
             }
+        }
+
+        // Append if there's space
+        if(this.records.size() < this.maxCapacity){
+            appendRecord(record);
+            return true;
         }
 
         // Record wasn't added
@@ -54,6 +62,21 @@ class Page {
     }
 
 
+    public Page split(int newPageNumber){
+        Page newPage = new Page(this.maxCapacity, this.tableID, newPageNumber);
+        int mid = this.records.size() / 2;
+
+        for( int i = mid; i < this.records.size(); i++){
+            newPage.appendRecord(this.records.get(i));
+        }
+
+        this.records.subList(mid, this.records.size()).clear();
+
+        return newPage;
+
+    }
+
+
 
 
 
@@ -61,8 +84,8 @@ class Page {
         return this.tableID;
     }
 
-    public int getNumber() {
-        return this.number;
+    public int getPageNumber() {
+        return this.pageNumber;
     }
 
 
