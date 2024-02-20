@@ -104,4 +104,9 @@ class TableFile {
         buffer.flush();     // Write out any remaining files
         closeSwapFile();    // Save the swap as the actual table file
     }
+
+    public void deleteFile() {
+        File tableFile = new File(this.filePath);
+        tableFile.delete();
+    }
 }

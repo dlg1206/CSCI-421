@@ -156,4 +156,10 @@ public class StorageManager {
         // TODO
     }
 
+    public void deleteTable(int tableID) throws IOException {
+        this.buffer.flush();
+        TableFile tf = new TableFile(databasePath, tableID);
+        tf.deleteFile();
+    }
+
 }
