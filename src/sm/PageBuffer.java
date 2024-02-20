@@ -139,7 +139,7 @@ class PageBuffer{
      */
     public void flush(){
         while(!this.buffer.isEmpty())
-            writeToBuffer(this.buffer.remove(0));
+            writeToDisk(this.buffer.remove(0));
     }
 
 }
