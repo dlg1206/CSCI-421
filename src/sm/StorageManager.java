@@ -26,6 +26,10 @@ public class StorageManager {
     private final PageBuffer buffer;
     private static String databasePath;
 
+    private final int pageSize;
+    private final int bufferSize;
+    private final String databaseLocation;
+
 
     /**
      * Create a new Storage Manager with a page buffer
@@ -36,13 +40,33 @@ public class StorageManager {
      */
     public StorageManager(int bufferSize, int pageSize, String databasePath){
         this.buffer = new PageBuffer(bufferSize, pageSize);
+        this.pageSize = pageSize;
+        this.bufferSize = bufferSize;
+        this.databaseLocation = databasePath;
         StorageManager.databasePath = databasePath;
     }
 
 
-    private int getPageCount(int tableID){
+    public int getPageCount(int tableID){
         // TODO
         return -1;
+    }
+
+    public int getPageSize(){
+        return this.pageSize;
+    }
+
+    public int getBufferSize(){
+        return this.bufferSize;
+    }
+
+    public String getDatabaseLocation(){
+        return this.databaseLocation;
+    }
+
+    public int getCountOfRecords(int tableID){
+        List<List<DataType>> allRecords = getAllRecords(tableID);
+        return allRecords.size();
     }
 
     // CREATE
@@ -69,6 +93,8 @@ public class StorageManager {
         // TODO
          return null;
     }
+
+   
 
 
      // UPDATE
