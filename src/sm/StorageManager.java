@@ -78,7 +78,16 @@ public class StorageManager {
         return allRecords.size();
     }
 
-    // CREATE
+    /**
+     * CREATE
+     *
+     * Insert record into table file
+     *
+     * @param tableID ID of table file
+     * @param attributes Constraints of data types
+     * @param record record contents
+     * @throws IOException failed to write to file
+     */
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
         TableFile tf = new TableFile(databasePath, tableID);
