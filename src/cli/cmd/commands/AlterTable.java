@@ -65,11 +65,12 @@ public class AlterTable extends Command {
                 this.isDrop = true;
                 break;
             case 6:
-                input.get(3).equalsIgnoreCase("add");
+                isValid = input.get(3).equalsIgnoreCase("add");
                 this.isAdd = true;
                 break;
             case 8 :
                 isValid = input.get(3).equalsIgnoreCase("add") && input.get(6).equalsIgnoreCase("default");
+                this.isAdd = true;
                 break;
             default: 
                 isValid = false;
