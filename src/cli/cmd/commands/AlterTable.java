@@ -1,9 +1,15 @@
 package cli.cmd.commands;
 
+import cli.cmd.commands.CreateTable;
+import cli.cmd.commands.DropTable;
+
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 
 import dataTypes.AttributeType;
+import dataTypes.DTChar;
+import dataTypes.DTVarchar;
+import dataTypes.DataType;
 import sm.StorageManager;
 
 import catalog.ICatalog;
@@ -12,6 +18,7 @@ import catalog.Attribute;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -24,6 +31,11 @@ public class AlterTable extends Command {
 
     private final ICatalog catalog;
     private final StorageManager sm;
+    private final String args;
+
+    private boolean isDrop = false;
+    private boolean isAdd = false;
+
 
     private final String tableName;
     private final String attributeName;
@@ -34,23 +46,33 @@ public class AlterTable extends Command {
 
         this.catalog = catalog;
         this.sm = storageManager;
+        this.args = args;
 
         // Alter Table Syntax Validation
         List<String> input = getInput(args);
         String errorMessage = """
                 Correct Usage: (alter table <name> drop <a_name>;
                  alter table <name> add <a_name> <a_type>;
-                 alter table <name> add <a_name> <a_type> default <value>);""";
+                 alter table <name> add <a_name> <a_type> default <value>;)""";
 
         if (input.size() < 5 || !input.get(1).equalsIgnoreCase("table")) {
             throw new InvalidUsage(args, errorMessage);
         }
-
-        boolean isValid = switch (input.size()) {
-            case 5 -> input.get(3).equalsIgnoreCase("drop");
-            case 6 -> input.get(3).equalsIgnoreCase("add");
-            case 8 -> input.get(3).equalsIgnoreCase("add") && input.get(6).equalsIgnoreCase("default");
-            default -> false;
+        boolean isValid = false;
+        switch (input.size()) {
+            case 5:
+                isValid = input.get(3).equalsIgnoreCase("drop");
+                this.isDrop = true;
+                break;
+            case 6:
+                input.get(3).equalsIgnoreCase("add");
+                this.isAdd = true;
+                break;
+            case 8 :
+                isValid = input.get(3).equalsIgnoreCase("add") && input.get(6).equalsIgnoreCase("default");
+                break;
+            default: 
+                isValid = false;
         };
 
         if (!isValid) {
@@ -70,7 +92,7 @@ public class AlterTable extends Command {
         List<Attribute> attributes = table.getAttributes();
 
         attributeName = input.get(4).toLowerCase();
-        List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).toList();
+        List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).collect(Collectors.toList());
         if (input.get(3).equalsIgnoreCase("drop")){
             if (!tableAttributeNames.contains(attributeName)){
                 throw new InvalidUsage(args, "The table '%s' does not contain the attribute '%s'.".formatted(tableName, attributeName));
@@ -119,6 +141,190 @@ public class AlterTable extends Command {
 
     @Override
     public void execute() throws ExecutionFailure {
-        // TODO
+        // Check if the command is dropping an attribute
+        if(isDrop){
+            int attributeIndex = 0;
+            Table table = catalog.getRecordSchema(tableName);
+            List<Attribute> attributes = table.getAttributes();
+            // Iterate through all attributes from schema and drop the desired attribute and keep track of its index
+            for (int i = 0; i < attributes.size(); i++) {
+                if(attributes.get(i).getName().equalsIgnoreCase(attributeName)){
+                    if(attributes.get(i).isPrimaryKey()){
+                        throw new ExecutionFailure("Execution failure cannot drop primary key");
+                    }
+                    else{
+                        attributes.remove(i);
+                        attributeIndex = i;
+                    }
+                }
+            }
+            // Creating Create Table Command
+            String attributeValues = "";
+            // Iterate through all attributes from schema
+            for (int v = 0; v < attributes.size(); v++){
+                // Get attribute and stringify all its respective information
+                Attribute attr = attributes.get(v);
+                // If last value then dont add a comma, otherwise have a comma
+                // Result should look like 'AttName AttType AttConstraint, AttName AttType AttConstraint'
+                if(v == attributes.size()){
+                    attributeValues = attributeValues + attr.getName() + " " + getStringType(attr) + getConstraintString(attr);
+                }
+                else{
+                    attributeValues = attributeValues + attr.getName() + " " + getStringType(attr) + getConstraintString(attr) + ", ";
+                }   
+            }
+            // Creating Insert Into Command
+            int tableNum = catalog.getTableNumber(tableName);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum);
+            String insertValues = "";
+            // Iterate through first list
+            for (int r = 0; r < allRecords.size(); r++) {
+                List<DataType> record = allRecords.get(r);
+                String eachValue = " ( ";
+                // Iterate through each value
+                for (int i = 0; i < record.size(); i++) {
+                    if(i == attributeIndex){
+                        record.remove(i);
+                    }
+                    else{
+                        // If it is a char or varchar then add quotation marks
+                        if(record instanceof DTChar || record instanceof DTVarchar){
+                            eachValue = eachValue + "\"" + record.toString() + "\"";
+                        }
+                        else{
+                            eachValue += record.toString() + " ";
+                        }
+                    }
+                }
+                if(r == allRecords.size()){
+                    eachValue += ")";
+                }
+                else{
+                    eachValue += "), ";
+                }
+                // Add each ( Value, Value, Value ), or ( Value, Value, Value ) to main string
+                // Result should look like ( Value, Value, Value ), ( Value, Value, Value ), ( Value, Value, Value )
+                insertValues += eachValue;
+            }
+            // Create each command
+            String dropTableCommand ="DROP TABLE " + tableName + ";";
+            String createTableCommand = "CREATE TABLE " + tableName + "(" + attributeValues + ");";
+            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";";
+            try {
+                // Run each command
+                DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
+                newDropTableExecutable.execute();
+                CreateTable newTableExecutable = new CreateTable(createTableCommand, this.catalog, this.sm);
+                newTableExecutable.execute();
+                InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
+                newInsertIntoExecutable.execute();
+                System.out.println("SUCCESS");
+            } catch (InvalidUsage e) {
+                throw new ExecutionFailure("Execution failure to drop attribute");
+            }
+        }
+        else if(isAdd){
+            // Get attribute type from command line argument
+            List<String> input = getInput(args);
+            String attributeTypeString = input.get(5);
+            // Get default value from command line argument
+            String defaultValue = "";
+            if(this.args.toLowerCase().contains("default")){
+                String[] takeDefault = args.toLowerCase().split("default");
+                defaultValue = takeDefault[1].replace(";", "").strip();
+            }
+            Table table = catalog.getRecordSchema(tableName);
+            List<Attribute> attributes = table.getAttributes();
+            // Creating Create Table Command
+            String attributeValues = "";
+            // Iterate through all attributes from schema
+            for (int v = 0; v < attributes.size(); v++){
+                // Get attribute and stringify all its respective information
+                Attribute attr = attributes.get(v);
+                attributeValues = attributeValues + attr.getName() + " " + getStringType(attr) + getConstraintString(attr) + ", ";
+            }
+            // Result should look like 'AttName AttType AttConstraint, AttName AttType AttConstraint, NewAttributeName NewAttributeType'
+            attributeValues += attributeName + " " + attributeTypeString;
+            // Creating Insert Into Command
+            int tableNum = catalog.getTableNumber(tableName);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum);
+            String insertValues = "";
+            // Iterate through first list
+            for (int r = 0; r < allRecords.size(); r++) {
+                List<DataType> record = allRecords.get(r);
+                String eachValue = " ( ";
+                // Iterate through each value
+                for (int i = 0; i < record.size(); i++) {
+                    // If it is a char or varchar then add quotation marks
+                    if(record instanceof DTChar || record instanceof DTVarchar){
+                        eachValue = eachValue + "\"" + record.toString() + "\"";
+                    }
+                    else{
+                        eachValue += record.toString() + " ";
+                    }
+                }
+                // If argument contained default, then use default value, otherwise input null value
+                if(r == allRecords.size()){
+                    eachValue += args.toLowerCase().contains("default") ? defaultValue + " )" : "null )";
+                }
+                else{
+                    eachValue += args.toLowerCase().contains("default") ? defaultValue + " )" : "null ), ";
+                }
+                // Add each ( Value, Value, defaultValue ), or ( Value, Value, null ) to main string
+                // Result should look like ( Value, Value, null ), ( Value, Value, null ), ( Value, Value, null )
+                insertValues += eachValue;
+            }
+            // Create each command
+            String dropTableCommand ="DROP TABLE " + tableName + ";";
+            String createTableCommand = "CREATE TABLE " + tableName + "(" + attributeValues + ");";
+            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";";
+            try {
+                // Run each command
+                DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
+                newDropTableExecutable.execute();
+                CreateTable newTableExecutable = new CreateTable(createTableCommand, this.catalog, this.sm);
+                newTableExecutable.execute();
+                InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
+                newInsertIntoExecutable.execute();
+                System.out.println("SUCCESS");
+            } catch (InvalidUsage e) {
+                throw new ExecutionFailure("Execution failure to add attribute");
+            }
+        }
+    }
+
+    public String getConstraintString(Attribute attr){
+        String temp = "";
+        if(attr.isPrimaryKey()){
+            temp = temp + " primarykey";
+        }
+        if(attr.isUnique()){
+            temp = temp + " unique";
+        }
+        if(!attr.isNullable()){
+            temp = temp + " notnull";
+        }
+        return temp;
+    }
+
+    public String getStringType(Attribute attr) {
+        AttributeType attrType = attr.getDataType();
+        switch (attrType) {
+            case INTEGER -> {
+                return "integer";
+            }
+            case DOUBLE -> {
+                return "double";
+            }
+            case BOOLEAN -> {
+                return "boolean";
+            }
+            case CHAR -> {
+                return "char" + "(" + attr.getMaxDataLength() + ")";
+            }
+            default -> {
+                return "varchar" + "(" + attr.getMaxDataLength() + ")";
+            }
+        }
     }
 }
