@@ -1,5 +1,6 @@
 package cli.cmd.commands;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -48,5 +49,11 @@ public class DropTable extends Command {
     @Override
     public void execute() throws ExecutionFailure {
         catalog.deleteTable(tableName);
+        int tableNumber = catalog.getTableNumber(tableName);
+        try {
+            sm.deleteTable(tableNumber);
+        } catch (IOException ioe) {
+            throw new ExecutionFailure("The file for table '%s' could not be opened or deleted.".formatted(tableName));
+        }
     }
 }
