@@ -11,6 +11,7 @@ import catalog.Table;
 
 import sm.StorageManager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -19,9 +20,9 @@ import java.util.regex.Pattern;
 /**
  * <b>File:</b> InsertInto.java
  * <p>
- * <b>Description: Command to insert data into a table in the database<</b>
+ * <b>Description:</b> Command to insert data into a table in the database.
  *
- * @author Derek Garcia
+ * @author Derek Garcia, Clinten Hopkins
  */
 public class InsertInto extends Command {
 
@@ -39,6 +40,15 @@ public class InsertInto extends Command {
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
 
 
+    /**
+     * Create a new Insert Into command to be executed. Parse the arguments to allow
+     * {@link InsertInto#execute() execute} to operate.
+     *
+     * @param args The string representation of the command passed to the CLI.
+     * @param catalog The catalog of the current DB.
+     * @param storageManager The storage manager of the current DB.
+     * @throws InvalidUsage when the arguments could not be parsed.
+     */
     public InsertInto(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
@@ -141,7 +151,7 @@ public class InsertInto extends Command {
         }
     }
 
-    public static List<String> splitStringWithQuotes(String input) {
+    private static List<String> splitStringWithQuotes(String input) {
         List<String> tokens = new ArrayList<>();
         Pattern pattern = Pattern.compile("(?<=\\))|(?=\\()|\"[^\"]*\"|(\\S+?)(?=(\\s|$))");
         Matcher matcher = pattern.matcher(input);
@@ -176,8 +186,27 @@ public class InsertInto extends Command {
         // TODO
     }
 
+    /**
+     * Iterates through the list of parsed values pulled from the command and inserts them into the database through
+     * the storage manager.
+     *
+     * @throws ExecutionFailure when the table's file cannot be read or modified.
+     */
     @Override
     public void execute() throws ExecutionFailure {
-        // TODO
+        int tableNumber = catalog.getTableNumber(tableName);
+        List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
+        int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
+
+        for (List<DataType> tuple : parsedValues) {
+            try {
+                if (sm.getRecord(tableNumber, tuple.get(PKIndex)) != null)
+                    sm.insertRecord(tableNumber, attrs, tuple);
+                else
+                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
+            } catch (IOException ioe) {
+                throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
+            }
+        }
     }
 }

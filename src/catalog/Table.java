@@ -40,4 +40,12 @@ public class Table implements ITable {
     public void removeAttribute(String name) {
         Attributes.removeIf(a -> Objects.equals(a.getName(), name));
     }
+
+    public int getIndexOfPrimaryKey() {
+        for (int i = 0; i < Attributes.size(); i++) {
+            if (Attributes.get(i).isPrimaryKey())
+                return i;
+        }
+        return -1; // Should never happen. All tables should have a PK.
+    }
 }
