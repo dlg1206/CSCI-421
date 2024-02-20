@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * <b>File:</b> DatabaseFile.java
@@ -17,8 +19,8 @@ class TableFile {
     private static final String FILE_EXTENSION = ".db";
     private static final String SWAP_FILE_EXTENSION = ".swp.db";
     private final int tableID;
-    private final String filePath;
-    private final String swapFilePath;
+    private final Path filePath;
+    private final Path swapFilePath;
 
     /**
      * Create a new Database file if DNE or load from existing file
@@ -29,8 +31,8 @@ class TableFile {
      */
     public TableFile(String databasePath, int tableID) throws IOException {
         this.tableID = tableID;
-        this.filePath = databasePath + "/" + this.tableID + FILE_EXTENSION;
-        this.swapFilePath = databasePath + "/" + this.tableID + SWAP_FILE_EXTENSION;
+        this.filePath = Paths.get(databasePath, this.tableID + FILE_EXTENSION);
+        this.swapFilePath = Paths.get(databasePath, this.tableID + SWAP_FILE_EXTENSION);
         initFile(this.filePath);
     }
 
@@ -40,11 +42,11 @@ class TableFile {
      * @param path path of file to create
      * @throws IOException Fails to write to file
      */
-    private void initFile(String path) throws IOException {
+    private void initFile(Path path) throws IOException {
         // create file if DNE
-        File tableFile = new File(path);
+        File tableFile = path.toFile();
         if (!tableFile.exists())
-            Files.write(tableFile.toPath(), new byte[0]);
+            Files.write(path, new byte[0]);
     }
 
 
@@ -54,8 +56,8 @@ class TableFile {
      * @throws IOException Fails to write to file
      */
     private void closeSwapFile() throws IOException {
-        File tableFile = new File(this.filePath);
-        File swapTableFile = new File(this.swapFilePath);
+        File tableFile = this.filePath.toFile();
+        File swapTableFile = this.swapFilePath.toFile();
 
         Files.deleteIfExists(tableFile.toPath());
         swapTableFile.renameTo(tableFile);
@@ -70,7 +72,7 @@ class TableFile {
      * @throws IOException Failed to read file
      */
     public int getPageCount() throws IOException {
-        try (InputStream is = new FileInputStream(this.filePath)) {
+        try (InputStream is = new FileInputStream(this.filePath.toFile())) {
             byte[] result = new byte[1];
             return is.read(result, 0, 0);
         }
@@ -106,7 +108,7 @@ class TableFile {
     }
 
     public void deleteFile() {
-        File tableFile = new File(this.filePath);
+        File tableFile = this.filePath.toFile();
         tableFile.delete();
     }
 }
