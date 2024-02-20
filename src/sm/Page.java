@@ -76,8 +76,13 @@ class Page {
 
     }
 
+    public void setPageNumber(int pageNumber){
+        this.pageNumber = pageNumber;
+    }
 
-
+    public void markSwap(){
+        this.tableID = -Math.abs(this.tableID);
+    }
 
 
     public int getTableID() {

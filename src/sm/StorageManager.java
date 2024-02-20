@@ -47,31 +47,6 @@ public class StorageManager {
         StorageManager.databasePath = databasePath;
     }
 
-    private void splitTableFile(TableFile tf, int splitPageNum){
-        /*
-        TableSwapFile dsf = df.createSwapFile();
-        int pageCount = df.getPageCount();
-        int swpPageNum = 0;
-        for( int pageNum = 0; pageNum < pageCount; pageNum++){
-            Page page = this.buffer.readFromBuffer(df.getTableID, pageNum);
-
-            // add split page
-            if( pageNum == splitPageNum )
-                this.buffer.writeToBuffer( new Page ( ... page.split(), swpPageNum++ ) );
-
-            // add rest of page
-            this.buffer.writeToBuffer( new Page ( ... page, swpPageNum++ ) );
-
-        }
-
-        dsf.close();            // closes swap and overwrites old
-        this.buffer.flush();    // remove any conflict data
-
-         */
-    public int getPageCount(int tableID){
-        // TODO
-        return -1;
-    }
 
     private int getPrimaryKeyIndex(List<Attribute> attributes){
         for( int i = 0; i < attributes.size(); i ++){
@@ -81,6 +56,10 @@ public class StorageManager {
         return -1; // err, but that won't happen :)
     }
 
+    public int getPageCount(int tableID){
+        // TODO
+        return -1;
+    }
 
     public int getPageSize(){
         return this.pageSize;
@@ -103,7 +82,6 @@ public class StorageManager {
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
         TableFile tf = new TableFile(databasePath, tableID);
-
         int pageCount = tf.getPageCount();
         int pki = getPrimaryKeyIndex(attributes);
 
@@ -115,9 +93,7 @@ public class StorageManager {
             return;
         }
 
-
         // Iterate through all pages and attempt to insert the record
-
         for( int pageNum = 0; pageNum < pageCount; pageNum++){
             Page page = this.buffer.readFromBuffer(tableID, pageNum);
             boolean recordInserted = page.insertRecord(pki, record);
@@ -125,18 +101,17 @@ public class StorageManager {
             // Record added, split if needed and break
             if(recordInserted) {
                 if (page.isOverfull())
-                    splitTableFile(tf, pageNum);
+                    tf.splitPageInFile(this.buffer, pageNum);
                 break;
             }
 
             // Reach end of pages and not inserted, append to end and split if needed
             if(pageNum == pageCount - 1){
                 page.appendRecord(record);
-                splitTableFile(tf, pageNum);
+                if (page.isOverfull())
+                    tf.splitPageInFile(this.buffer, pageNum);
             }
         }
-
-
     }
 
     // READ
