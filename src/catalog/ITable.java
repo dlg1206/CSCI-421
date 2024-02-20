@@ -8,4 +8,6 @@ public interface ITable {
     List<Attribute> getAttributes();
     void addAttribute(Attribute attribute);
     void removeAttribute(String name);
+
+    int getIndexOfPrimaryKey();
 }

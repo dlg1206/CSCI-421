@@ -196,10 +196,14 @@ public class InsertInto extends Command {
     public void execute() throws ExecutionFailure {
         int tableNumber = catalog.getTableNumber(tableName);
         List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
+        int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
 
         for (List<DataType> tuple : parsedValues) {
             try {
-                sm.insertRecord(tableNumber, attrs, tuple);
+                if (sm.getRecord(tableNumber, tuple.get(PKIndex)) != null)
+                    sm.insertRecord(tableNumber, attrs, tuple);
+                else
+                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex)));
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
