@@ -1,6 +1,11 @@
 package sm;
 
+import catalog.Attribute;
+
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * <b>File:</b> DatabaseFile.java
@@ -82,14 +87,12 @@ class TableFile {
      *
      * @throws IOException Fails to write to file
      */
-//    private void closeSwapFile() throws IOException {
-//        File tableFile = this.filePath.toFile();
-//        File swapTableFile = this.swapFilePath.toFile();
-//
-//        Files.deleteIfExists(tableFile.toPath());
-//        swapTableFile.renameTo(tableFile);
-//        Files.deleteIfExists(swapTableFile.toPath());
-//    }
+    private void closeSwapFile() throws IOException {
+        delete();
+        TableFile swapFile = getSwapFile();
+        swapFile.toFile().renameTo(toFile());
+        swapFile.delete();
+    }
 
 
     /**
@@ -113,29 +116,26 @@ class TableFile {
      *
      * @throws IOException Failed to read file
      */
-//    public void splitPageInFile(PageBuffer buffer, int splitPageNum) throws IOException {
-//        initFile(this.swapFilePath);
-//        int swpPageNum = 0;
-//
-//        // Read each page from the original table file to the swap file
-//        for (int pageNum = 0; pageNum < this.getPageCount(); pageNum++) {
-//            Page page = buffer.readFromBuffer(this.tableID, pageNum);
-//            page.markSwap();
-//
-//            // add split page
-//            if (pageNum == splitPageNum){
-//                swpPageNum++;
-//                buffer.writeToBuffer(page.split());
-//            }
-//
-//            // add rest of page
-//            page.setPageNumber(swpPageNum++);
-//            buffer.writeToBuffer(page);
-//        }
-//
-//        buffer.flush();     // Write out any remaining files
-//        closeSwapFile();    // Save the swap as the actual table file
-//    }
+    public void splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes) throws IOException {
+        int swapOffset = 0;
+
+        // Read each page from the original table file to the swap file
+        for (int pageNumber = 0; pageNumber < this.readPageCount(); pageNumber++) {
+            Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
+            // add split page
+            if (pageNumber == splitPageNum){
+                Page rightPage = page.split(attributes);
+                buffer.writeToBuffer(page.getSwapPage(swapOffset));
+                swapOffset = 1;
+                buffer.writeToBuffer(rightPage.getSwapPage(swapOffset));
+            } else {
+                // add rest of page
+                buffer.writeToBuffer(page.getSwapPage(swapOffset));
+            }
+        }
+        buffer.flush();     // Write out any remaining files
+        closeSwapFile();
+    }
 
     public boolean delete() {
         return toFile().delete();

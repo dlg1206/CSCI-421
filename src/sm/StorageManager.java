@@ -106,20 +106,19 @@ public class StorageManager {
 
         // Iterate through all pages and attempt to insert the record
         for( int pageNumber = 0; pageNumber < pageCount; pageNumber++){
-            Page page = this.buffer.readFromBuffer(tableID, pageNumber);
+            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
             boolean recordInserted = page.insertRecord(pki, attributes, record);
-//            // Record added, split if needed and break
-//            if(recordInserted) {
-//                if (page.isOverfull())
-//                    tf.splitPageInFile(this.buffer, pageNum);
-//                break;
-//            }
-//
+            // Record added, split if needed and break
+            if(recordInserted && page.isOverfull()) {
+                tf.splitPage(this.buffer, pageNumber, attributes);
+                break;
+            }
+
             // Reach end of pages and not inserted, append to end and split if needed
             if(!recordInserted && pageNumber == pageCount - 1){
                 page.appendRecord(attributes, record);
-//                if (page.isOverfull())
-//                    tf.splitPageInFile(this.buffer, pageNum);
+                if (page.isOverfull())
+                    tf.splitPage(this.buffer, pageNumber, attributes);
             }
         }
     }

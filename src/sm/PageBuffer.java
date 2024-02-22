@@ -83,11 +83,11 @@ class PageBuffer{
             raf.seek( 1 + (long) pageNumber * this.pageSize);
             raf.read(buffer, pageNumber * this.pageSize, this.pageSize);
         }
-
 //        try (InputStream is = new FileInputStream(writeFile.toFile())) {
 //            var foo = is.readAllBytes();
 //            var i =0;
 //        }
+
 
         writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer));
 
@@ -98,7 +98,7 @@ class PageBuffer{
      *
      * @param page Page to add to buffer
      */
-    private void writeToBuffer(Page page) throws IOException {
+    public void writeToBuffer(Page page) throws IOException {
 
         // Make room if needed
         if(this.buffer.size() == this.capacity)
@@ -121,7 +121,7 @@ class PageBuffer{
      * @param pageNumber Page number to read from
      * @return page
      */
-    public Page readFromBuffer(int tableID, int pageNumber) throws IOException {
+    public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer) throws IOException {
 
         Page page = searchBuffer(tableID, pageNumber);     // assume not in buffer
 
@@ -134,7 +134,8 @@ class PageBuffer{
 
         // Push to top of buffer
         this.buffer.remove(page);
-        this.buffer.add(0, page);
+        if(!removeFromBuffer)
+            this.buffer.add(0, page);
 
         return page;
     }

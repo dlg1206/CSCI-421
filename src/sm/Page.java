@@ -3,6 +3,8 @@ package sm;
 import catalog.Attribute;
 import dataTypes.DataType;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -83,9 +85,9 @@ class Page {
      * @param record record to append
      */
     public void appendRecord(List<Attribute> attributes, List<DataType> record){
-        var foo = BInterpreter.convertPageToRecords(this.data, attributes);
-        foo.add(record);
-        this.data = BInterpreter.convertRecordsToPage(foo);
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+        records.add(record);
+        this.data = BInterpreter.convertRecordsToPage(records);
     }
 
     /**
@@ -93,9 +95,9 @@ class Page {
      *
      * @return true if overfull, false otherwise
      */
-//    public boolean isOverfull(){
-//        return this.records.size() > this.pageSize;
-//    }
+    public boolean isOverfull(){
+        return this.data.length > this.pageSize;
+    }
 
 
     /**
@@ -103,25 +105,36 @@ class Page {
      *
      * @return the second half of the page
      */
-//    public Page split(){
-//        // Create second page
-//        Page newPage = new Page(this.pageSize, this.tableID, this.pageNumber + 1);
-//        int mid = this.records.size() / 2;
-//        for( int i = mid; i < this.records.size(); i++)
-//            newPage.appendRecord(this.records.get(i));
-//
-//        // Remove second page from this page
-//        this.records.subList(mid, this.records.size()).clear();
-//
-//        return newPage;
-//    }
+    public Page split(List<Attribute> attributes) throws IOException {
+        List<List<DataType>> leftRecords = BInterpreter.convertPageToRecords(this.data, attributes);
 
-    /**
-     * Mark this page to be written to a swap file
-     */
-//    public void markSwap(){
-//        this.tableID = -Math.abs(this.tableID);
-//    }
+        // Split right from all records
+        List<List<DataType>> rightRecords = new ArrayList<>(leftRecords.subList(leftRecords.size() / 2, leftRecords.size()));
+
+        // Create second page
+        Page rightPage = new SwapPage(
+                this.writeFile,
+                this.pageSize,
+                this.pageNumber,
+                BInterpreter.convertRecordsToPage(rightRecords)
+        );
+
+        // Remove right page from this page
+        leftRecords.subList(leftRecords.size() / 2, leftRecords.size()).clear();
+        this.data = BInterpreter.convertRecordsToPage(leftRecords);
+
+        return rightPage;
+    }
+
+    public SwapPage getSwapPage(int offset) throws IOException {
+        return new SwapPage(
+                writeFile.getSwapFile(),
+                this.pageSize,
+                this.pageNumber + offset,
+                this.data
+        );
+    }
+
 
 
     public byte[] getData() {
