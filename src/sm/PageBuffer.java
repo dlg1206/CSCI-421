@@ -53,10 +53,19 @@ class PageBuffer{
 
         int pageCount = writeFile.readPageCount();
         try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
-            raf.write(pageCount + 1);
+            // update count if needed
+            if(page.getPageNumber() >=  pageCount)
+                raf.write(pageCount + 1);
             raf.seek(1 + (long) page.getPageNumber() * this.pageSize);
             raf.write(page.getData());
         }
+
+//        try (InputStream is = new FileInputStream(writeFile.toFile())) {
+//            var foo = is.readAllBytes();
+//            var i =0;
+//        }
+
+
     }
 
 
@@ -71,9 +80,14 @@ class PageBuffer{
         byte[] buffer = new byte[this.pageSize];
 
         try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
-            raf.seek(1 + (long) pageNumber * this.pageSize);
+            raf.seek( 1 + (long) pageNumber * this.pageSize);
             raf.read(buffer, pageNumber * this.pageSize, this.pageSize);
         }
+
+//        try (InputStream is = new FileInputStream(writeFile.toFile())) {
+//            var foo = is.readAllBytes();
+//            var i =0;
+//        }
 
         writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer));
 
@@ -94,8 +108,10 @@ class PageBuffer{
         this.buffer.add(0, page);
     }
 
-    public void writeToBuffer(TableFile writeFile, int pageNumber, byte[] data) throws IOException {
-        writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, data));
+    public void fullWrite(TableFile writeFile, int pageNumber, byte[] data) throws IOException {
+        Page page = new Page(writeFile, this.pageSize, pageNumber, data);
+        writeToBuffer(page);
+        writeToDisk(page);
     }
 
     /**
