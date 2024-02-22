@@ -1,5 +1,10 @@
 package sm;
 
+import catalog.Attribute;
+import dataTypes.DataType;
+
+import java.util.List;
+
 /**
  * <b>File:</b> Page.java
  * <p>
@@ -53,26 +58,23 @@ class Page {
      * @param record record to insert
      * @return True if inserted, false otherwise
      */
-//    public boolean insertRecord(int primaryKeyIndex, List<DataType> record){
-//
-//        // Ordered insert
-//        for(List<DataType> storedRecord : this.records){
-//            // > 0 means record is less than stored
-//            if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
-//                this.records.add( this.records.indexOf(storedRecord),record );
-//                return true;
-//            }
-//        }
-//
-//        // Append if there's space
-//        if(this.records.size() < this.pageSize){
-//            appendRecord(record);
-//            return true;
-//        }
-//
-//        // Record wasn't added
-//        return false;
-//    }
+    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record){
+
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+
+        // Ordered insert
+        for(List<DataType> storedRecord : records){
+            // > 0 means record is less than stored
+            if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
+                records.add( records.indexOf(storedRecord), record );
+                this.data = BInterpreter.convertRecordsToPage(records);
+                return true;
+            }
+        }
+
+        // Record wasn't added
+        return false;
+    }
 
     /**
      * Append record to end of page
@@ -80,9 +82,11 @@ class Page {
      *
      * @param record record to append
      */
-//    public void appendRecord(List<DataType> record){
-//        this.records.add(record);
-//    }
+    public void appendRecord(List<Attribute> attributes, List<DataType> record){
+        var foo = BInterpreter.convertPageToRecords(this.data, attributes);
+        foo.add(record);
+        this.data = BInterpreter.convertRecordsToPage(foo);
+    }
 
     /**
      * Check if the page is above capacity

@@ -40,12 +40,9 @@ class TableFile {
         File tableFile = toFile();
         if(tableFile.createNewFile()){
             try (OutputStream os = new FileOutputStream(tableFile)) {
-                os.write(5);
+                os.write(0);
             }
         }
-
-        readPageCount();
-
     }
 
     private TableFile(String databaseRoot, int tableID, String fileExtension) throws IOException {

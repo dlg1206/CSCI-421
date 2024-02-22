@@ -100,17 +100,14 @@ public class StorageManager {
         if( pageCount == 0 ){
             List<List<DataType>> records = new ArrayList<>();
             records.add(record);
-            this.buffer.writeToBuffer(tf, 0, BInterpreter.convertRecordsToPage(records));
-            this.buffer.flush();
-            Page p = this.buffer.readFromBuffer(tableID, 0);
+            this.buffer.fullWrite(tf, 0, BInterpreter.convertRecordsToPage(records));
             return;
         }
 
-//        // Iterate through all pages and attempt to insert the record
-//        for( int pageNum = 0; pageNum < pageCount; pageNum++){
-//            Page page = this.buffer.readFromBuffer(tableID, pageNum);
-//            boolean recordInserted = page.insertRecord(pki, record);
-//
+        // Iterate through all pages and attempt to insert the record
+        for( int pageNumber = 0; pageNumber < pageCount; pageNumber++){
+            Page page = this.buffer.readFromBuffer(tableID, pageNumber);
+            boolean recordInserted = page.insertRecord(pki, attributes, record);
 //            // Record added, split if needed and break
 //            if(recordInserted) {
 //                if (page.isOverfull())
@@ -118,13 +115,13 @@ public class StorageManager {
 //                break;
 //            }
 //
-//            // Reach end of pages and not inserted, append to end and split if needed
-//            if(pageNum == pageCount - 1){
-//                page.appendRecord(record);
+            // Reach end of pages and not inserted, append to end and split if needed
+            if(!recordInserted && pageNumber == pageCount - 1){
+                page.appendRecord(attributes, record);
 //                if (page.isOverfull())
 //                    tf.splitPageInFile(this.buffer, pageNum);
-//            }
-//        }
+            }
+        }
     }
 
     // READ
