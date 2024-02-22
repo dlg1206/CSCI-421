@@ -53,11 +53,10 @@ class PageBuffer{
 
         int pageCount = writeFile.readPageCount();
         try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
-            // update count if needed
-            if(page.getPageNumber() >=  pageCount)
-                raf.write(pageCount + 1);
             raf.seek(1 + (long) page.getPageNumber() * this.pageSize);
             raf.write(page.getData());
+            raf.seek(0);
+            raf.write((int) ((raf.length() - 1) / this.pageSize));
         }
 
 //        try (InputStream is = new FileInputStream(writeFile.toFile())) {
@@ -79,9 +78,14 @@ class PageBuffer{
         TableFile writeFile = new TableFile(this.databaseRoot, tableID);
         byte[] buffer = new byte[this.pageSize];
 
+        try (InputStream is = new FileInputStream(writeFile.toFile())) {
+            var foo = is.readAllBytes();
+            var i = 0;
+        }
+
         try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
-            raf.seek( 1 + (long) pageNumber * this.pageSize);
-            raf.read(buffer, pageNumber * this.pageSize, this.pageSize);
+            raf.seek( 1 + (long) pageNumber * this.pageSize );
+            raf.read(buffer, 0, this.pageSize);
         }
 //        try (InputStream is = new FileInputStream(writeFile.toFile())) {
 //            var foo = is.readAllBytes();

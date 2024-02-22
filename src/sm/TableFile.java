@@ -118,9 +118,10 @@ class TableFile {
      */
     public void splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes) throws IOException {
         int swapOffset = 0;
+        int pageCount = readPageCount();
 
         // Read each page from the original table file to the swap file
-        for (int pageNumber = 0; pageNumber < this.readPageCount(); pageNumber++) {
+        for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
             // add split page
             if (pageNumber == splitPageNum){
