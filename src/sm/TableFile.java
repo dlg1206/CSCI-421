@@ -3,8 +3,6 @@ package sm;
 import catalog.Attribute;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -16,16 +14,6 @@ import java.util.List;
  */
 class TableFile {
 
-//    public record TableFileFactory(String databaseRoot) {
-//        public TableFile createTableFile(){
-//
-//        }
-//
-//        public TableFile createSwapFile(){
-//
-//        }
-//    }
-
 
     private static final String FILE_EXTENSION = ".db";
     private static final String SWAP_FILE_EXTENSION = ".swp.db";
@@ -35,7 +23,13 @@ class TableFile {
     private final String filePath;
 
 
-
+    /**
+     * Create a new table file
+     *
+     * @param databaseRoot Root path of the database
+     * @param tableID      Table ID of this file
+     * @throws IOException Failed to create or open file
+     */
     public TableFile(String databaseRoot, int tableID) throws IOException {
         this.databaseRoot = databaseRoot;
         this.tableID = tableID;
@@ -43,13 +37,21 @@ class TableFile {
 
         // Init new table file if it DNE
         File tableFile = toFile();
-        if(tableFile.createNewFile()){
+        if (tableFile.createNewFile()) {
             try (OutputStream os = new FileOutputStream(tableFile)) {
                 os.write(0);
             }
         }
     }
 
+    /**
+     * Private constructor used for swap file creation
+     *
+     * @param databaseRoot  Root path of the database
+     * @param tableID       Table ID of this file
+     * @param fileExtension File extension to append to file
+     * @throws IOException Failed to create or open file
+     */
     private TableFile(String databaseRoot, int tableID, String fileExtension) throws IOException {
         this.databaseRoot = databaseRoot;
         this.tableID = tableID;
@@ -57,41 +59,27 @@ class TableFile {
 
         // Init new table file if it DNE
         File tableFile = toFile();
-        if(tableFile.createNewFile()){
+        if (tableFile.createNewFile()) {
             try (OutputStream os = new FileOutputStream(tableFile)) {
                 os.write(0);
             }
         }
-
     }
-
-
-    public TableFile getSwapFile() throws IOException {
-        return new TableFile(this.databaseRoot, this.tableID, SWAP_FILE_EXTENSION);
-    }
-
-
-    public File toFile(){
-        return new File(this.filePath);
-    }
-
-    public RandomAccessFile toRandomAccessFile() throws FileNotFoundException {
-        return new RandomAccessFile(this.filePath, "rw");
-    }
-
-
 
 
     /**
-     * Delete old table file and create new one with swap file contents
-     *
-     * @throws IOException Fails to write to file
+     * @return This as File object
      */
-    private void closeSwapFile() throws IOException {
-        delete();
-        TableFile swapFile = getSwapFile();
-        swapFile.toFile().renameTo(toFile());
-        swapFile.delete();
+    public File toFile() {
+        return new File(this.filePath);
+    }
+
+    /**
+     * @return This as RandomAccessFile
+     * @throws FileNotFoundException Table file does not exist
+     */
+    public RandomAccessFile toRandomAccessFile() throws FileNotFoundException {
+        return new RandomAccessFile(this.filePath, "rw");
     }
 
 
@@ -102,13 +90,11 @@ class TableFile {
      * @throws IOException Failed to read file
      */
     public int readPageCount() throws IOException {
-
-        try( RandomAccessFile raf = toRandomAccessFile() ){
+        try (RandomAccessFile raf = toRandomAccessFile()) {
             byte[] buffer = new byte[1];
             raf.read(buffer, 0, 1);
             return buffer[0];
         }
-
     }
 
     /**
@@ -124,31 +110,65 @@ class TableFile {
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
             // add split page
-            if (pageNumber == splitPageNum){
+            if (pageNumber == splitPageNum) {
                 Page rightPage = page.split(attributes);
-                buffer.writeToBuffer(page.getSwapPage(swapOffset));
+                buffer.writeToBuffer(page.getSwapPage(swapOffset));         // add leftPage
                 swapOffset = 1;
-                buffer.writeToBuffer(rightPage.getSwapPage(swapOffset));
+                buffer.writeToBuffer(rightPage.getSwapPage(swapOffset));    // add rightPage
             } else {
                 // add rest of page
                 buffer.writeToBuffer(page.getSwapPage(swapOffset));
             }
         }
         buffer.flush();     // Write out any remaining files
-        closeSwapFile();
+        closeSwapFile();    // Save the swap file as the actual file
     }
 
+    /**
+     * Delete this table file
+     *
+     * @return true if delete, false otherwise
+     */
     public boolean delete() {
         return toFile().delete();
     }
 
+    /**
+     * Delete old table file and save new one with swap file contents
+     *
+     * @throws IOException Fails to write to file
+     */
+    private void closeSwapFile() throws IOException {
+        delete();
+        TableFile swapFile = getSwapFile();
+        swapFile.toFile().renameTo(toFile());
+        swapFile.delete();
+    }
+
+    /**
+     * Get the swap file for this table file
+     *
+     * @return Swap Table file
+     * @throws IOException Failed to create swap table file
+     */
+    public TableFile getSwapFile() throws IOException {
+        return new TableFile(this.databaseRoot, this.tableID, SWAP_FILE_EXTENSION);
+    }
+
+    /**
+     * @return True if swap file, false otherwise
+     */
+    public boolean isSwap() {
+        return this.filePath.contains(SWAP_FILE_EXTENSION);
+    }
+
+    /**
+     * @return Table ID
+     */
     public int getTableID() {
         return this.tableID;
     }
 
-    public boolean isSwap(){
-        return this.filePath.contains(SWAP_FILE_EXTENSION);
-    }
 
     @Override
     public String toString() {
