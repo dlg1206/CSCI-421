@@ -40,9 +40,11 @@ class TableFile {
         File tableFile = toFile();
         if(tableFile.createNewFile()){
             try (OutputStream os = new FileOutputStream(tableFile)) {
-                os.write(0);
+                os.write(5);
             }
         }
+
+        readPageCount();
 
     }
 
@@ -100,9 +102,13 @@ class TableFile {
      * @throws IOException Failed to read file
      */
     public int readPageCount() throws IOException {
-        try (InputStream is = new FileInputStream(toFile())) {
-            return is.readNBytes(1)[0];
+
+        try( RandomAccessFile raf = toRandomAccessFile() ){
+            byte[] buffer = new byte[1];
+            raf.read(buffer, 0, 1);
+            return buffer[0];
         }
+
     }
 
     /**
