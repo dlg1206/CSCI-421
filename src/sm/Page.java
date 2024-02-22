@@ -10,33 +10,24 @@ import java.util.List;
 /**
  * <b>File:</b> Page.java
  * <p>
- * <b>Description:</b> Utility Page object to hold metadata about page
+ * <b>Description:</b> Utility Page object to hold page data
  *
  * @author Derek Garcia, Ryan Nowak
  */
 class Page {
 
-
-//    public record PageFactory(int pageSize) {
-//
-//        public Page createCache(int tableID, int pageNum, byte[] data) {
-//            return new Page(tableID, pageNum, this.pageSize, data);
-//        }
-//
-//    }
-
+    private final TableFile writeFile;
     private final int pageSize;
-    private TableFile writeFile;
-    private int pageNumber;
+    private final int pageNumber;
     private byte[] data;
-//    private final List<List<DataType>> records = new ArrayList<>();
 
     /**
-     * Create new Empty Page
+     * Create new Page
      *
-     * @param tableID Table ID of the page
-     * @param pageNumber  Page Number
-     * @param pageSize Max number of records page can hold
+     * @param writeFile  File to write page to
+     * @param pageSize   Max number of records page can hold
+     * @param pageNumber Page Number
+     * @param data       Page byte data
      */
     public Page(TableFile writeFile, int pageSize, int pageNumber, byte[] data) {
         this.writeFile = writeFile;
@@ -44,12 +35,19 @@ class Page {
         this.pageNumber = pageNumber;
         this.data = new byte[pageSize];
 
-        System.arraycopy(data, 0, this.data, 0, data.length);
+        System.arraycopy(data, 0, this.data, 0, data.length);   // copy existing data
     }
 
-    public boolean match(int tableID, int pageNumber){
-        return this.writeFile.getTableID() == tableID
-                && this.pageNumber == pageNumber
+    /**
+     * Test if other page is the same as this
+     *
+     * @param otherTableID    Table ID of the other page
+     * @param otherPageNumber Page number of the other page
+     * @return true if match, false otherwise
+     */
+    public boolean match(int otherTableID, int otherPageNumber) {
+        return this.writeFile.getTableID() == otherTableID
+                && this.pageNumber == otherPageNumber
                 && !this.writeFile.isSwap();    // cannot read from swap
     }
 
@@ -57,18 +55,18 @@ class Page {
      * Insert a record to the page
      *
      * @param primaryKeyIndex Index of the primary key to sort by
-     * @param record record to insert
+     * @param record          record to insert
      * @return True if inserted, false otherwise
      */
-    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record){
-
+    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) {
+        // Get records
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
 
         // Ordered insert
-        for(List<DataType> storedRecord : records){
+        for (List<DataType> storedRecord : records) {
             // > 0 means record is less than stored
-            if(record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0){
-                records.add( records.indexOf(storedRecord), record );
+            if (record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0) {
+                records.add(records.indexOf(storedRecord), record);
                 this.data = BInterpreter.convertRecordsToPage(records);
                 return true;
             }
@@ -81,22 +79,14 @@ class Page {
     /**
      * Append record to end of page
      * SHOULD ONLY BE USED IF LAST PAGE
+     * todo better implementation?
      *
      * @param record record to append
      */
-    public void appendRecord(List<Attribute> attributes, List<DataType> record){
+    public void appendRecord(List<Attribute> attributes, List<DataType> record) {
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
         records.add(record);
         this.data = BInterpreter.convertRecordsToPage(records);
-    }
-
-    /**
-     * Check if the page is above capacity
-     *
-     * @return true if overfull, false otherwise
-     */
-    public boolean isOverfull(){
-        return this.data.length > this.pageSize;
     }
 
 
@@ -126,19 +116,37 @@ class Page {
         return rightPage;
     }
 
-    public SwapPage getSwapPage(int offset) throws IOException {
+
+    /**
+     * Get a copy of this page with a modified number
+     *
+     * @param pageOffset Offset of page in swap file
+     * @return new Swap Page
+     * @throws IOException Failed to get swap file
+     */
+    public SwapPage getSwapPage(int pageOffset) throws IOException {
         return new SwapPage(
                 writeFile.getSwapFile(),
                 this.pageSize,
-                this.pageNumber + offset,
+                this.pageNumber + pageOffset,
                 this.data
         );
     }
 
+    /**
+     * Check if the page is above capacity
+     *
+     * @return true if overfull, false otherwise
+     */
+    public boolean isOverfull() {
+        return this.data.length > this.pageSize;
+    }
 
-
-    public byte[] getData() {
-        return this.data;
+    /**
+     * @return Page write file
+     */
+    public TableFile getWriteFile() {
+        return this.writeFile;
     }
 
     /**
@@ -148,7 +156,13 @@ class Page {
         return this.pageNumber;
     }
 
-    public TableFile getWriteFile() {
-        return this.writeFile;
+
+    /**
+     * @return Page byte data
+     */
+    public byte[] getData() {
+        return this.data;
     }
+
+
 }
