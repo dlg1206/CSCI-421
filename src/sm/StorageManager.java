@@ -26,78 +26,63 @@ public class StorageManager {
      └―――――――――――――――――――[FULL READ]――――――――――――――――――┘
      */
     private final PageBuffer buffer;
-    private static String databasePath;
-
     private final int pageSize;
     private final int bufferSize;
-    private final String databaseLocation;
+    private final String databaseRoot;
 
 
     /**
      * Create a new Storage Manager with a page buffer
      *
-     * @param bufferSize Max buffer size in number of pages
-     * @param pageSize Max page size in number of records
+     * @param bufferSize   Max buffer size in number of pages
+     * @param pageSize     Max page size in number of records
      * @param databasePath Path to database directory
      */
-    public StorageManager(int bufferSize, int pageSize, String databasePath){
+    public StorageManager(int bufferSize, int pageSize, String databasePath) {
         this.buffer = new PageBuffer(bufferSize, pageSize, databasePath);
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
-        this.databaseLocation = databasePath;
-        StorageManager.databasePath = databasePath;
+        this.databaseRoot = databasePath;
     }
 
 
-    private int getPrimaryKeyIndex(List<Attribute> attributes){
-        for( int i = 0; i < attributes.size(); i ++){
-            if(attributes.get(i).isPrimaryKey())
+    /**
+     * Utility for attribute, iterates through the attribute list
+     * until it finds the index of the primary key
+     *
+     * @param attributes list of attributes to iterate through
+     * @return index of primary key, -1 if error
+     */
+    private int getPrimaryKeyIndex(List<Attribute> attributes) {
+        for (int i = 0; i < attributes.size(); i++) {
+            if (attributes.get(i).isPrimaryKey())
                 return i;
         }
         return -1; // err, but that won't happen :)
     }
 
-    public int getPageCount(int tableID){
-        // TODO
-        return -1;
-    }
-
-    public int getPageSize(){
-        return this.pageSize;
-    }
-
-    public int getBufferSize(){
-        return this.bufferSize;
-    }
-
-    public String getDatabaseLocation(){
-        return this.databaseLocation;
-    }
-
-    public int getCountOfRecords(int tableID){
-        List<List<DataType>> allRecords = getAllRecords(tableID);
-        return allRecords.size();
-    }
+    //
+    // CREATE
+    //
 
     /**
-     * CREATE
-     *
      * Insert record into table file
      *
-     * @param tableID ID of table file
+     * @param tableID    ID of table file
      * @param attributes Constraints of data types
-     * @param record record contents
+     * @param record     record contents
      * @throws IOException failed to write to file
      */
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
-        TableFile tf = new TableFile(databasePath, tableID);
+        // Get table file details
+        TableFile tf = new TableFile(this.databaseRoot, tableID);
         int pageCount = tf.readPageCount();
         int pki = getPrimaryKeyIndex(attributes);
 
 
         // If no records, just add to page
-        if( pageCount == 0 ){
+        if (pageCount == 0) {
             List<List<DataType>> records = new ArrayList<>();
             records.add(record);
             this.buffer.fullWrite(tf, 0, BInterpreter.convertRecordsToPage(records));
@@ -105,17 +90,19 @@ public class StorageManager {
         }
 
         // Iterate through all pages and attempt to insert the record
-        for( int pageNumber = 0; pageNumber < pageCount; pageNumber++){
+        for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+            // read page from buffer and attempt to insert
             Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
             boolean recordInserted = page.insertRecord(pki, attributes, record);
+
             // Record added, split if needed and break
-            if(recordInserted && page.isOverfull()) {
+            if (recordInserted && page.isOverfull()) {
                 tf.splitPage(this.buffer, pageNumber, attributes);
                 break;
             }
 
             // Reach end of pages and not inserted, append to end and split if needed
-            if(!recordInserted && pageNumber == pageCount - 1){
+            if (!recordInserted && pageNumber == pageCount - 1) {
                 page.appendRecord(attributes, record);
                 if (page.isOverfull())
                     tf.splitPage(this.buffer, pageNumber, attributes);
@@ -123,14 +110,17 @@ public class StorageManager {
         }
     }
 
+
+    //
     // READ
-    public List<DataType> getRecord(int tableID, DataType primaryKey){
+    //
+    public List<DataType> getRecord(int tableID, DataType primaryKey) {
         // TODO
         return null;
     }
 
-    // READ
-    public List<List<DataType>> getAllRecords(int tableID){
+
+    public List<List<DataType>> getAllRecords(int tableID) {
         /*
         List<List<DataType>> records = new ArrayList<>()
         int numPages = getPageCount(tableID)
@@ -140,26 +130,81 @@ public class StorageManager {
          return records
          */
         // TODO
-         return null;
+        return null;
     }
 
 
+    /**
+     * Get the page count of a table
+     *
+     * @param tableID Table to get page count from
+     * @return number of pages, -1 if error
+     */
+    public int getPageCount(int tableID) {
+        try {
+            return new TableFile(this.databaseRoot, tableID).readPageCount();
+        } catch (Exception e) {
+            // todo handle?
+            return -1;
+        }
+    }
+
+    /**
+     * Get the total records for a given table
+     *
+     * @param tableID Table to get record count from
+     * @return number of records
+     */
+    public int getCountOfRecords(int tableID) {
+        List<List<DataType>> allRecords = getAllRecords(tableID);
+        return allRecords.size();
+    }
+
+    /**
+     * @return Size of a page in bytes
+     */
+    public int getPageSize() {
+        return this.pageSize;
+    }
+
+    /**
+     * @return Number of pages the buffer can hold
+     */
+    public int getBufferSize() {
+        return this.bufferSize;
+    }
+
+    /**
+     * @return Root directory of the database
+     */
+    public String getDatabaseRoot() {
+        return this.databaseRoot;
+    }
 
 
-     // UPDATE
-    public void updateRecord(int tableID, DataType primaryKey, List<DataType> record){
+    //
+    // UPDATE
+    //
+    public void updateRecord(int tableID, DataType primaryKey, List<DataType> record) {
         // TODO
     }
 
+    //
     // DELETE
-    public void deleteRecord(int tableID, DataType primaryKey){
+    //
+    public void deleteRecord(int tableID, DataType primaryKey) {
         // TODO
     }
 
-    public void deleteTable(int tableID) throws IOException {
+    /**
+     * Drop a table from the database
+     *
+     * @param tableID Table to drop
+     * @throws IOException Failed to read table file
+     */
+    public void dropTable(int tableID) throws IOException {
         this.buffer.flush();
-        TableFile tf = new TableFile(databasePath, tableID);
-        tf.delete();
+        new TableFile(this.databaseRoot, tableID).delete();
     }
 
 }

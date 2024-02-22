@@ -3,7 +3,6 @@ package cli.cmd.commands;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 import dataTypes.AttributeType;
-import dataTypes.DTInteger;
 import catalog.Attribute;
 import catalog.ICatalog;
 import catalog.Table;
@@ -84,7 +83,7 @@ public class Display extends Command {
             Set<String> allTableNames = catalog.getExistingTableNames();
             int bufferSize = sm.getBufferSize();
             int pageSize = sm.getPageSize();
-            String location = sm.getDatabaseLocation();
+            String location = sm.getDatabaseRoot();
             System.out.println("DB location: " + location);
             System.out.println("Page Size: " + pageSize);
             System.out.println("Buffer Size: " + bufferSize);
