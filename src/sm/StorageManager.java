@@ -5,6 +5,7 @@ import catalog.Attribute;
 import dataTypes.DataType;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,7 +41,7 @@ public class StorageManager {
      * @param databasePath Path to database directory
      */
     public StorageManager(int bufferSize, int pageSize, String databasePath){
-        this.buffer = new PageBuffer(bufferSize, pageSize);
+        this.buffer = new PageBuffer(bufferSize, pageSize, databasePath);
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
         this.databaseLocation = databasePath;
@@ -91,36 +92,39 @@ public class StorageManager {
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
 
         TableFile tf = new TableFile(databasePath, tableID);
-        int pageCount = tf.getPageCount();
+        int pageCount = tf.readPageCount();
         int pki = getPrimaryKeyIndex(attributes);
+
 
         // If no records, just add to page
         if( pageCount == 0 ){
-            Page page = this.buffer.createNewPage(tableID, 0);
-            page.insertRecord(pki, record);
-            this.buffer.writeToBuffer(page);
+            List<List<DataType>> records = new ArrayList<>();
+            records.add(record);
+            this.buffer.writeToBuffer(tf, 0, BInterpreter.convertRecordsToPage(records));
+            this.buffer.flush();
+            Page p = this.buffer.readFromBuffer(tableID, 0);
             return;
         }
 
-        // Iterate through all pages and attempt to insert the record
-        for( int pageNum = 0; pageNum < pageCount; pageNum++){
-            Page page = this.buffer.readFromBuffer(tableID, pageNum);
-            boolean recordInserted = page.insertRecord(pki, record);
-
-            // Record added, split if needed and break
-            if(recordInserted) {
-                if (page.isOverfull())
-                    tf.splitPageInFile(this.buffer, pageNum);
-                break;
-            }
-
-            // Reach end of pages and not inserted, append to end and split if needed
-            if(pageNum == pageCount - 1){
-                page.appendRecord(record);
-                if (page.isOverfull())
-                    tf.splitPageInFile(this.buffer, pageNum);
-            }
-        }
+//        // Iterate through all pages and attempt to insert the record
+//        for( int pageNum = 0; pageNum < pageCount; pageNum++){
+//            Page page = this.buffer.readFromBuffer(tableID, pageNum);
+//            boolean recordInserted = page.insertRecord(pki, record);
+//
+//            // Record added, split if needed and break
+//            if(recordInserted) {
+//                if (page.isOverfull())
+//                    tf.splitPageInFile(this.buffer, pageNum);
+//                break;
+//            }
+//
+//            // Reach end of pages and not inserted, append to end and split if needed
+//            if(pageNum == pageCount - 1){
+//                page.appendRecord(record);
+//                if (page.isOverfull())
+//                    tf.splitPageInFile(this.buffer, pageNum);
+//            }
+//        }
     }
 
     // READ
@@ -159,7 +163,7 @@ public class StorageManager {
     public void deleteTable(int tableID) throws IOException {
         this.buffer.flush();
         TableFile tf = new TableFile(databasePath, tableID);
-        tf.deleteFile();
+        tf.delete();
     }
 
 }

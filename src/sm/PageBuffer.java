@@ -1,5 +1,9 @@
 package sm;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,41 +18,45 @@ class PageBuffer{
     private final List<Page> buffer = new ArrayList<>();
     private final int capacity;
     private final int pageSize;
+//    private final Page.PageFactory pf;
+    private final String databaseRoot;
+
 
 
     /**
      * Create a new Page Buffer
      *
-     * @param bufferSize Max buffer size in number of pages
+     * @param capacity Max buffer size in number of pages
      * @param pageSize Max page size in number of records
      */
-    public PageBuffer(int bufferSize, int pageSize){
-        this.capacity = bufferSize;
+    public PageBuffer(int capacity, int pageSize, String databaseRoot){
+        this.capacity = capacity;
         this.pageSize = pageSize;
+//        this.pf = new Page.PageFactory(this.pageSize);
+        this.databaseRoot = databaseRoot;
     }
 
-    /**
-     * Check if page is in the buffer
-     *
-     * @param tableID Table ID to read from
-     * @param pageNum Page number to read from
-     * @return true if in buffer, false otherwise
-     */
-    private boolean isPageInBuffer(int tableID, int pageNum){
+
+    private Page searchBuffer(int tableID, int pageNum){
 
         for( Page p : this.buffer ){
             // Find page
-            if(p.getTableID() == tableID && p.getPageNumber() == pageNum)
-                return true;
+            if(p.match(tableID, pageNum))
+                return p;
         }
 
-        return false;
+        return null;
     }
 
-    private void writeToDisk(Page page){
-        // TODO - need table path?
-        // NOTE - marked negative are .swp.db extension
-        // write to disk
+    private void writeToDisk(Page page) throws IOException {
+        TableFile writeFile = page.getWriteFile();
+
+        int pageCount = writeFile.readPageCount();
+        try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
+            raf.write(pageCount + 1);
+            raf.seek(1 + (long) page.getPageNumber() * this.pageSize);
+            raf.write(page.getData());
+        }
     }
 
 
@@ -56,22 +64,18 @@ class PageBuffer{
      * Read Page binary from Table file from disk to buffer
      *
      * @param tableID Table ID to read from
-     * @param pageNum Page number to read from
+     * @param pageNumber Page number to read from
      */
-    private void readFromDisk(int tableID, int pageNum){
+    private void readFromDisk(int tableID, int pageNumber) throws IOException {
+        TableFile writeFile = new TableFile(this.databaseRoot, tableID);
+        byte[] buffer = new byte[this.pageSize];
 
-        // Make room if needed
-        if(this.buffer.size() == this.capacity)
-            writeToDisk(this.buffer.remove( this.capacity - 1 ));
+        try( RandomAccessFile raf = writeFile.toRandomAccessFile() ){
+            raf.seek(1 + (long) pageNumber * this.pageSize);
+            raf.read(buffer, pageNumber * this.pageSize, this.pageSize);
+        }
 
-        // Read new page into buffer. Add to first b/c assume going to be accessed
-        int offset = this.pageSize * pageNum;   // todo add offset for table/page metadata?
-//            this.buffer.add( new Page(
-//                tableID,
-//                pageNum,
-//                sys.loadBytes(tableID) + offset  // ie load 1 page however it's done
-//                )
-//            );
+        writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer));
 
     }
 
@@ -80,7 +84,7 @@ class PageBuffer{
      *
      * @param page Page to add to buffer
      */
-    public void writeToBuffer(Page page){
+    private void writeToBuffer(Page page) throws IOException {
 
         // Make room if needed
         if(this.buffer.size() == this.capacity)
@@ -90,29 +94,26 @@ class PageBuffer{
         this.buffer.add(0, page);
     }
 
+    public void writeToBuffer(TableFile writeFile, int pageNumber, byte[] data) throws IOException {
+        writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, data));
+    }
+
     /**
      * Read page from the Page Buffer
      *
      * @param tableID Table ID to read from
-     * @param pageNum Page number to read from
+     * @param pageNumber Page number to read from
      * @return page
      */
-    public Page readFromBuffer(int tableID, int pageNum){
+    public Page readFromBuffer(int tableID, int pageNumber) throws IOException {
 
-        Page page = null;     // assume not in buffer
+        Page page = searchBuffer(tableID, pageNumber);     // assume not in buffer
 
         // Read page from disk if not in buffer
         // set to first to reduce search time
-        if( !isPageInBuffer(tableID, pageNum) )
-            readFromDisk(tableID, pageNum);
-
-        // Get page from buffer
-        for( Page p : this.buffer ){
-            // Find page
-            if(p.getTableID() == tableID && p.getPageNumber() == pageNum){
-                page = p;
-                break;
-            }
+        if( page == null ){
+            readFromDisk(tableID, pageNumber);
+            page = searchBuffer(tableID, pageNumber);
         }
 
         // Push to top of buffer
@@ -122,22 +123,12 @@ class PageBuffer{
         return page;
     }
 
-    /**
-     * Create a new page with a preset capacity
-     *
-     * @param tableID Table ID
-     * @param pageNum Page number
-     * @return new page
-     */
-    public Page createNewPage(int tableID, int pageNum){
-        return new Page(this.pageSize, tableID, pageNum);
-    }
 
 
     /**
      * Write entire buffer to disk
      */
-    public void flush(){
+    public void flush() throws IOException {
         while(!this.buffer.isEmpty())
             writeToDisk(this.buffer.remove(0));
     }
