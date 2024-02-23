@@ -123,9 +123,9 @@ public class AlterTable extends Command {
                     if (newAttributeData.length != 2) {
                         throw new InvalidUsage(args, "Attributes of type CHAR or VARCHAR require a max length.");
                     }
-                    String maxLengthString = newAttributeData[1];
+                    String maxLengthString = newAttributeData[1].replace(")","");
                     try {
-                        maxDataLength = Integer.parseInt(maxLengthString.substring(1, maxLengthString.length() - 1));
+                        maxDataLength = Integer.parseInt(maxLengthString);
                     } catch (NumberFormatException nfe) {
                         throw new InvalidUsage(args, "The attribute's max length must be an integer.");
                     }
@@ -143,6 +143,8 @@ public class AlterTable extends Command {
     @Override
     public void execute() throws ExecutionFailure {
         // Check if the command is dropping an attribute
+        int tableNumber = catalog.getTableNumber(tableName);
+        List<List<DataType>> allRecordsList = sm.getAllRecords(tableNumber, catalog.getRecordSchema(tableName).getAttributes());
         if(isDrop){
             int attributeIndex = 0;
             Table table = catalog.getRecordSchema(tableName);
@@ -167,7 +169,7 @@ public class AlterTable extends Command {
                 Attribute attr = attributes.get(v);
                 // If last value then dont add a comma, otherwise have a comma
                 // Result should look like 'AttName AttType AttConstraint, AttName AttType AttConstraint'
-                if(v == attributes.size()){
+                if(v == attributes.size()-1){
                     attributeValues = attributeValues + attr.getName() + " " + getStringType(attr) + getConstraintString(attr);
                 }
                 else{
@@ -175,42 +177,38 @@ public class AlterTable extends Command {
                 }   
             }
             // Creating Insert Into Command
-            int tableNum = catalog.getTableNumber(tableName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, attributes);
             String insertValues = "";
             // Iterate through first list
-            for (int r = 0; r < allRecords.size(); r++) {
-                List<DataType> record = allRecords.get(r);
+            for (int r = 0; r < allRecordsList.size(); r++) {
+                List<DataType> record = allRecordsList.get(r);
                 String eachValue = " ( ";
                 // Iterate through each value
                 for (int i = 0; i < record.size(); i++) {
-                    if(i == attributeIndex){
-                        record.remove(i);
+                    // If it is a char or varchar then add quotation marks
+                    if(!(i == attributeIndex)){
+                        String recordString = record.get(i).stringValue();
+                    if(record.get(i) instanceof DTChar || record.get(i) instanceof DTVarchar){
+                        eachValue = eachValue + "\"" + recordString + "\"" + " ";
                     }
                     else{
-                        // If it is a char or varchar then add quotation marks
-                        if(record instanceof DTChar || record instanceof DTVarchar){
-                            eachValue = eachValue + "\"" + record.toString() + "\"";
-                        }
-                        else{
-                            eachValue += record.toString() + " ";
-                        }
+                        eachValue = eachValue +  recordString  + " ";
+                    }
                     }
                 }
-                if(r == allRecords.size()){
+                if(r == allRecordsList.size()-1){
                     eachValue += ")";
                 }
                 else{
-                    eachValue += "), ";
+                    eachValue += " ),";
                 }
                 // Add each ( Value, Value, Value ), or ( Value, Value, Value ) to main string
                 // Result should look like ( Value, Value, Value ), ( Value, Value, Value ), ( Value, Value, Value )
                 insertValues += eachValue;
             }
             // Create each command
-            String dropTableCommand ="DROP TABLE " + tableName + ";";
-            String createTableCommand = "CREATE TABLE " + tableName + "(" + attributeValues + ");";
-            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";";
+            String dropTableCommand ="DROP TABLE " + tableName + ";".strip();
+            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );".strip();
+            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";".strip();
             try {
                 // Run each command
                 DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
@@ -219,7 +217,6 @@ public class AlterTable extends Command {
                 newTableExecutable.execute();
                 InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
                 newInsertIntoExecutable.execute();
-                System.out.println("SUCCESS");
             } catch (InvalidUsage e) {
                 throw new ExecutionFailure("Execution failure to drop attribute");
             }
@@ -247,29 +244,27 @@ public class AlterTable extends Command {
             // Result should look like 'AttName AttType AttConstraint, AttName AttType AttConstraint, NewAttributeName NewAttributeType'
             attributeValues += attributeName + " " + attributeTypeString;
             // Creating Insert Into Command
-            int tableNum = catalog.getTableNumber(tableName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, attributes);
             String insertValues = "";
             // Iterate through first list
-            for (int r = 0; r < allRecords.size(); r++) {
-                List<DataType> record = allRecords.get(r);
+            for (int r = 0; r < allRecordsList.size(); r++) {
+                List<DataType> record = allRecordsList.get(r);
                 String eachValue = " ( ";
                 // Iterate through each value
                 for (int i = 0; i < record.size(); i++) {
                     // If it is a char or varchar then add quotation marks
-                    if(record instanceof DTChar || record instanceof DTVarchar){
-                        eachValue = eachValue + "\"" + record.toString() + "\"";
+                    if(record.get(i) instanceof DTChar || record.get(i) instanceof DTVarchar){
+                        eachValue = eachValue + "\"" + record.get(i).stringValue() + "\"" + " ";
                     }
                     else{
-                        eachValue += record.toString() + " ";
+                        eachValue += record.get(i).stringValue() + " ";
                     }
                 }
                 // If argument contained default, then use default value, otherwise input null value
-                if(r == allRecords.size()){
-                    eachValue += args.toLowerCase().contains("default") ? defaultValue + " )" : "null )";
+                if(r == allRecordsList.size()-1){
+                    eachValue += args.toLowerCase().contains("default") ? " " + defaultValue + " )" : " null )";
                 }
                 else{
-                    eachValue += args.toLowerCase().contains("default") ? defaultValue + " )" : "null ), ";
+                    eachValue += args.toLowerCase().contains("default") ? " " + defaultValue + " )," : " null ), ";
                 }
                 // Add each ( Value, Value, defaultValue ), or ( Value, Value, null ) to main string
                 // Result should look like ( Value, Value, null ), ( Value, Value, null ), ( Value, Value, null )
@@ -277,7 +272,7 @@ public class AlterTable extends Command {
             }
             // Create each command
             String dropTableCommand ="DROP TABLE " + tableName + ";";
-            String createTableCommand = "CREATE TABLE " + tableName + "(" + attributeValues + ");";
+            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );";
             String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";";
             try {
                 // Run each command
@@ -287,7 +282,6 @@ public class AlterTable extends Command {
                 newTableExecutable.execute();
                 InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
                 newInsertIntoExecutable.execute();
-                System.out.println("SUCCESS");
             } catch (InvalidUsage e) {
                 throw new ExecutionFailure("Execution failure to add attribute");
             }
@@ -299,12 +293,15 @@ public class AlterTable extends Command {
         if(attr.isPrimaryKey()){
             temp = temp + " primarykey";
         }
-        if(attr.isUnique()){
+        else{
+            if(attr.isUnique()){
             temp = temp + " unique";
         }
         if(!attr.isNullable()){
             temp = temp + " notnull";
         }
+        }
+        
         return temp;
     }
 
@@ -327,5 +324,6 @@ public class AlterTable extends Command {
                 return "varchar" + "(" + attr.getMaxDataLength() + ")";
             }
         }
+
     }
 }
