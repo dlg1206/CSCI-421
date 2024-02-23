@@ -1,5 +1,7 @@
 package dataTypes;
 
+import cli.util.Console;
+
 public class DTBoolean implements DataType, Comparable<DataType> {
     private Boolean value;
 
@@ -33,7 +35,7 @@ public class DTBoolean implements DataType, Comparable<DataType> {
 
     @Override
     public void printValue() {
-        System.out.println("Boolean: " + value);
+        Console.out("Boolean: " + value);
     }
 
     @Override

@@ -46,7 +46,7 @@ public class CLI {
         } catch (IOException ioe) {
             Console.err("This db is corrupt...");
         }
-        System.out.println("Goodbye!");
+        Console.out("Goodbye!");
     }
 
     /**

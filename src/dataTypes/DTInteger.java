@@ -1,5 +1,7 @@
 package dataTypes;
 
+import cli.util.Console;
+
 import java.nio.ByteBuffer;
 
 public class DTInteger implements DataType, Comparable<DataType> {
@@ -35,7 +37,7 @@ public class DTInteger implements DataType, Comparable<DataType> {
 
     @Override
     public void printValue() {
-        System.out.println("Integer: " + value);
+        Console.out("Integer: " + value);
     }
 
     @Override

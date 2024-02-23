@@ -3,6 +3,7 @@ package cli.cmd.commands;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 
+import cli.util.Console;
 import dataTypes.*;
 
 import catalog.ICatalog;
@@ -118,7 +119,7 @@ public class InsertInto extends Command {
             }
 
         }
-        System.out.println("SUCCESS");
+        Console.out("SUCCESS");
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple, int tupleNum) throws ExecutionFailure {

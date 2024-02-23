@@ -11,8 +11,8 @@ import java.util.Scanner;
  */
 public class Console {
     // Text colors
-    public static final String RESET = "\033[0m";
-    public static final String RED = "\033[0;31m";
+    private static final String RESET = "\033[0m";
+    private static final String RED = "\033[0;31m";
     private static final String YELLOW = "\033[0;33m";
 
     private static final Scanner SCANNER = new Scanner(System.in);

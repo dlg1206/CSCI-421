@@ -1,5 +1,7 @@
 package dataTypes;
 
+import cli.util.Console;
+
 public class DTVarchar implements DataType, Comparable<DataType> {
     private String value;
 
@@ -30,7 +32,7 @@ public class DTVarchar implements DataType, Comparable<DataType> {
 
     @Override
     public void printValue() {
-        System.out.println("Varchar: " + value);
+        Console.out("Varchar: " + value);
     }
 
     @Override
