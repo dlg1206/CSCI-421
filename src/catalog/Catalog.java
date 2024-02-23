@@ -124,8 +124,6 @@ public class Catalog implements ICatalog {
 
         StorageManager.insertRecord(TABLE_DATA_NUM, TABLE_SCHEMA, record);
 
-        List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA);
-
         for (Attribute a : attributes) {
             addAttribute(name, a);
         }
