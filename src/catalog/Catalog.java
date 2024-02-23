@@ -156,16 +156,19 @@ public class Catalog implements ICatalog {
 
     @Override
     public int getTableNumber(String name) {
+        name = name.toLowerCase();
         return Tables.get(name).getNumber();
     }
 
     @Override
     public Table getRecordSchema(String tableName) {
+        tableName = tableName.toLowerCase();
         return Tables.get(tableName);
     }
 
 
     public void deleteTable(String name) throws ExecutionFailure, IOException {
+        name = name.toLowerCase();
         Table t = Tables.remove(name);
 
 
@@ -191,6 +194,7 @@ public class Catalog implements ICatalog {
 
     @Override
     public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
+        tableName = tableName.toLowerCase();
         Table t = Tables.get(tableName);
         t.addAttribute(attribute);
 
