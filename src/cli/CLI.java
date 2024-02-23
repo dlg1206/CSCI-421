@@ -7,9 +7,7 @@ import cli.cmd.exception.CommandException;
 import util.Console;
 import sm.StorageManager;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * <b>File:</b> CLI.java
@@ -20,12 +18,57 @@ import java.io.IOException;
  */
 public class CLI {
 
+    /**
+     * Output stream wrapper to suppressed CLI output
+     */
+    private static class CLIStandardOutput extends OutputStream {
+        @Override
+        public void write(int b){
+            return;
+        }
+        @Override
+        public void write(byte[] b){
+            return;
+        }
+        @Override
+        public void write(byte[] b, int off, int len){
+            return;
+        }
+
+        private final PrintStream stdout;
+
+        /**
+         * Create new CLI Output Stream
+         *
+         * @param stdout output stream to print to
+         */
+        public CLIStandardOutput(PrintStream stdout){
+            this.stdout = stdout;
+        }
+
+        /**
+         * Set the original stdout out stream as the output
+         */
+        public void enable(){
+            System.setOut(this.stdout);
+        }
+
+        /**
+         * Set this as the output stream, redirecting any output set for the system output
+         */
+        public void disable(){
+            System.setOut(new PrintStream(this));
+        }
+    }
+
     private final Catalog DBCatalog;
     private final StorageManager DBStorageManager;
+    private final CLIStandardOutput outputStream;
 
     public CLI(Catalog catalog, StorageManager storageManager) {
         DBCatalog = catalog;
         DBStorageManager = storageManager;
+        this.outputStream = new CLIStandardOutput(System.out);  // enabled by default
     }
 
     /**
@@ -90,10 +133,17 @@ public class CLI {
      * Debug run command that runs a series of commands before launching the terminal
      *
      * @param commandsPath Path to list of commands
+     * @param silent       Print mock input or not
      */
-    public void runWith(String commandsPath){
+    public void runWith(String commandsPath, boolean silent){
         Console.debugMsg("Launching with CLI with the commands at " + commandsPath);
         boolean startCLI = true;    // start the cli after run
+        // temp disable output
+        if(silent) {
+            Console.debugMsg("Running in silent mode, output will be suppressed");
+            this.outputStream.disable();
+        }
+
         try (BufferedReader br = new BufferedReader(new FileReader(commandsPath))){
             String stdin = br.readLine();
             while (stdin != null) {
@@ -119,6 +169,7 @@ public class CLI {
         } catch (IOException e) {
             Console.debugErr(e.toString());
         } finally {
+            this.outputStream.enable();
             if(startCLI){
                 Console.debugMsg("Starting CLI. . .");
                 run();
