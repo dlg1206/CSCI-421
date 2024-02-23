@@ -2,6 +2,7 @@ package sm;
 
 
 import catalog.Attribute;
+import cli.cmd.exception.ExecutionFailure;
 import dataTypes.DataType;
 
 import java.io.IOException;
@@ -120,17 +121,31 @@ public class StorageManager {
     }
 
 
-    public List<List<DataType>> getAllRecords(int tableID) {
-        /*
-        List<List<DataType>> records = new ArrayList<>()
-        int numPages = getPageCount(tableID)
-        for i=0, i<numPages, i++
-            Page p = this.buffer.getPage(tableID, i);
-            records.addAdd(p.getAllRecords())
-         return records
-         */
-        // TODO
-        return null;
+    /**
+     * Get all records for a given table file
+     *
+     * @param tableID    Table ID to get records from
+     * @param attributes Constraints of data types
+     * @return List of records for a given table file
+     */
+    public List<List<DataType>> getAllRecords(int tableID, List<Attribute> attributes) throws ExecutionFailure {
+        try {
+            // Get page details
+            TableFile tf = new TableFile(this.databaseRoot, tableID);
+            int pageCount = tf.readPageCount();
+
+            // Get all records
+            List<List<DataType>> records = new ArrayList<>();
+            for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
+                records.addAll(BInterpreter.convertPageToRecords(page.getData(), attributes));
+            }
+
+            return records;
+        } catch (Exception e) {
+            throw new ExecutionFailure("Failed to read records from table file: " + e.getMessage());
+        }
+
     }
 
 
@@ -147,17 +162,6 @@ public class StorageManager {
             // todo handle?
             return -1;
         }
-    }
-
-    /**
-     * Get the total records for a given table
-     *
-     * @param tableID Table to get record count from
-     * @return number of records
-     */
-    public int getCountOfRecords(int tableID) {
-        List<List<DataType>> allRecords = getAllRecords(tableID);
-        return allRecords.size();
     }
 
     /**

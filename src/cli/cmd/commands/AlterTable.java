@@ -176,7 +176,7 @@ public class AlterTable extends Command {
             }
             // Creating Insert Into Command
             int tableNum = catalog.getTableNumber(tableName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, attributes);
             String insertValues = "";
             // Iterate through first list
             for (int r = 0; r < allRecords.size(); r++) {
@@ -248,7 +248,7 @@ public class AlterTable extends Command {
             attributeValues += attributeName + " " + attributeTypeString;
             // Creating Insert Into Command
             int tableNum = catalog.getTableNumber(tableName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, attributes);
             String insertValues = "";
             // Iterate through first list
             for (int r = 0; r < allRecords.size(); r++) {
