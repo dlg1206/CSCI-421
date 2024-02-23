@@ -7,6 +7,8 @@ import cli.cmd.exception.CommandException;
 import cli.util.Console;
 import sm.StorageManager;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 
 /**
@@ -68,6 +70,54 @@ public class CLI {
         return stdin.toString().trim();
     }
 
+    private void executeStdin(String stdin){
+        // Try to build and execute the command
+        try{
+            Command cmd = CommandFactory.buildCommand(stdin, this.DBCatalog, this.DBStorageManager);
+            cmd.execute();
+        } catch (CommandException e){
+            // fail if error with command
+            Console.err(e.getMessage());
+        }
+    }
+
+    public void runWith(String commandsPath){
+        Console.debugMsg("Launching with CLI with the commands at " + commandsPath);
+        boolean startCLI = true;    // start the cli after run
+        try (BufferedReader br = new BufferedReader(new FileReader(commandsPath))){
+            String stdin = br.readLine();
+            while (stdin != null) {
+                // Skip '#' comment
+                if(stdin.charAt(0) == '#'){
+                    stdin = br.readLine();
+                    continue;
+                }
+
+                // print the command as if user input it
+                Console.mockInput(stdin);
+
+                // exit if requested
+                if(stdin.equalsIgnoreCase("exit;")){
+                    after();
+                    startCLI = false;
+                    break;
+                }
+                executeStdin(stdin);
+                stdin = br.readLine();
+            }
+
+        } catch (IOException e) {
+            Console.debugErr(e.toString());
+        } finally {
+            if(startCLI){
+                Console.debugMsg("Starting CLI. . .");
+                run();
+            } else {
+                Console.debugMsg("Skipping CLI. . .");
+            }
+        }
+    }
+
     /**
      * Start the CLI
      */
@@ -77,19 +127,9 @@ public class CLI {
         // Read until reach 'exit;` keyword
         while(true){
             String stdin = readInput();
-
             if(stdin.equalsIgnoreCase("exit;"))
                 break;
-
-            // Try to build and execute the command
-            try{
-                Command cmd = CommandFactory.buildCommand(stdin, this.DBCatalog, this.DBStorageManager);
-                cmd.execute();
-            } catch (CommandException e){
-                // fail if error with command
-                Console.err(e.getMessage());
-            }
-
+            executeStdin(stdin);
         }
 
         after(); // exe any tasks after running

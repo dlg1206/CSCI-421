@@ -26,7 +26,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-
+        // Validate args
         try{
             validateArgs(args);
         } catch (Exception e) {
@@ -38,6 +38,7 @@ public class Main {
             System.err.println("\t<buffer size>:    Size of page buffer ( page capacity )");
         }
 
+        // Build CLI
         int bufferSize = Integer.parseInt(args[2]);
         int pageSize = Integer.parseInt(args[1]);
 
@@ -46,7 +47,14 @@ public class Main {
                 new StorageManager(bufferSize, pageSize, args[0])   // args flipped for 10% increase in efficiency
         );
 
-        cli.run();
+        // If dev argument is present, run the CLI with those commands first
+        if(args.length >= 5 && args[3].equals("-d")){
+            cli.runWith(args[4]);
+        } else {
+            // else just start the CLI
+            cli.run();
+        }
+
     }
 
 }
