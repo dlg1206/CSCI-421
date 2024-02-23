@@ -1,6 +1,7 @@
 package catalog;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Table implements ITable {
@@ -13,6 +14,11 @@ public class Table implements ITable {
         Name = name;
         Attributes = attributes;
         Number = number;
+    }
+
+
+    Table(String name, int number) {
+        this(name, number, new ArrayList<>());
     }
 
     @Override

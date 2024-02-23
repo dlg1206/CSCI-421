@@ -213,4 +213,8 @@ public class StorageManager {
         new TableFile(this.databaseRoot, tableID).delete();
     }
 
+    public void flush() throws IOException {
+        this.buffer.flush();
+    }
+
 }

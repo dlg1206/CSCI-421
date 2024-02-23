@@ -62,8 +62,14 @@ public class DropTable extends Command {
      */
     @Override
     public void execute() throws ExecutionFailure {
-        int tableNumber = catalog.getTableNumber(tableName);
-        catalog.deleteTable(tableName);
+        int tableNumber = catalog.getTableNumber(tableName); // THIS MUST COME BEFORE THE CATALOG DELETE
+
+        try {
+            catalog.deleteTable(tableName);
+        } catch (IOException ioe) {
+            throw new ExecutionFailure("The database could not access the required files to drop this table.");
+        }
+
         try {
             sm.dropTable(tableNumber);
         } catch (IOException ioe) {
