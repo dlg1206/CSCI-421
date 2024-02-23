@@ -18,8 +18,8 @@ import java.io.IOException;
  */
 public class CLI {
 
-    private Catalog DBCatalog;
-    private StorageManager DBStorageManager;
+    private final Catalog DBCatalog;
+    private final StorageManager DBStorageManager;
 
     public CLI(Catalog catalog, StorageManager storageManager) {
         DBCatalog = catalog;
@@ -31,15 +31,14 @@ public class CLI {
      */
     private void before(){
         // TODO - List commands? may remove or move to main for post operations separate from cli
-        System.out.println("Hello!");
-        System.out.println("exit; - quit the CLI");
+        Console.out("Hello!");
+        Console.out("exit; - quit the CLI");
     }
 
     /**
      * Code to be executed after to launching the cli
      */
     private void after(){
-        // TODO - may remove or move to main for post operations separate from cli
         try {
             DBStorageManager.flush();
         } catch (IOException ioe) {
@@ -84,7 +83,7 @@ public class CLI {
 
             // Try to build and execute the command
             try{
-                Command cmd = CommandFactory.buildCommand(stdin, DBCatalog, DBStorageManager);
+                Command cmd = CommandFactory.buildCommand(stdin, this.DBCatalog, this.DBStorageManager);
                 cmd.execute();
             } catch (CommandException e){
                 // fail if error with command
