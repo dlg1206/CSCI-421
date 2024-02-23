@@ -271,9 +271,9 @@ public class AlterTable extends Command {
                 insertValues += eachValue;
             }
             // Create each command
-            String dropTableCommand ="DROP TABLE " + tableName + ";";
-            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );";
-            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";";
+            String dropTableCommand ="DROP TABLE " + tableName + ";".strip();
+            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );".strip();
+            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";".strip();
             try {
                 // Run each command
                 DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
