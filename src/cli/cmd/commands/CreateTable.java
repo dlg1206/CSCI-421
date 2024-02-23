@@ -148,6 +148,10 @@ public class CreateTable extends Command {
         if (attributes.stream().filter(Attribute::isPrimaryKey).toList().size() > 1) {
             throw new InvalidUsage(args, "Only one attribute can be the primary key.");
         }
+
+        if (attributes.stream().filter(Attribute::isPrimaryKey).toList().size() != 1) {
+            throw new InvalidUsage(args, "A primary key is required.");
+        }
     }
 
     @Override
