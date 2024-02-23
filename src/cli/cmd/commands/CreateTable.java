@@ -121,8 +121,6 @@ public class CreateTable extends Command {
                 while (constMatcher.find()) {
                     String constraint = constMatcher.group();
 
-                    System.out.println(constraint);
-
                     switch (constraint.toLowerCase()) {
                         case "notnull" -> isNullable = false;
                         case "unique" -> isUnique = true;
