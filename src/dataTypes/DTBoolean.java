@@ -38,7 +38,7 @@ public class DTBoolean implements DataType, Comparable<DataType> {
 
     @Override
     public String stringValue() {
-        return value ? "T" : "F";
+        return this.isNull() ? "NULL" : (value ? "T" : "F");
     }
   
     public int compareTo(DataType o) {

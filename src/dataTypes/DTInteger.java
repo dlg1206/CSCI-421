@@ -40,7 +40,7 @@ public class DTInteger implements DataType, Comparable<DataType> {
 
     @Override
     public String stringValue() {
-        return value.toString();
+        return this.isNull() ? "NULL" : value.toString();
     }
 
     public int compareTo(DataType o) {

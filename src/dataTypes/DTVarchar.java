@@ -35,7 +35,7 @@ public class DTVarchar implements DataType, Comparable<DataType> {
 
     @Override
     public String stringValue() {
-        return value;
+        return this.isNull() ? "NULL" : value;
     }
 
     public int compareTo(DataType o) {
