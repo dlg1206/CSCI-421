@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import catalog.Attribute;
@@ -30,6 +31,9 @@ public class CreateTable extends Command {
     private final List<Attribute> attributes = new ArrayList<>();
     private final String tableName;
 
+    private static Pattern FULL_MATCH = Pattern.compile("create[\\s\\t]+table[\\s\\t]+([A-Za-z0-9]*)[\\s\\t]*\\([\\s\\t]*([a-z0-9()\\s\\t,]+)[\\s\\t]*\\)[\\s\\t]*;", Pattern.CASE_INSENSITIVE);
+    private static Pattern ATTR_MATCH = Pattern.compile("[a-z0-9()\\s\\t]+", Pattern.CASE_INSENSITIVE);
+
     public CreateTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
@@ -37,36 +41,26 @@ public class CreateTable extends Command {
         // Create Table Syntax Validation
         String errorMessage = "Correct Usage: create table <table_name> (" +
                             "<column_name> <data_type> [constraints], ...);";
-        if(!args.contains("(")){
-            throw new InvalidUsage(args, errorMessage);
-        }
-        int indexOfOpen = args.indexOf("(");
-        String firstPart = args.substring(0, indexOfOpen);
-        String secondPart = args.substring(indexOfOpen + 1);
-        
-        String[] command = firstPart.split(" ");
-        if (!command[1].equalsIgnoreCase("table") || command.length != 3) {
+
+        Matcher fullMatcher = FULL_MATCH.matcher(args);
+
+        if(!fullMatcher.matches()){
             throw new InvalidUsage(args, errorMessage);
         }
 
-        if (!Pattern.compile("\\)\\s*;").matcher(secondPart).find()) {
-            throw new InvalidUsage(args, errorMessage);
-        }
-        String[] columns = secondPart.strip().substring(0, secondPart.lastIndexOf(")")-1).split(",");
-        if(columns.length < 1){
-            throw new InvalidUsage(args, errorMessage);
-        }
-
-        // Create Table Semantical Validation
-        String [] tempLst = args.toLowerCase().split("table");
-        tableName = tempLst[1].substring(0, tempLst[1].indexOf("(")).strip();
+        tableName = fullMatcher.group(1);
 
         Set<String> allTables = catalog.getExistingTableNames();
         if(allTables.contains(tableName)){
             throw new InvalidUsage(args, "Table " + tableName + " Already Exists");
         }
 
-        for (String col : columns) {
+        Matcher attrMatcher = ATTR_MATCH.matcher(fullMatcher.group(2));
+
+        while (attrMatcher.find()) {
+
+            String col = attrMatcher.group();
+
             String[] attrData = col.strip().split(" ");
 
             String attrName = attrData[0].strip();
