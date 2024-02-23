@@ -2,13 +2,15 @@ package cli.cmd.commands;
 
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
-import dataTypes.AttributeType;
 import catalog.Attribute;
 import catalog.ICatalog;
 import catalog.Table;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import sm.StorageManager;
 
 /**
@@ -22,43 +24,38 @@ public class Display extends Command {
 
     private final ICatalog catalog;
     private final StorageManager sm;
-    private final String args;
-
     private final String tableName;
+
+    private static final Pattern FULL_MATCH = Pattern.compile("display[\\s\\t]+(?:schema|info[\\s\\t]+([a-z0-9]+))[\\s\\t]*;", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
+
 
     public Display(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
         this.sm = storageManager;
-        this.args = args;
 
-        // Display Info Syntax Validation
-        List<String> input = getInput(args);
-        if (args.toLowerCase().contains("info")) {
-            if (input.size() != 3) {
-                throw new InvalidUsage(args, "Correct Usage: display info <table>;");
-            }
-        } else if (args.toLowerCase().contains("schema")) { 
-            if (input.size() != 2) {
-                throw new InvalidUsage(args, "Correct Usage: display schema;");
-            }
-        } else {
-            throw new InvalidUsage(args, "Correct Usage: display info <table>; display schema;");
+        Matcher fullMatcher = FULL_MATCH.matcher(args);
+
+        if (!fullMatcher.matches()) {
+            throw new InvalidUsage(args, """
+                    Correct Usage: display info <table>;
+                     display schema;""");
         }
-   
-        // Display Info Semantical Validation
-        if (args.toLowerCase().contains("info")) {
-            tableName = input.get(2);
+
+        tableName = fullMatcher.group(1);
+
+        if (tableName != null) {
+            Matcher tableNameMatcher = TABLE_NAME_PATTERN.matcher(tableName);
+            if (!tableNameMatcher.matches()) {
+                throw new InvalidUsage(args, "The name '%s' is not a valid table name.".formatted(tableName));
+            }
+
             Set<String> allTables = catalog.getExistingTableNames();
             if(!allTables.contains(tableName)){
                 throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog \nERROR");
             }
         }
-        else{
-            tableName = "";
-        }
-
-
     }
 
     @Override
@@ -68,7 +65,7 @@ public class Display extends Command {
 
     @Override
     public void execute() throws ExecutionFailure { 
-        if (args.toLowerCase().contains("info")) {
+        if (tableName != null) {
             Table tableSchema = catalog.getRecordSchema(tableName);
             int tableID = tableSchema.getNumber();
             int pageCount = sm.getPageCount(tableID);
@@ -86,7 +83,7 @@ public class Display extends Command {
             System.out.println("DB location: " + location);
             System.out.println("Page Size: " + pageSize);
             System.out.println("Buffer Size: " + bufferSize);
-            if(allTableNames.size() == 0){
+            if(allTableNames.isEmpty()){
                 System.out.println("\nNo tables to display");
             }
             else{
@@ -111,7 +108,7 @@ public class Display extends Command {
         System.out.println("Table Name: " + table.getName());
         System.out.println("Table Schema: ");
         for (Attribute attr : attributes) {
-            String temp = "     " + attr.getName() + ":" + getStringType(attr.getDataType());
+            String temp = "     " + attr.getName() + ":" + attr.getDataType().name().toLowerCase();
             if(attr.isPrimaryKey()){
                 temp = temp + " primarykey";
             }
@@ -125,26 +122,6 @@ public class Display extends Command {
             }
             System.out.println(temp);
             }
-    }
-
-    public String getStringType(AttributeType attr) {
-        switch (attr) {
-            case INTEGER -> {
-                return "integer";
-            }
-            case DOUBLE -> {
-                return "double";
-            }
-            case BOOLEAN -> {
-                return "boolean";
-            }
-            case CHAR -> {
-                return "char";
-            }
-            default -> {
-                return "varchar";
-            }
-        }
     }
     
 }
