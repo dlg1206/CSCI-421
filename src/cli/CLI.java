@@ -7,6 +7,8 @@ import cli.cmd.exception.CommandException;
 import cli.util.Console;
 import sm.StorageManager;
 
+import java.io.IOException;
+
 /**
  * <b>File:</b> CLI.java
  * <p>
@@ -38,6 +40,11 @@ public class CLI {
      */
     private void after(){
         // TODO - may remove or move to main for post operations separate from cli
+        try {
+            DBStorageManager.flush();
+        } catch (IOException ioe) {
+            Console.err("This db is corrupt...");
+        }
         System.out.println("Goodbye!");
     }
 
