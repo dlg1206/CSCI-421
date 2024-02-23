@@ -40,3 +40,7 @@ package.json
 
 # Testing files
 test.java
+
+# Database files
+*.db
+*.swp.db

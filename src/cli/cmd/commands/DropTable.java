@@ -65,7 +65,7 @@ public class DropTable extends Command {
         catalog.deleteTable(tableName);
         int tableNumber = catalog.getTableNumber(tableName);
         try {
-            sm.deleteTable(tableNumber);
+            sm.dropTable(tableNumber);
         } catch (IOException ioe) {
             throw new ExecutionFailure("The file for table '%s' could not be opened or deleted.".formatted(tableName));
         }
