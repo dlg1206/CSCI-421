@@ -34,7 +34,6 @@ public class Display extends Command {
 
         // Display Info Syntax Validation
         List<String> input = getInput(args);
-        System.out.println(input);
         if (args.toLowerCase().contains("info")) {
             if (input.size() != 3) {
                 throw new InvalidUsage(args, "Correct Usage: display info <table>;");
@@ -52,7 +51,7 @@ public class Display extends Command {
             tableName = input.get(2);
             Set<String> allTables = catalog.getExistingTableNames();
             if(!allTables.contains(tableName)){
-                throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog");
+                throw new InvalidUsage(args, "Table " + tableName + " does not Exist in the Catalog \nERROR");
             }
         }
         else{
@@ -87,18 +86,21 @@ public class Display extends Command {
             System.out.println("DB location: " + location);
             System.out.println("Page Size: " + pageSize);
             System.out.println("Buffer Size: " + bufferSize);
-            System.out.println("\nTables: ");
+            if(allTableNames.size() == 0){
+                System.out.println("\nNo tables to display");
+            }
+            else{
+                System.out.println("Tables: \n");
+            }
             for (String name : allTableNames) {
                 Table tempTable = catalog.getRecordSchema(name);
                 int tableID = tempTable.getNumber();
                 int pageCount = sm.getPageCount(tableID);
                 int recordCount = sm.getAllRecords(tableID, tempTable.getAttributes()).size();
-                System.out.println("\n");
                 printTable(tempTable);
                 System.out.println("Pages: " + pageCount);
                 System.out.println("Records: " + recordCount);
-                
-
+                System.out.println();
             }
             System.out.println("SUCCESS");
         }
@@ -109,15 +111,17 @@ public class Display extends Command {
         System.out.println("Table Name: " + table.getName());
         System.out.println("Table Schema: ");
         for (Attribute attr : attributes) {
-            String temp = "\n" + attr.getName() + ":" + getStringType(attr.getDataType());
+            String temp = "     " + attr.getName() + ":" + getStringType(attr.getDataType());
             if(attr.isPrimaryKey()){
                 temp = temp + " primarykey";
             }
-            if(!attr.isNullable()){
-                temp = temp + " notnull";
-            }
-            if(attr.isUnique()){
-                temp = temp + " unique";
+            else{
+                if(!attr.isNullable()){
+                    temp = temp + " notnull";
+                }
+                if(attr.isUnique()){
+                    temp = temp + " unique";
+                }
             }
             System.out.println(temp);
             }
