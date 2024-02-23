@@ -44,9 +44,9 @@ public class DTDouble implements DataType, Comparable<DataType> {
     }
 
     public int compareTo(DataType o) {
-        if (o instanceof DTDouble) {
-            return ((DTDouble) o).value.compareTo(this.value);
-        }
+        if (o.isNull() && this.isNull()) { return 0; } // both null
+        else if (o.isNull() || this.isNull()) { return -1; } // one null
+        else if (o instanceof DTDouble) { return ((DTDouble) o).value.compareTo(this.value); }
         return -1;
     }
 }
