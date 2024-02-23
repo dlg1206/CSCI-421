@@ -62,7 +62,7 @@ public class Select extends Command {
 
         int tableNum = catalog.getTableNumber(tableName);
 
-        List<List<DataType>> allRecords = sm.getAllRecords(tableNum);
+        List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tableName).getAttributes());
 
         Table table = catalog.getRecordSchema(tableName);
         List<Attribute> attrs = table.getAttributes();

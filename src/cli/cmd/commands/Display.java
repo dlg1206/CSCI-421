@@ -73,7 +73,7 @@ public class Display extends Command {
             Table tableSchema = catalog.getRecordSchema(tableName);
             int tableID = tableSchema.getNumber();
             int pageCount = sm.getPageCount(tableID);
-            int recordCount = sm.getCountOfRecords(tableID);
+            int recordCount = sm.getAllRecords(tableID, tableSchema.getAttributes()).size();
             printTable(tableSchema);
             System.out.println("Pages: " + pageCount);
             System.out.println("Records: " + recordCount);
@@ -92,7 +92,7 @@ public class Display extends Command {
                 Table tempTable = catalog.getRecordSchema(name);
                 int tableID = tempTable.getNumber();
                 int pageCount = sm.getPageCount(tableID);
-                int recordCount = sm.getCountOfRecords(tableID);
+                int recordCount = sm.getAllRecords(tableID, tempTable.getAttributes()).size();
                 System.out.println("\n");
                 printTable(tempTable);
                 System.out.println("Pages: " + pageCount);
