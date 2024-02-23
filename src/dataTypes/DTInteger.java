@@ -1,6 +1,6 @@
 package dataTypes;
 
-import cli.util.Console;
+import util.Console;
 
 import java.nio.ByteBuffer;
 

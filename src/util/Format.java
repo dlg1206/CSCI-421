@@ -1,4 +1,4 @@
-package cli.util;
+package util;
 
 public class Format {
     public static String centerString (int width, String s) {

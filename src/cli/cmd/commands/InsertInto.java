@@ -3,7 +3,7 @@ package cli.cmd.commands;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 
-import cli.util.Console;
+import util.Console;
 import dataTypes.*;
 
 import catalog.ICatalog;

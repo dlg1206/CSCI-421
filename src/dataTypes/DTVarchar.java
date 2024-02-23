@@ -1,6 +1,6 @@
 package dataTypes;
 
-import cli.util.Console;
+import util.Console;
 
 public class DTVarchar implements DataType, Comparable<DataType> {
     private String value;

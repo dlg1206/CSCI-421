@@ -1,7 +1,7 @@
 package catalog;
 
 import cli.cmd.exception.ExecutionFailure;
-import cli.util.Console;
+import util.Console;
 import dataTypes.*;
 import sm.StorageManager;
 

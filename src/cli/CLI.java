@@ -4,7 +4,7 @@ import catalog.Catalog;
 import cli.cmd.CommandFactory;
 import cli.cmd.commands.Command;
 import cli.cmd.exception.CommandException;
-import cli.util.Console;
+import util.Console;
 import sm.StorageManager;
 
 import java.io.BufferedReader;
