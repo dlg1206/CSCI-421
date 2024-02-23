@@ -56,7 +56,7 @@ public class Catalog implements ICatalog {
             try {
                 loadOldDB(pageSizePath);
             } catch (Exception e) {
-                System.out.println(Console.RED + "The db has become corrupt." + Console.RESET);
+                Console.err("The db has become corrupt.");
                 System.exit(-2);
             }
             System.out.println("Old database loaded successfully!");
