@@ -107,7 +107,7 @@ public class CreateTable extends Command {
                     }
                     String maxLengthString = newAttributeData[1];
                     try {
-                        maxDataLength = Integer.parseInt(maxLengthString.substring(1, maxLengthString.length() - 1));
+                        maxDataLength = Integer.parseInt(maxLengthString.substring(0, maxLengthString.length() - 1));
                     } catch (NumberFormatException nfe) {
                         throw new InvalidUsage(args, "The attribute's max length must be an integer.");
                     }
