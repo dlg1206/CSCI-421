@@ -1,0 +1,7 @@
+# This is a comment and will be ignored
+# This creates a table and displays it
+# to run add the following to the run args: -d <path to this file>
+create table foo ( x double, y char(5) primarykey);
+insert into foo values (1.2 "hi"), (1.5 "chem"), (2.5 "lez");
+select * from foo;
+exit;
