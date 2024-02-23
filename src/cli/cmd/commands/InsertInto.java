@@ -7,7 +7,6 @@ import dataTypes.*;
 
 import catalog.ICatalog;
 import catalog.Attribute;
-import catalog.Table;
 
 import sm.StorageManager;
 
@@ -28,7 +27,7 @@ public class InsertInto extends Command {
 
     private final ICatalog catalog;
     private final StorageManager sm;
-    private final List<List<DataType>> parsedValues = new ArrayList<>();
+    private final List<String> tuples = new ArrayList<>();
 
     private final String tableName;
 
@@ -39,6 +38,10 @@ public class InsertInto extends Command {
     private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
 
+    private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+((?:\\([0-9\\s\"a-z.]+\\),*[\\s\\t]*)+);", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TUPLE_PATTERN = Pattern.compile("\\(\\s*([0-9\\s\"a-zA-Z.]+)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"(.+)\"", Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a new Insert Into command to be executed. Parse the arguments to allow
@@ -54,131 +57,31 @@ public class InsertInto extends Command {
         this.catalog = catalog;
         this.sm = storageManager;
 
-        // Insert Into Syntax Validation
-        if (!args.contains("values")) {
-            throw new InvalidUsage(args, CORRECT_USAGE_MSG);
-        }
-        
-        String[] values = args.strip().split("values");
-        if (values.length != 2 || values[1].isEmpty()) {
-            throw new InvalidUsage(args, CORRECT_USAGE_MSG);
-        }
-        
-        String[] input1 = values[0].strip().split("\\s+");
-        if (input1.length != 3 || !input1[1].equalsIgnoreCase("into")) {
-            throw new InvalidUsage(args, CORRECT_USAGE_MSG);
-        }
-        tableName = input1[2];
-        String valuesString = values[1].replace(";", " ").replace(")", "");
 
-        // Takes all values and puts them in a list where each element is its own tuple
-        List<List<String>> tupleValues = new ArrayList<>();
-        if(!valuesString.contains(",")){
-            List<String> tokens = splitStringWithQuotes(valuesString);
-            tupleValues.add(tokens);
+        Matcher fullMatcher = FULL_PATTERN.matcher(args);
+        // Insert Into Syntax Validation
+        if (!fullMatcher.matches()) {
+            throw new InvalidUsage(args, CORRECT_USAGE_MSG);
         }
-        else{
-            String[] multipleValues =valuesString.split(",");
-            for (String multipleValue : multipleValues) {
-                List<String> tokens = splitStringWithQuotes(multipleValue);
-                tupleValues.add(tokens);
-            }
+        tableName = fullMatcher.group(1);
+
+        Matcher tableNameMatcher = TABLE_NAME_PATTERN.matcher(tableName);
+        if (!tableNameMatcher.matches()) {
+            throw new InvalidUsage(args, "The name '%s' is not a valid table name.".formatted(tableName));
         }
-        // Insert Into Semantical Validation
-        if(!catalog.getExistingTableNames().contains(tableName)){
+
+        if (catalog.getRecordSchema(tableName) == null) {
             throw new InvalidUsage(args, TABLE_DNE_MSG.formatted(tableName));
         }
 
-        Table table = catalog.getRecordSchema(tableName);
-        List<Attribute> attributes = table.getAttributes();
+        String allTuples = fullMatcher.group(2);
 
-        for (int i = 0; i < tupleValues.size(); i++) {
-            List<String> lst = tupleValues.get(i);
+        Matcher tupleMatcher = TUPLE_PATTERN.matcher(allTuples);
 
-            List<DataType> parsed = new ArrayList<>();
-
-            if (lst.size() != attributes.size()) {
-                throw new InvalidUsage(args,
-                        UNEQUAL_ATTR_MSG.formatted(tableName, attributes.size(), lst.size(), i + 1));
-            }
-
-            for (int next = 0; next < lst.size(); next++) {
-                String stringVal = lst.get(next);
-
-                Attribute attr = attributes.get(next);
-                AttributeType attrType = attributes.get(next).getDataType();
-                DataType result = null;
-
-                try {
-                    switch (attrType) {
-                        case INTEGER -> result = new DTInteger(stringVal);
-                        case DOUBLE -> result = new DTDouble(stringVal);
-                        case BOOLEAN -> result = new DTBoolean(stringVal);
-                        case CHAR -> {
-                            if (!stringVal.startsWith("\"") || !stringVal.endsWith("\"")) {
-                                throw new InvalidUsage(args,
-                                        NO_QUOTES_MSG.formatted(attr.getName(), i));
-                            }
-                            stringVal = stringVal.substring(1, stringVal.length() - 1);
-                            if (stringVal.length() > attr.getMaxDataLength()) {
-                                throw new InvalidUsage(args,
-                                        INVALID_ATTR_LENGTH_MSG.formatted(attr.getName(), attr.getMaxDataLength(), i));
-                            }
-                            result = new DTChar(stringVal, attr.getMaxDataLength());
-                        }
-                        case VARCHAR -> {
-                            if (!stringVal.startsWith("\"") || !stringVal.endsWith("\"")) {
-                                throw new InvalidUsage(args,
-                                        NO_QUOTES_MSG.formatted(attr.getName(), i));
-                            }
-                            stringVal = stringVal.substring(1, stringVal.length() - 1);
-                            if (stringVal.length() > attr.getMaxDataLength()) {
-                                throw new InvalidUsage(args,
-                                        INVALID_ATTR_LENGTH_MSG.formatted(attr.getName(), attr.getMaxDataLength(), i));
-                            }
-                            result = new DTVarchar(stringVal);
-                        }
-                    }
-
-                    parsed.add(result);
-                } catch (NumberFormatException nfe) {
-                    throw new InvalidUsage(args,
-                            INVALID_ATTR_TYPE_MSG.formatted(stringVal, attr.getName(), attrType.name(), i));
-                }
-            }
-
-            parsedValues.add(parsed);
-        }
-    }
-
-    private static List<String> splitStringWithQuotes(String input) {
-        List<String> tokens = new ArrayList<>();
-        Pattern pattern = Pattern.compile("(?<=\\))|(?=\\()|\"[^\"]*\"|(\\S+?)(?=(\\s|$))");
-        Matcher matcher = pattern.matcher(input);
-
-        while (matcher.find()) {
-            String match = matcher.group();
-            if (!match.isEmpty()) { 
-                tokens.add(match);
-            }
+        while (tupleMatcher.find()) {
+            tuples.add(tupleMatcher.group(1));
         }
 
-        // Post-processing to handle cases like 3"baz"
-        List<String> processedTokens = new ArrayList<>();
-        for (String token : tokens) {
-            if (token.matches("\\d+\"[^\"]*\"")) { 
-                // Split into number and quoted string
-                Matcher numberQuotedStringMatcher = Pattern.compile("(\\d+)(\"[^\"]*\")").matcher(token);
-                if (numberQuotedStringMatcher.find()) {
-                    processedTokens.add(numberQuotedStringMatcher.group(1)); 
-                    processedTokens.add(numberQuotedStringMatcher.group(2)); 
-                }
-            } else {
-                processedTokens.add(token);
-            }
-        }
-
-        return processedTokens;
     }
 
     @Override
@@ -198,17 +101,90 @@ public class InsertInto extends Command {
         List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
         int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
 
-        for (List<DataType> tuple : parsedValues) {
+
+        for (int i = 0; i < tuples.size(); i++) {
+            List<DataType> tuple = convertStringToTuple(tuples.get(i), attrs, i);
             try {
 
-                if (sm.getAllRecords(tableNumber, attrs).stream().noneMatch(r -> r.get(PKIndex).compareTo(tuple.get(PKIndex)) == 0))
-                    sm.insertRecord(tableNumber, attrs, tuple);
-                else
+                if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(tuple.get(PKIndex)) == 0))
                     throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
+
+                checkUniqueConstraint(tableNumber, attrs, tuple, i);
+
+                sm.insertRecord(tableNumber, attrs, tuple);
 
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
+
         }
+        System.out.println("SUCCESS");
+    }
+
+    private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple, int tupleNum) throws ExecutionFailure {
+        for (int i = 0; i < attrs.size(); i++) {
+            Attribute a = attrs.get(i);
+            DataType value = tuple.get(i);
+
+            int finalI = i;
+            if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
+                throw new ExecutionFailure("Attribute '%s' is unique, you violate this constraint in tuple #%s"
+                        .formatted(a.getName(), tupleNum));
+            }
+        }
+    }
+
+    private List<DataType> convertStringToTuple(String entry, List<Attribute> attrs, int tupleNum) throws ExecutionFailure {
+        List<String> values = List.of(entry.split("\\s+"));
+
+        if (values.size() != attrs.size()) {
+            throw new ExecutionFailure(UNEQUAL_ATTR_MSG.formatted(tableName, attrs.size(), values.size(), tupleNum));
+        }
+
+        List<DataType> tuple = new ArrayList<>();
+
+        for (int i = 0; i < attrs.size(); i++) {
+
+            DataType dt;
+
+            Attribute a = attrs.get(i);
+            String value = values.get(i);
+            if (a.isNullable()) {
+                value = value.equalsIgnoreCase("null") ? null : value;
+            } else if (value.equalsIgnoreCase("null")) {
+                throw new ExecutionFailure("Attribute '%s' is not nullable, you violate this constraint in tuple #%s"
+                        .formatted(a.getName(), tupleNum));
+            }
+
+            if ((a.getDataType() == AttributeType.CHAR || a.getDataType() == AttributeType.VARCHAR) && value != null) {
+                Matcher stringMatcher = STRING_PATTERN.matcher(value);
+
+                if (!stringMatcher.matches()) {
+                    throw new ExecutionFailure(NO_QUOTES_MSG.formatted(a.getName(), tupleNum));
+                }
+
+                value = stringMatcher.group(1);
+
+                if (value.length() > a.getMaxDataLength()) {
+                    throw new ExecutionFailure(INVALID_ATTR_LENGTH_MSG.formatted(a.getName(), a.getMaxDataLength(), tupleNum));
+                }
+            }
+
+            try {
+                dt = switch (a.getDataType()) {
+                    case INTEGER -> new DTInteger(value);
+                    case DOUBLE -> new DTDouble(value);
+                    case BOOLEAN -> new DTBoolean(value);
+                    case CHAR -> new DTChar(value, a.getMaxDataLength());
+                    case VARCHAR -> new DTVarchar(value);
+                };
+            } catch (NumberFormatException nfe) {
+                throw new ExecutionFailure(INVALID_ATTR_TYPE_MSG.formatted(values.get(i), a.getName(), a.getDataType(), tupleNum));
+            }
+
+            tuple.add(dt);
+        }
+
+        return tuple;
     }
 }
