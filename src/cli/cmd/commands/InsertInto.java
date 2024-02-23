@@ -200,10 +200,12 @@ public class InsertInto extends Command {
 
         for (List<DataType> tuple : parsedValues) {
             try {
-                if (sm.getRecord(tableNumber, tuple.get(PKIndex)) != null)
+
+                if (sm.getAllRecords(tableNumber, attrs).stream().noneMatch(r -> r.get(PKIndex).compareTo(tuple.get(PKIndex)) == 0))
                     sm.insertRecord(tableNumber, attrs, tuple);
                 else
                     throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
+
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
