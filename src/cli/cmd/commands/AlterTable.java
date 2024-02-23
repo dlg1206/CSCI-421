@@ -93,7 +93,7 @@ public class AlterTable extends Command {
         List<Attribute> attributes = table.getAttributes();
 
         attributeName = input.get(4).toLowerCase();
-        List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).collect(Collectors.toList());
+        List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).toList();
         if (input.get(3).equalsIgnoreCase("drop")){
             if (!tableAttributeNames.contains(attributeName)){
                 throw new InvalidUsage(args, "The table '%s' does not contain the attribute '%s'.".formatted(tableName, attributeName));
