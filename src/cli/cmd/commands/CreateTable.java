@@ -2,7 +2,6 @@ package cli.cmd.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -31,8 +30,11 @@ public class CreateTable extends Command {
     private final List<Attribute> attributes = new ArrayList<>();
     private final String tableName;
 
-    private static Pattern FULL_MATCH = Pattern.compile("create[\\s\\t]+table[\\s\\t]+([A-Za-z0-9]*)[\\s\\t]*\\([\\s\\t]*([a-z0-9()\\s\\t,]+)[\\s\\t]*\\)[\\s\\t]*;", Pattern.CASE_INSENSITIVE);
-    private static Pattern ATTR_MATCH = Pattern.compile("[a-z0-9()\\s\\t]+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FULL_MATCH = Pattern.compile("create[\\s\\t]+table[\\s\\t]+([A-Za-z0-9]*)[\\s\\t]*\\([\\s\\t]*([a-z0-9()\\s\\t,]+)[\\s\\t]*\\)[\\s\\t]*;", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ATTR_MATCH = Pattern.compile("([a-z0-9]+)[\\s\\t]+([a-z0-9]+(?:\\([0-9]*\\))?)(?:[\\s\\t]+([a-z\\s\\t]*[a-z]))*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ATTR_TYPE_SIZE_MATCH = Pattern.compile("([a-z0-9]+)(?:\\(([0-9]*)\\))?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CONSTRAINT_MATCH = Pattern.compile("([a-z]+)+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
 
     public CreateTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
@@ -50,6 +52,12 @@ public class CreateTable extends Command {
 
         tableName = fullMatcher.group(1);
 
+        Matcher tableNameMatcher = NAME_PATTERN.matcher(tableName);
+
+        if (!tableNameMatcher.matches()) {
+            throw new InvalidUsage(args, "The name '%s' is not a valid table name.".formatted(tableName));
+        }
+
         Set<String> allTables = catalog.getExistingTableNames();
         if(allTables.contains(tableName)){
             throw new InvalidUsage(args, "Table " + tableName + " Already Exists");
@@ -59,61 +67,62 @@ public class CreateTable extends Command {
 
         while (attrMatcher.find()) {
 
-            String col = attrMatcher.group();
+            String attrName = attrMatcher.group(1);
+            String attrType = attrMatcher.group(2);
+            String attrConstraints = attrMatcher.group(3);
 
-            String[] attrData = col.strip().split(" ");
+            Matcher attrNameMatcher = NAME_PATTERN.matcher(attrName);
 
-            String attrName = attrData[0].strip();
-
-            if (!attrName.matches("[a-zA-Z]+[a-zA-Z0-9]*")) {
-                throw new InvalidUsage(args, "The string '%s' is not a valid attribute name.".formatted(attrName));
+            if (!attrNameMatcher.matches()) {
+                throw new InvalidUsage(args, "The name '%s' is not a valid attribute name.".formatted(attrName));
             }
 
             if (attributes.stream().map(Attribute::getName).toList().contains(attrName)) {
                 throw new InvalidUsage(args, "The attribute name '%s' cannot be used more than once.".formatted(attrName));
             }
 
-            if (attrData.length < 2 || attrData.length > 5) {
-                throw new InvalidUsage(args, errorMessage);
-            }
+            Matcher attrTypeSizeMatcher = ATTR_TYPE_SIZE_MATCH.matcher(attrType);
 
-            String[] newAttributeData = attrData[1].split("\\(");
-            String typeString = newAttributeData[0].toUpperCase();
+            if (!attrTypeSizeMatcher.matches()) {
+                throw new InvalidUsage(args, "'%s' is not a valid attribute type".formatted(attrType));
+            }
 
             AttributeType type;
 
-            Integer maxDataLength = null;
-
             try {
-                type = AttributeType.valueOf(typeString);
+                type = AttributeType.valueOf(attrTypeSizeMatcher.group(1).toUpperCase());
             } catch (IllegalArgumentException iae) {
-                throw new InvalidUsage(args, "'%s' is not a valid attribute type.".formatted(typeString));
+                throw new InvalidUsage(args, "'%s' is not a valid attribute type.".formatted(attrType));
             }
 
-            switch (type) {
-                case INTEGER, DOUBLE, BOOLEAN -> {
-                    if (newAttributeData.length != 1) {
-                        throw new InvalidUsage(args, "Attributes of type INTEGER, DOUBLE, or BOOLEAN do not require a max length.");
+            Integer maxDataLength = null;
+
+            if (attrTypeSizeMatcher.group(2) != null) {
+                switch (type) {
+                    case INTEGER, DOUBLE, BOOLEAN ->
+                            throw new InvalidUsage(args, "Attributes of type INTEGER, DOUBLE, or BOOLEAN do not require a max length.");
+                    default -> {
+                        try {
+                            maxDataLength = Integer.parseInt(attrTypeSizeMatcher.group(2));
+                        } catch (NumberFormatException nfe) {
+                            throw new InvalidUsage(args, "The attribute's max length must be an integer.");
+                        }
                     }
                 }
-                default -> {
-                    if (newAttributeData.length != 2) {
-                        throw new InvalidUsage(args, "Attributes of type CHAR or VARCHAR require a max length.");
-                    }
-                    String maxLengthString = newAttributeData[1];
-                    try {
-                        maxDataLength = Integer.parseInt(maxLengthString.substring(0, maxLengthString.length() - 1));
-                    } catch (NumberFormatException nfe) {
-                        throw new InvalidUsage(args, "The attribute's max length must be an integer.");
-                    }
-                }
+            } else if (type == AttributeType.VARCHAR || type == AttributeType.CHAR) {
+                throw new InvalidUsage(args, "Attributes of type CHAR or VARCHAR require a max length.");
             }
 
             boolean isNullable = true, isUnique = false, isPrimaryKey = false;
 
+            if (attrConstraints != null) {
+                Matcher constMatcher = CONSTRAINT_MATCH.matcher(attrConstraints);
 
-            if (attrData.length > 2) {
-                for (String constraint : Arrays.stream(attrData).toList().subList(2,attrData.length)) {
+                while (constMatcher.find()) {
+                    String constraint = constMatcher.group();
+
+                    System.out.println(constraint);
+
                     switch (constraint.toLowerCase()) {
                         case "notnull" -> isNullable = false;
                         case "unique" -> isUnique = true;
@@ -126,13 +135,14 @@ public class CreateTable extends Command {
             Attribute attr;
 
             switch (type) {
-                case INTEGER, DOUBLE, BOOLEAN -> attr = isPrimaryKey ? new Attribute(attrData[0], type) :
-                        new Attribute(attrData[0].strip(), type, isUnique, isNullable);
-                default -> attr = isPrimaryKey ? new Attribute(attrData[0], type, maxDataLength) :
-                        new Attribute(attrData[0].strip(), type, maxDataLength, isUnique, isNullable);
+                case INTEGER, DOUBLE, BOOLEAN -> attr = isPrimaryKey ? new Attribute(attrName, type) :
+                        new Attribute(attrName, type, isUnique, isNullable);
+                default -> attr = isPrimaryKey ? new Attribute(attrName, type, maxDataLength) :
+                        new Attribute(attrName, type, maxDataLength, isUnique, isNullable);
             }
 
             attributes.add(attr);
+
         }
 
         if (attributes.stream().filter(Attribute::isPrimaryKey).toList().size() > 1) {
