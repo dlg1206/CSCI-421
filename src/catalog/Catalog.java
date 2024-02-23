@@ -25,13 +25,14 @@ public class Catalog implements ICatalog {
             new Attribute("table_id", AttributeType.INTEGER, false, false),
             new Attribute("name", AttributeType.VARCHAR, 255, true, false),
             new Attribute("type", AttributeType.VARCHAR, 7, false, false),
+            new Attribute("maxDataLen", AttributeType.INTEGER, false, true),
             new Attribute("order", AttributeType.INTEGER, false, false),
             new Attribute("unique", AttributeType.BOOLEAN, false, false),
             new Attribute("nullable", AttributeType.BOOLEAN, false, false),
             new Attribute("primarykey", AttributeType.BOOLEAN, false, false)
     );
 
-    private static final int ORDER_INDEX = 4;
+    private static final int ORDER_INDEX = 5;
 
     private int PageSize;
     private final int BufferSize;
@@ -102,11 +103,16 @@ public class Catalog implements ICatalog {
                 int table_id = ((DTInteger) record.get(1)).getValue();
                 String name = ((DTVarchar) record.get(2)).getValue();
                 String type = ((DTVarchar) record.get(3)).getValue();
-                boolean unique = ((DTBoolean) record.get(5)).getValue();
-                boolean nullable = ((DTBoolean) record.get(6)).getValue();
-                boolean primarykey = ((DTBoolean) record.get(7)).getValue();
+                Integer maxDataLen = ((DTInteger) record.get(4)).getValue();
+                boolean unique = ((DTBoolean) record.get(6)).getValue();
+                boolean nullable = ((DTBoolean) record.get(7)).getValue();
+                boolean primarykey = ((DTBoolean) record.get(8)).getValue();
 
-                tableObjects.get(table_id).addAttribute(new Attribute(name, type, unique, nullable, primarykey));
+                if (maxDataLen == null) {
+                    tableObjects.get(table_id).addAttribute(new Attribute(name, type, unique, nullable, primarykey));
+                } else {
+                    tableObjects.get(table_id).addAttribute(new Attribute(name, type, maxDataLen, unique, nullable, primarykey));
+                }
             }
         }
 
@@ -127,6 +133,8 @@ public class Catalog implements ICatalog {
         for (Attribute a : attributes) {
             addAttribute(name, a);
         }
+
+        StorageManager.flush();
 
         NextNum++;
     }
@@ -199,11 +207,20 @@ public class Catalog implements ICatalog {
                 .orElse(0)
                 + 1;
 
+        DTInteger maxDataLen;
+
+        if (attribute.getDataType() == AttributeType.CHAR || attribute.getDataType() == AttributeType.VARCHAR) {
+            maxDataLen = new DTInteger(String.valueOf(attribute.getMaxDataLength()));
+        } else {
+            maxDataLen = new DTInteger((String) null);
+        }
+
         List<DataType> record = List.of(
                 new DTInteger(Objects.toString(nextId)),
                 new DTInteger(Objects.toString(t.getNumber())),
                 new DTVarchar(attribute.getName()),
                 new DTVarchar(attribute.getDataType().name()),
+                maxDataLen,
                 new DTInteger(Objects.toString(nextOrder)),
                 new DTBoolean(Objects.toString(attribute.isUnique())),
                 new DTBoolean(Objects.toString(attribute.isNullable())),
@@ -215,7 +232,7 @@ public class Catalog implements ICatalog {
     private static class AttrRecordSorter implements Comparator<List<DataType>> {
         @Override
         public int compare(List<DataType> r1, List<DataType> r2) {
-            return r1.get(ORDER_INDEX).compareTo(r2.get(ORDER_INDEX));
+            return r2.get(ORDER_INDEX).compareTo(r1.get(ORDER_INDEX)); // reverse the order
         }
     }
 }

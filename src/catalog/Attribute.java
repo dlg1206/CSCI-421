@@ -22,6 +22,11 @@ public class Attribute implements IAttribute {
         this(name, AttributeType.valueOf(type.toUpperCase()), unique, nullable, primaryKey);
     }
 
+    Attribute(String name, String type, Integer maxDataLength, boolean unique, boolean nullable, boolean primaryKey) {
+        this(name, AttributeType.valueOf(type.toUpperCase()), unique, nullable, primaryKey);
+        MaxDataLength = maxDataLength;
+    }
+
     public Attribute(String name, String type, boolean unique, boolean nullable) {
         this(name, AttributeType.valueOf(type.toUpperCase()), unique, nullable, false);
     }
