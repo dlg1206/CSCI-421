@@ -70,6 +70,11 @@ public class CLI {
         return stdin.toString().trim();
     }
 
+    /**
+     * Attempt to execute user input
+     *
+     * @param stdin user input
+     */
     private void executeStdin(String stdin){
         // Try to build and execute the command
         try{
@@ -81,6 +86,11 @@ public class CLI {
         }
     }
 
+    /**
+     * Debug run command that runs a series of commands before launching the terminal
+     *
+     * @param commandsPath Path to list of commands
+     */
     public void runWith(String commandsPath){
         Console.debugMsg("Launching with CLI with the commands at " + commandsPath);
         boolean startCLI = true;    // start the cli after run

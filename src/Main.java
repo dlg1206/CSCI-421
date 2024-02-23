@@ -10,6 +10,12 @@ import sm.StorageManager;
 */
 public class Main {
 
+    /**
+     * Validate given arguments
+     *
+     * @param args Run arguments
+     * @throws Exception Failed validation
+     */
     private static void validateArgs(String[] args) throws Exception {
         if(args.length < 3)
             throw new Exception("Missing arguments, expected 3 but got " + args.length);
@@ -25,6 +31,12 @@ public class Main {
         }
     }
 
+
+    /**
+     * Create or load a database and launch the CLI terminal
+     *
+     * @param args runtime args
+     */
     public static void main(String[] args) {
         // Validate args
         try{
