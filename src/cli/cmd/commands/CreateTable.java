@@ -1,5 +1,6 @@
 package cli.cmd.commands;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -152,6 +153,10 @@ public class CreateTable extends Command {
 
     @Override
     public void execute() throws ExecutionFailure {
-        catalog.createTable(tableName, attributes);
+        try {
+            catalog.createTable(tableName, attributes);
+        } catch (IOException ioe) {
+            throw new ExecutionFailure("The database could not access the required files to make this table.");
+        }
     }
 }
