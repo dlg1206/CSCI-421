@@ -62,8 +62,8 @@ public class DropTable extends Command {
      */
     @Override
     public void execute() throws ExecutionFailure {
-        catalog.deleteTable(tableName);
         int tableNumber = catalog.getTableNumber(tableName);
+        catalog.deleteTable(tableName);
         try {
             sm.dropTable(tableNumber);
         } catch (IOException ioe) {
