@@ -14,7 +14,7 @@ import java.util.*;
 public class Catalog implements ICatalog {
 
     private static final String PAGE_SIZE_PATH = "ps";
-    private static final int TABLE_DATA_NUN = Integer.MIN_VALUE;
+    private static final int TABLE_DATA_NUM = Integer.MIN_VALUE;
     private static final List<Attribute> TABLE_SCHEMA = List.of(
             new Attribute("id", AttributeType.INTEGER),
             new Attribute("name", AttributeType.VARCHAR, 255, true, false)
@@ -83,7 +83,9 @@ public class Catalog implements ICatalog {
 
         HashMap<Integer, Table> tableObjects = new HashMap<>();
 
-        for (List<DataType> record : StorageManager.getAllRecords(TABLE_DATA_NUN, TABLE_SCHEMA)) {
+        List<List<DataType>> allTableRecords = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA);
+
+        for (List<DataType> record : allTableRecords) {
 
             int id = ((DTInteger) record.get(0)).getValue();
             String name = ((DTVarchar) record.get(1)).getValue();
@@ -113,17 +115,19 @@ public class Catalog implements ICatalog {
     }
 
     public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
-        Tables.put(name, new Table(name, NextNum, attributes));
+        Tables.put(name, new Table(name, NextNum));
 
         List<DataType> record = List.of(
                 new DTInteger(Objects.toString(NextNum)),
                 new DTVarchar(name)
         );
 
-        StorageManager.insertRecord(TABLE_DATA_NUN, TABLE_SCHEMA, record);
+        StorageManager.insertRecord(TABLE_DATA_NUM, TABLE_SCHEMA, record);
+
+        List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA);
 
         for (Attribute a : attributes) {
-            this.addAttribute(name, a);
+            addAttribute(name, a);
         }
 
         NextNum++;
@@ -160,12 +164,21 @@ public class Catalog implements ICatalog {
 
 
         //TODO: Actually use a proper delete method, this ain't gonna work
-        List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUN, TABLE_SCHEMA)
+        List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA)
                 .stream().filter(t1 -> ((DTInteger) t1.get(0)).getValue() != t.getNumber()).toList();
 
-        StorageManager.dropTable(t.getNumber());
+        StorageManager.dropTable(TABLE_DATA_NUM);
         for (List<DataType> table : allTables) {
-            StorageManager.insertRecord(TABLE_DATA_NUN, TABLE_SCHEMA, table);
+            StorageManager.insertRecord(TABLE_DATA_NUM, TABLE_SCHEMA, table);
+        }
+
+
+        List<List<DataType>> allAttributes = StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA)
+                .stream().filter(t1 -> ((DTInteger) t1.get(1)).getValue() != t.getNumber()).toList();
+
+        StorageManager.dropTable(ATTR_DATA_NUM);
+        for (List<DataType> attr : allAttributes) {
+            StorageManager.insertRecord(ATTR_DATA_NUM, ATTR_SCHEMA, attr);
         }
 
     }
@@ -178,14 +191,14 @@ public class Catalog implements ICatalog {
         int nextId = StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA).stream()
                 .map(a -> ((DTInteger) a.getFirst()).getValue())
                 .max(Comparator.naturalOrder())
-                .orElse(Integer.MIN_VALUE) // SHOULD NEVER HAPPEN
+                .orElse(0)
                 + 1;
 
         int nextOrder = StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA).stream()
                 .filter(a -> ((DTInteger) a.get(1)).getValue() == t.getNumber())
                 .map(a -> ((DTInteger) a.get(ORDER_INDEX)).getValue())
                 .max(Comparator.naturalOrder())
-                .orElse(Integer.MIN_VALUE) // SHOULD NEVER HAPPEN
+                .orElse(0)
                 + 1;
 
         List<DataType> record = List.of(
