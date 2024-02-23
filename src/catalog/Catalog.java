@@ -50,15 +50,20 @@ public class Catalog implements ICatalog {
 
     private void initStorageManager() {
         Path pageSizePath = Paths.get(this.DBPath, PAGE_SIZE_PATH + ".int");
+        System.out.println("Looking for an existing database...");
         if (pageSizePath.toFile().exists()) {
+            System.out.println("Existing database found, loading the old database...");
             try {
                 loadOldDB(pageSizePath);
             } catch (Exception e) {
                 System.out.println(Console.RED + "The db has become corrupt." + Console.RESET);
                 System.exit(-2);
             }
+            System.out.println("Old database loaded successfully!");
         } else {
+            System.out.println("None found, creating a new database...");
             createNewDB(pageSizePath);
+            System.out.println("New database created!");
         }
     }
 
