@@ -1,6 +1,5 @@
 import catalog.Catalog;
 import cli.CLI;
-import sm.StorageManager;
 
 /**
 * <b>File:</b> Main.java
@@ -54,9 +53,12 @@ public class Main {
         int bufferSize = Integer.parseInt(args[2]);
         int pageSize = Integer.parseInt(args[1]);
 
+        // Make the catalog (initialize the DB)
+        Catalog catalog = new Catalog(pageSize, bufferSize, args[0]);
+
         CLI cli = new CLI(
-                new Catalog(pageSize, bufferSize, args[0]),
-                new StorageManager(bufferSize, pageSize, args[0])   // args flipped for 10% increase in efficiency
+                catalog,
+                catalog.StorageManager
         );
 
         // If dev argument is present, run the CLI with those commands first
