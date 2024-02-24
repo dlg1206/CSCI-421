@@ -62,8 +62,11 @@ public class Main {
         );
 
         // If dev argument is present, run the CLI with those commands first
-        if(args.length >= 6 && args[3].equals("-d")){
-            cli.runWith(args[4], args[5].equals("-s"));
+        if(args.length >= 5 && args[3].equals("-d")){
+            cli.runWith(
+                    args[4],
+                    args.length >= 6 && args[5].equals("-s")
+            );
         } else {
             // else just start the CLI
             cli.run();
