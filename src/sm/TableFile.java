@@ -102,7 +102,7 @@ class TableFile {
      *
      * @throws IOException Failed to read file
      */
-    public void splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes) throws IOException {
+    public void splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes, Page p) throws IOException {
         int swapOffset = 0;
         int pageCount = readPageCount();
 
@@ -111,8 +111,8 @@ class TableFile {
             Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
             // add split page
             if (pageNumber == splitPageNum) {
-                Page rightPage = page.split(attributes);
-                buffer.writeToBuffer(page.getSwapPage(swapOffset));         // add leftPage
+                Page rightPage = p.split(attributes);
+                buffer.writeToBuffer(p.getSwapPage(swapOffset));         // add leftPage
                 swapOffset = 1;
                 buffer.writeToBuffer(rightPage.getSwapPage(swapOffset));    // add rightPage
             } else {
