@@ -166,16 +166,17 @@ public class CLI {
                 stdin = br.readLine();
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             Console.debugErr(e.toString());
         } finally {
             this.outputStream.enable();
-            if(startCLI){
-                Console.debugMsg("Starting CLI. . .");
-                run();
-            } else {
-                Console.debugMsg("Skipping CLI. . .");
-            }
+        }
+
+        if(startCLI){
+            Console.debugMsg("Starting CLI. . .");
+            run();
+        } else {
+            Console.debugMsg("Skipping CLI. . .");
         }
     }
 
