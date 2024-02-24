@@ -1,5 +1,7 @@
 package dataTypes;
 
+import util.Console;
+
 import java.nio.ByteBuffer;
 
 public class DTDouble implements DataType, Comparable<DataType> {
@@ -35,7 +37,7 @@ public class DTDouble implements DataType, Comparable<DataType> {
 
     @Override
     public void printValue() {
-        System.out.println("Double: " + value);
+        Console.out("Double: " + value);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package catalog;
 
 import cli.cmd.exception.ExecutionFailure;
-import cli.util.Console;
+import util.Console;
 import dataTypes.*;
 import sm.StorageManager;
 
@@ -50,20 +50,20 @@ public class Catalog implements ICatalog {
 
     private void initStorageManager() {
         Path pageSizePath = Paths.get(this.DBPath, PAGE_SIZE_PATH + ".int");
-        System.out.println("Looking for an existing database...");
+        Console.out("Looking for an existing database...");
         if (pageSizePath.toFile().exists()) {
-            System.out.println("Existing database found, loading the old database...");
+            Console.out("Existing database found, loading the old database...");
             try {
                 loadOldDB(pageSizePath);
             } catch (Exception e) {
-                System.out.println(Console.RED + "The db has become corrupt." + Console.RESET);
+                Console.err("The db has become corrupt.");
                 System.exit(-2);
             }
-            System.out.println("Old database loaded successfully!");
+            Console.out("Old database loaded successfully!");
         } else {
-            System.out.println("None found, creating a new database...");
+            Console.out("None found, creating a new database...");
             createNewDB(pageSizePath);
-            System.out.println("New database created!");
+            Console.out("New database created!");
         }
     }
 
@@ -72,7 +72,7 @@ public class Catalog implements ICatalog {
             DTInteger pageSizeInt = new DTInteger(Objects.toString(this.PageSize));
             Files.write(pageSizePath, pageSizeInt.convertToBytes());
         } catch (IOException ioe) {
-            System.out.println(Console.RED + "The db location is unusable." + Console.RESET);
+            Console.err("The db location is unusable.");
             System.exit(-2);
         }
         this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath);
@@ -82,7 +82,7 @@ public class Catalog implements ICatalog {
         try {
             this.PageSize = new DTInteger(Files.readAllBytes(pageSizePath)).getValue();
         } catch (IOException ioe) {
-            System.out.println(Console.RED + "The db has become corrupt." + Console.RESET);
+            Console.err("The db has become corrupt.");
             System.exit(-1);
         }
         this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath);

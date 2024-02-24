@@ -5,7 +5,8 @@ import catalog.ICatalog;
 import catalog.Table;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
-import cli.util.Format;
+import util.Console;
+import util.Format;
 import dataTypes.*;
 import sm.StorageManager;
 
@@ -69,8 +70,8 @@ public class Select extends Command {
 
         List<Integer> colWidths = getColumnWidths(attrs);
 
-        System.out.println(createHeader(colWidths, attrs));
-        System.out.println(createFormattedRows(colWidths, allRecords));
+        Console.out(createHeader(colWidths, attrs));
+        Console.out(createFormattedRows(colWidths, allRecords));
     }
 
     private List<Integer> getColumnWidths(List<Attribute> attrs) {

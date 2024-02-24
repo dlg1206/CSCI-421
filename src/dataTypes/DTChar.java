@@ -1,5 +1,7 @@
 package dataTypes;
 
+import util.Console;
+
 public class DTChar implements DataType, Comparable<DataType> {
     private String value;
     private int maxLength;
@@ -38,7 +40,7 @@ public class DTChar implements DataType, Comparable<DataType> {
 
     @Override
     public void printValue() {
-        System.out.println("Char: " + value);
+        Console.out("Char: " + value);
     }
 
     @Override
