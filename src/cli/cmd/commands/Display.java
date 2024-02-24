@@ -25,7 +25,7 @@ public class Display extends Command {
 
     private final ICatalog catalog;
     private final StorageManager sm;
-    private final String tableName;
+    private String tableName;
 
     private static final Pattern FULL_MATCH = Pattern.compile("display[\\s\\t]+(?:schema|info[\\s\\t]+([a-z0-9]+))[\\s\\t]*;", Pattern.CASE_INSENSITIVE);
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
@@ -51,6 +51,8 @@ public class Display extends Command {
             if (!tableNameMatcher.matches()) {
                 throw new InvalidUsage(args, "The name '%s' is not a valid table name.".formatted(tableName));
             }
+
+            tableName = tableName.toLowerCase();
 
             Set<String> allTables = catalog.getExistingTableNames();
             if(!allTables.contains(tableName)){
