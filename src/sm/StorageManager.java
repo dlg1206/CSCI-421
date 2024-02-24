@@ -98,7 +98,8 @@ public class StorageManager {
 
             // Record added, split if needed
             if (recordInserted && page.isOverfull()) {
-                tf.splitPage(this.buffer, pageNumber, attributes);
+                page = this.buffer.readFromBuffer(tableID, pageNumber, true);
+                tf.splitPage(this.buffer, pageNumber, attributes, page);
             }
 
             // Record added, break
@@ -107,8 +108,10 @@ public class StorageManager {
             // Reach end of pages and not inserted, append to end and split if needed
             if (pageNumber == pageCount - 1) {
                 page.appendRecord(attributes, record);
-                if (page.isOverfull())
-                    tf.splitPage(this.buffer, pageNumber, attributes);
+                if (page.isOverfull()) {
+                    page = this.buffer.readFromBuffer(tableID, pageNumber, true);
+                    tf.splitPage(this.buffer, pageNumber, attributes, page);
+                }
             }
         }
     }
