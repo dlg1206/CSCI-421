@@ -19,6 +19,7 @@ import catalog.Attribute;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import util.Console;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -215,8 +216,13 @@ public class AlterTable extends Command {
                 newDropTableExecutable.execute();
                 CreateTable newTableExecutable = new CreateTable(createTableCommand, this.catalog, this.sm);
                 newTableExecutable.execute();
-                InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
-                newInsertIntoExecutable.execute();
+                if(!(allRecordsList.size() == 0)){
+                    InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
+                    newInsertIntoExecutable.execute();
+                }
+                else{
+                    Console.out("SUCCESS");
+                }
             } catch (InvalidUsage e) {
                 throw new ExecutionFailure("Execution failure to drop attribute");
             }
@@ -280,8 +286,14 @@ public class AlterTable extends Command {
                 newDropTableExecutable.execute();
                 CreateTable newTableExecutable = new CreateTable(createTableCommand, this.catalog, this.sm);
                 newTableExecutable.execute();
-                InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
-                newInsertIntoExecutable.execute();
+                if(!(allRecordsList.size() == 0)){
+                    InsertInto newInsertIntoExecutable = new InsertInto(insertIntoCommand, this.catalog, this.sm);
+                    newInsertIntoExecutable.execute();
+                }
+                else{
+                    Console.out("SUCCESS");
+                }
+                
             } catch (InvalidUsage e) {
                 throw new ExecutionFailure("Execution failure to add attribute");
             }
