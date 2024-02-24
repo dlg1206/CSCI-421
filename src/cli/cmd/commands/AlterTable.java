@@ -81,7 +81,7 @@ public class AlterTable extends Command {
             throw new InvalidUsage(args, errorMessage);
         }
 
-        tableName = input.get(2);
+        tableName = input.get(2).toLowerCase();
 
 
         // Alter Table Semantic Validation
