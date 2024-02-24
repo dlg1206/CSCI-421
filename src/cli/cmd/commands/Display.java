@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import util.Console;
 import sm.StorageManager;
 
 /**
@@ -71,23 +72,23 @@ public class Display extends Command {
             int pageCount = sm.getPageCount(tableID);
             int recordCount = sm.getAllRecords(tableID, tableSchema.getAttributes()).size();
             printTable(tableSchema);
-            System.out.println("Pages: " + pageCount);
-            System.out.println("Records: " + recordCount);
-            System.out.println("SUCCESS");
+            Console.out("Pages: " + pageCount);
+            Console.out("Records: " + recordCount);
+            Console.out("SUCCESS");
         }
         else{
             Set<String> allTableNames = catalog.getExistingTableNames();
             int bufferSize = sm.getBufferSize();
             int pageSize = sm.getPageSize();
             String location = sm.getDatabaseRoot();
-            System.out.println("DB location: " + location);
-            System.out.println("Page Size: " + pageSize);
-            System.out.println("Buffer Size: " + bufferSize);
+            Console.out("DB location: " + location);
+            Console.out("Page Size: " + pageSize);
+            Console.out("Buffer Size: " + bufferSize);
             if(allTableNames.isEmpty()){
-                System.out.println("\nNo tables to display");
+                Console.out("\nNo tables to display");
             }
             else{
-                System.out.println("Tables: \n");
+                Console.out("Tables: \n");
             }
             for (String name : allTableNames) {
                 Table tempTable = catalog.getRecordSchema(name);
@@ -95,18 +96,18 @@ public class Display extends Command {
                 int pageCount = sm.getPageCount(tableID);
                 int recordCount = sm.getAllRecords(tableID, tempTable.getAttributes()).size();
                 printTable(tempTable);
-                System.out.println("Pages: " + pageCount);
-                System.out.println("Records: " + recordCount);
-                System.out.println();
+                Console.out("Pages: " + pageCount);
+                Console.out("Records: " + recordCount);
+                Console.out("\n");
             }
-            System.out.println("SUCCESS");
+            Console.out("SUCCESS");
         }
     }
 
     public void printTable(Table table){
         List<Attribute> attributes = table.getAttributes();
-        System.out.println("Table Name: " + table.getName());
-        System.out.println("Table Schema: ");
+        Console.out("Table Name: " + table.getName());
+        Console.out("Table Schema: ");
         for (Attribute attr : attributes) {
             String temp = "     " + attr.getName() + ":" + attr.getDataType().name().toLowerCase();
             if(attr.isPrimaryKey()){
@@ -120,7 +121,7 @@ public class Display extends Command {
                     temp = temp + " unique";
                 }
             }
-            System.out.println(temp);
+            Console.out(temp);
             }
     }
     
