@@ -69,6 +69,7 @@ public class Catalog implements ICatalog {
 
     private void createNewDB(Path pageSizePath) {
         try {
+            Files.createDirectories(Paths.get(this.DBPath));
             DTInteger pageSizeInt = new DTInteger(Objects.toString(this.PageSize));
             Files.write(pageSizePath, pageSizeInt.convertToBytes());
         } catch (IOException ioe) {

@@ -47,6 +47,7 @@ public class Main {
             System.err.println("\t<db loc>:         Path to the database root");
             System.err.println("\t<page size>:      Size of page ( in bytes )");
             System.err.println("\t<buffer size>:    Size of page buffer ( page capacity )");
+            System.exit(1);
         }
 
         // Build CLI

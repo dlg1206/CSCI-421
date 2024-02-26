@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
+import dataTypes.AttributeType;
 import util.Console;
 import sm.StorageManager;
 
@@ -112,6 +114,9 @@ public class Display extends Command {
         Console.out("Table Schema: ");
         for (Attribute attr : attributes) {
             String temp = "     " + attr.getName() + ":" + attr.getDataType().name().toLowerCase();
+            if (attr.getDataType() == AttributeType.CHAR || attr.getDataType() == AttributeType.VARCHAR) {
+                temp += "(%s)".formatted(attr.getMaxDataLength());
+            }
             if(attr.isPrimaryKey()){
                 temp = temp + " primarykey";
             }

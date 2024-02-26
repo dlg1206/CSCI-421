@@ -44,7 +44,7 @@ public class Select extends Command {
         if(input.size() != 4 || !input.get(1).equals("*") || !input.get(2).equalsIgnoreCase("from")){
             throw new InvalidUsage(args, "Correct Usage: (Select * From <table name>;)");
         }
-        tableName = input.get(3);
+        tableName = input.get(3).toLowerCase();
 
         Set<String> allTables = catalog.getExistingTableNames();
 
