@@ -18,18 +18,30 @@ public class Tester {
         this.testName = testName;
     }
     private String buildMessage(String command, String expected, String actual){
-        return  "COMMAND: " + command + "\n" +
-                "===Expected===\n" + expected +
-                "\n====Actual====\n" + actual + "\n==============";
+        return new StrBuilder()
+                .addLine("COMMAND: " + command)
+                .addLine("===Expected===")
+                .addLine(expected)
+                .skipLine()
+                .addLine("====Actual====")
+                .addLine(actual)
+                .skipLine()
+                .addLine("==============")
+                .build().strip();
     }
 
     public int isEquals(String command, String expected, String actual){
-        if( expected.equals(actual) ){
-            System.out.println(GREEN + "TEST: " + this.testName + "\nSTATUS: PASSED!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
-            return 0;
-        } else {
-            System.out.println(RED + "TEST: " + this.testName + "\nSTATUS: FAILED!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
-            return 1;
-        }
+        boolean isEquals = expected.equals(actual);
+        String msg = new StrBuilder()
+                .addLine(isEquals ? GREEN : RED)
+                .addLine("TEST: " + this.testName)
+                .addLine(isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!")
+                .addLine(buildMessage(command, expected, actual))
+                .addLine(RESET)
+                .build();
+
+        System.out.println(msg);
+
+        return isEquals ? 0 : 1;
     }
 }

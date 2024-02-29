@@ -1,4 +1,4 @@
-package mocks;
+package util;
 
 /**
  * <b>File:</b> StdoutBuilder.java
@@ -7,16 +7,16 @@ package mocks;
  *
  * @author Derek Garcia
  */
-public class MockStdoutBuilder {
+public class StrBuilder {
 
     private final StringBuilder sb = new StringBuilder();
 
-    public MockStdoutBuilder addLine(String line) {
+    public StrBuilder addLine(String line) {
         this.sb.append(line).append('\n');
         return this;
     }
 
-    public MockStdoutBuilder skipLine() {
+    public StrBuilder skipLine() {
         this.sb.append('\n');
         return this;
     }
