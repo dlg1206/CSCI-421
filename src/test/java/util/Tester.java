@@ -13,16 +13,16 @@ public class Tester {
 
     private static String buildMessage(String command, String expected, String actual){
         return  "Command: " + command + "\n" +
-                "===Expected===\n" + expected + "" +
+                "===Expected===\n" + expected +
                 "====Actual====\n" + actual + "==============";
     }
 
     public static int isEquals(String command, String expected, String actual){
         if( expected.equals(actual) ){
-            System.out.println(GREEN + "Test Passed!\n" + buildMessage(command, expected, actual) + RESET);
+            System.out.println(GREEN + "\nTest Passed!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
             return 0;
         } else {
-            System.err.println("Test Failed!\n" + buildMessage(command, expected, actual));
+            System.err.println("\nTest Failed!\n" + buildMessage(command, expected, actual));
             return 1;
         }
     }
