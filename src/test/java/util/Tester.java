@@ -21,13 +21,15 @@ public class Tester {
         return new StrBuilder()
                 .addLine("COMMAND: " + command)
                 .addLine("===Expected===")
-                .addLine(expected.strip())
+                .skipLine()
+                .addLine(expected.trim())
                 .skipLine()
                 .addLine("====Actual====")
-                .addLine(actual.strip())
+                .skipLine()
+                .addLine(actual.trim())
                 .skipLine()
                 .addLine("==============")
-                .build().strip();
+                .build();
     }
 
     public int isEquals(String command, String expected, String actual){
@@ -38,7 +40,7 @@ public class Tester {
                 .addLine(buildMessage(command, expected, actual) + RESET)
                 .build();
 
-        System.out.println(msg);
+        System.out.print(msg);
 
         return isEquals ? 0 : 1;
     }
