@@ -1,6 +1,6 @@
 import catalog.Catalog;
 import mocks.MockCLI;
-import mocks.MockStdoutBuilder;
+import util.StrBuilder;
 import util.Tester;
 
 import java.io.File;
@@ -41,7 +41,7 @@ public class TestRunner {
     }
 
     private static int test_display_schema(){
-        String expected = new MockStdoutBuilder()
+        String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
                 .addLine("Buffer Size: " + BUFFER_SIZE)
@@ -61,7 +61,7 @@ public class TestRunner {
     }
 
     private static int test_display_info_for_missing_table(){
-        String expected = new MockStdoutBuilder()
+        String expected = new StrBuilder()
                 .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
                 .addLine("ERROR")
                 .build();
@@ -103,7 +103,7 @@ public class TestRunner {
     }
 
     private static int test_display_table_info(){
-        String expected = new MockStdoutBuilder()
+        String expected = new StrBuilder()
                 .addLine("Table Name: foo")
                 .addLine("Table Schema: ")
                 .addLine("     id:integer primarykey")
@@ -124,7 +124,7 @@ public class TestRunner {
     }
 
     private static int test_display_schema_with_one_table(){
-        String expected = new MockStdoutBuilder()
+        String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
                 .addLine("Buffer Size: " + BUFFER_SIZE)
@@ -152,7 +152,7 @@ public class TestRunner {
     }
 
     private static int test_select_from_empty_table(){
-        String expected = new MockStdoutBuilder()
+        String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
                 .addLine("-------")
