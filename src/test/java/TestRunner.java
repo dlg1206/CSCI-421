@@ -50,9 +50,7 @@ public class TestRunner {
     }
 
     public static int test_select_from_missing_table(){
-        String expected = new MockStdoutBuilder()
-                .addLine("Invalid Usage (select * from foo;): Table foo does not exist in the Catalog")
-                .build();
+        String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
 
         // Given
         String command = "select * from foo;";
@@ -70,6 +68,24 @@ public class TestRunner {
         // Then
         // todo actually check table was made
         return Tester.isEquals(command, "", actual);
+    }
+
+    public static int test_display_from_existing_table(){
+        String expected = new MockStdoutBuilder()
+                .addLine("Table Name: foo")
+                .addLine("Table Schema: ")
+                .addLine("     id:integer primarykey")
+                .addLine("Pages: 0")
+                .addLine("Records: 0")
+                .addLine("SUCCESS")
+                .build();
+
+        // Given
+        String command = "display info foo;";
+        // When
+        String actual = MOCK_CLI.mockInput(command);
+        // Then
+        return Tester.isEquals(command, expected, actual);
     }
 
 
@@ -93,12 +109,13 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
-        int totalTest = 4;
+        int totalTest = 5;
 
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
         exitCode += test_select_from_missing_table();
         exitCode += test_create_valid_table();
+        exitCode += test_display_from_existing_table();
 
         System.out.println("Tests Passed: " + (totalTest - exitCode));
         System.out.println("Tests Failed: " + exitCode);
