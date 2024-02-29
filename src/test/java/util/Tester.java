@@ -15,15 +15,15 @@ public class Tester {
     private static String buildMessage(String command, String expected, String actual){
         return  "Command: " + command + "\n" +
                 "===Expected===\n" + expected +
-                "====Actual====\n" + actual + "==============";
+                "\n====Actual====\n" + actual + "\n==============";
     }
 
     public static int isEquals(String command, String expected, String actual){
         if( expected.equals(actual) ){
-            System.out.println(GREEN + "\nTest Passed!\n" + buildMessage(command, expected, actual) + RESET);
+            System.out.println(GREEN + "Test Passed!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
             return 0;
         } else {
-            System.out.println(RED + "\nTest Failed!\n" + buildMessage(command, expected, actual) + RESET);
+            System.out.println(RED + "Test Failed!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
             return 1;
         }
     }

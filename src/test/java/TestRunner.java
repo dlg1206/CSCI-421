@@ -76,7 +76,7 @@ public class TestRunner {
     }
 
     private static int test_select_from_missing_table(){
-        String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
+        String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog\n";
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -114,6 +114,7 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
         // When
+        mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
         // Then
         return Tester.isEquals(command, expected, actual);
