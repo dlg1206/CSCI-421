@@ -27,7 +27,7 @@ public class BInterpreter {
      */
     public static List<List<DataType>> convertPageToRecords(byte[] data, List<Attribute> attributes) {
         List<List<DataType>> records = new ArrayList<>();
-        int numRecords = data[0];
+        int numRecords = Byte.toUnsignedInt(data[0]);
         int dataIdx = 1; // skip index 0 which contains number of records
 
         // parse each record
