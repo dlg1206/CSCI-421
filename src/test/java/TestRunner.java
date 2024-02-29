@@ -144,6 +144,24 @@ public class TestRunner {
         return Tester.isEquals(command, expected, actual);
     }
 
+    private static int test_select_from_empty_table(){
+        String expected = new MockStdoutBuilder()
+                .addLine("-------")
+                .addLine("| id  |")
+                .addLine("-------")
+                .skipLine()
+                .build();
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        String command = "select * from foo;";
+        // When
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return Tester.isEquals(command, expected, actual);
+    }
+
 
     public static void main(String[] args) {
 
@@ -157,7 +175,6 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
-        int totalTest = 6;
 
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
@@ -165,9 +182,9 @@ public class TestRunner {
         exitCode += test_create_valid_table();
         exitCode += test_display_table_info();
         exitCode += test_display_schema_with_one_table();
+        exitCode += test_select_from_empty_table();
 
 
-        System.out.println("Tests Passed: " + (totalTest - exitCode));
         System.out.println("Tests Failed: " + exitCode);
 
         System.exit(exitCode > 0 ? 1 : 0);
