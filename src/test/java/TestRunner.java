@@ -220,6 +220,35 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_insert_ten_entries_into_existing_table(){
+        String expected = new StrBuilder()
+                .addLine("-------")
+                .addLine("| id  |")
+                .addLine("-------")
+                .addLine("|    1|")
+                .addLine("|    2|")
+                .addLine("|    3|")
+                .addLine("|    4|")
+                .addLine("|    5|")
+                .addLine("|    6|")
+                .addLine("|    7|")
+                .addLine("|    8|")
+                .addLine("|    9|")
+                .addLine("|   10|")
+                .build();
+        Tester tester = new Tester("test_insert_ten_entries_into_existing_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        mockCLI.mockInput("insert into foo values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10);");
+        String command = "select * from foo;";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
     public static void main(String[] args) {
 
         // Build CLI
@@ -243,6 +272,7 @@ public class TestRunner {
         exitCode += test_insert_into_existing_table();
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
+        exitCode += test_insert_ten_entries_into_existing_table();
 
 
         System.out.println("Tests Failed: " + exitCode);
