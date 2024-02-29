@@ -256,7 +256,7 @@ public class TestRunner {
     private static int test_insert_1000_entries_into_existing_table(){
         String expected;
         try{
-            expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next();
+            expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
         } catch (Exception e){
             System.err.println(e);
             return 1;
