@@ -13,8 +13,8 @@ public class Tester {
 
     private static String buildMessage(String command, String expected, String actual){
         return  "Command: " + command + "\n" +
-                "===Expected===\n" + expected + "\n" +
-                "====Actual====\n" + actual + "\n==============\n";
+                "===Expected===\n" + expected + "" +
+                "====Actual====\n" + actual + "==============";
     }
 
     public static int isEquals(String command, String expected, String actual){
