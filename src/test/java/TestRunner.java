@@ -62,6 +62,17 @@ public class TestRunner {
         return Tester.isEquals(command, expected, actual);
     }
 
+    public static int test_create_valid_table(){
+        // Given
+        String command = "create table foo( id integer primarykey);";
+        // When
+        String actual = MOCK_CLI.mockInput(command);
+        // Then
+        // todo actually check table was made
+        return Tester.isEquals(command, "", actual);
+    }
+
+
     public static void main(String[] args) {
 
         // Build CLI
@@ -82,11 +93,12 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
-        int totalTest = 3;
+        int totalTest = 4;
 
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
         exitCode += test_select_from_missing_table();
+        exitCode += test_create_valid_table();
 
         System.out.println("Tests Passed: " + (totalTest - exitCode));
         System.out.println("Tests Failed: " + exitCode);
