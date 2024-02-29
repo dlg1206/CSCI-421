@@ -20,7 +20,7 @@ import java.util.Scanner;
  * @author Derek Garcia
  */
 public class TestRunner {
-    private static final String THOUSAND_OUT_FILE_PATH = "src/test/resources/cmd/out/insert1000";
+    private static final String THOUSAND_OUT_FILE_PATH = "src/test/resources/cmd/out/insert-1000";
     private static String DB_ROOT;
     private static int PAGE_SIZE;
     private static int BUFFER_SIZE;
@@ -395,6 +395,28 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_alter_add_new_column_to_existing_table_with_default(){
+        String expected = new StrBuilder()
+                .addLine("--------------------")
+                .addLine("| id  |    baz     |")
+                .addLine("--------------------")
+                .addLine("|    1|       hello|")
+                .build();
+        Tester tester = new Tester("alter_add_new_column_to_existing_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        mockCLI.mockInput("insert into foo values (1);");
+        String command = "alter table foo add baz varchar(10) default \"hello\";";
+        mockCLI.mockInput(command);
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+
 
     public static void main(String[] args) throws IOException {
 
@@ -424,6 +446,7 @@ public class TestRunner {
         exitCode += test_insert_ten_entries_into_existing_table();
 //        exitCode += test_insert_1000_entries_into_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table();
+        exitCode += test_alter_add_new_column_to_existing_table_with_default();
 
 
         System.out.println("Tests Failed: " + exitCode);
