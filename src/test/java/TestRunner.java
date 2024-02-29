@@ -170,6 +170,20 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_insert_into_existing_table(){
+        String expected = "SUCCESS\n";
+        Tester tester = new Tester("insert_into_existing_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        String command = "insert into foo values (1);";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        // todo check value was inserted
+        return tester.isEquals(command, expected, actual);
+    }
 
     public static void main(String[] args) {
 
@@ -191,6 +205,7 @@ public class TestRunner {
         exitCode += test_display_table_info();
         exitCode += test_display_schema_with_one_table();
         exitCode += test_select_from_empty_table();
+        exitCode += test_insert_into_existing_table();
 
 
         System.out.println("Tests Failed: " + exitCode);
