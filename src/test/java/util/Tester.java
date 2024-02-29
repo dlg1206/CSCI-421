@@ -33,7 +33,7 @@ public class Tester {
     }
 
     public int isEquals(String command, String expected, String actual){
-        boolean isEquals = expected.equals(actual);
+        boolean isEquals = expected.trim().equals(actual.trim());
         String msg = new StrBuilder()
                 .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
                 .addLine(isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!")

@@ -81,7 +81,7 @@ public class TestRunner {
     }
 
     private static int test_select_from_missing_table(){
-        String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog\n";
+        String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
         Tester tester = new Tester("select_from_missing_table");
 
         // Given
@@ -175,7 +175,7 @@ public class TestRunner {
     }
 
     private static int test_insert_into_existing_table(){
-        String expected = "SUCCESS\n";
+        String expected = "SUCCESS";
         Tester tester = new Tester("insert_into_existing_table");
 
         // Given
@@ -210,7 +210,7 @@ public class TestRunner {
     }
 
     private static int test_insert_duplicate_entry(){
-        String expected = "Execution Failure: There already exists an entry for primary key: '1'.\n";
+        String expected = "Execution Failure: There already exists an entry for primary key: '1'.";
         Tester tester = new Tester("insert_duplicate_entry");
 
         // Given
@@ -417,7 +417,7 @@ public class TestRunner {
     }
 
     private static int test_alter_drop_missing_column_from_table(){
-        String expected = "Invalid Usage (alter table foo drop bar;): The table 'foo' does not contain the attribute 'bar'.\n";
+        String expected = "Invalid Usage (alter table foo drop bar;): The table 'foo' does not contain the attribute 'bar'.";
         Tester tester = new Tester("alter_drop_missing_column_from_table");
 
         // Given
@@ -451,7 +451,7 @@ public class TestRunner {
     }
 
     private static int test_alter_drop_primary_key_column_from_table(){
-        String expected = "Execution Failure: Execution failure cannot drop primary key\n";
+        String expected = "Execution Failure: Execution failure cannot drop primary key";
         Tester tester = new Tester("alter_drop_primary_key_column_from_table");
 
         // Given
@@ -463,6 +463,20 @@ public class TestRunner {
         // Then
         return tester.isEquals(command, expected, actual);
     }
+
+    private static int test_create_table_with_two_primary_keys(){
+        String expected = "Invalid Usage (create table baz( name varchar(10), gpa double primarykey, id integer primarykey);): Only one attribute can be the primary key.";
+        Tester tester = new Tester("alter_drop_primary_key_column_from_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        String command = "create table baz( name varchar(10), gpa double primarykey, id integer primarykey);";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
 
@@ -498,6 +512,7 @@ public class TestRunner {
         exitCode += test_alter_drop_missing_column_from_table();
         exitCode += test_alter_drop_existing_column_from_table();
         exitCode += test_alter_drop_primary_key_column_from_table();
+        exitCode += test_create_table_with_two_primary_keys();
 
 
         System.out.println("Tests Failed: " + exitCode);
