@@ -185,20 +185,35 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_none_empty_table(){
+    private static int test_select_from_non_empty_table(){
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
                 .addLine("-------")
                 .addLine("|    1|")
                 .build();
-        Tester tester = new Tester("select_from_none_empty_table");
+        Tester tester = new Tester("select_from_non_empty_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "select * from foo;";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_insert_duplicate_entry(){
+        String expected = "Execution Failure: There already exists an entry for primary key: '1'.\n";
+        Tester tester = new Tester("insert_duplicate_entry");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        mockCLI.mockInput("insert into foo values (1);");
+        String command = "insert into foo values (1);";
         // When
         String actual = mockCLI.mockInput(command);
         // Then
@@ -226,7 +241,8 @@ public class TestRunner {
         exitCode += test_display_schema_with_one_table();
         exitCode += test_select_from_empty_table();
         exitCode += test_insert_into_existing_table();
-        exitCode += test_select_from_none_empty_table();
+        exitCode += test_select_from_non_empty_table();
+        exitCode += test_insert_duplicate_entry();
 
 
         System.out.println("Tests Failed: " + exitCode);
