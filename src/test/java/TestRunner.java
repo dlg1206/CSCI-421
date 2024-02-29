@@ -18,7 +18,8 @@ public class TestRunner {
     private static int BUFFER_SIZE;
 
     public static int test_display_schema(){
-        String expected = new MockStdoutBuilder().addLine("DB location: " + DB_ROOT)
+        String expected = new MockStdoutBuilder()
+                .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
                 .addLine("Buffer Size: " + BUFFER_SIZE)
                 .skipLine()
@@ -28,6 +29,20 @@ public class TestRunner {
 
         // Given
         String command = "display schema;";
+        // When
+        String actual = MOCK_CLI.mockInput(command);
+        // Then
+        return Tester.isEquals(command, expected, actual);
+    }
+
+    public static int test_display_info_for_missing_table(){
+        String expected = new MockStdoutBuilder()
+                .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
+                .addLine("ERROR")
+                .build();
+
+        // Given
+        String command = "display info foo;";
         // When
         String actual = MOCK_CLI.mockInput(command);
         // Then
@@ -54,8 +69,13 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
+        int totalTest = 2;
 
         exitCode += test_display_schema();
+        exitCode += test_display_info_for_missing_table();
+
+        System.out.println("Tests Passed: " + (totalTest - exitCode));
+        System.out.println("Tests Failed: " + exitCode);
 
         System.exit(exitCode > 0 ? 1 : 0);
 
