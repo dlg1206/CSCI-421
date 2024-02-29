@@ -416,6 +416,20 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_alter_drop_missing_column_from_table(){
+        String expected = "Invalid Usage (alter table foo drop bar;): The table 'foo' does not contain the attribute 'bar'.\n";
+        Tester tester = new Tester("alter_drop_missing_column_from_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        String command = "alter table foo drop bar;";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
     public static void main(String[] args) throws IOException {
@@ -447,6 +461,7 @@ public class TestRunner {
 //        exitCode += test_insert_1000_entries_into_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table_with_default();
+        exitCode += test_alter_drop_missing_column_from_table();
 
 
         System.out.println("Tests Failed: " + exitCode);
