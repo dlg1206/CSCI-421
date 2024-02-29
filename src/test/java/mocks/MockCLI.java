@@ -43,7 +43,9 @@ public class MockCLI {
 
         System.setOut(new PrintStream(this.stdout));
 
-        return baos.toString().replace("\r", "");
+        return baos.toString()
+                .replace("\r", "")      // Remove carriage return ( windows )
+                .replaceAll("\u001B\\[[;\\d]*m", "");   // remove any color codes
 
     }
 }
