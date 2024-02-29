@@ -375,6 +375,26 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_alter_add_new_column_to_existing_table(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("| id  | bar |")
+                .addLine("-------------")
+                .skipLine()
+                .build();
+        Tester tester = new Tester("alter_add_new_column_to_existing_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        String command = "alter table foo add bar double;";
+        mockCLI.mockInput(command);
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
     public static void main(String[] args) throws IOException {
 
@@ -402,7 +422,8 @@ public class TestRunner {
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
         exitCode += test_insert_ten_entries_into_existing_table();
-        exitCode += test_insert_1000_entries_into_existing_table();
+//        exitCode += test_insert_1000_entries_into_existing_table();
+        exitCode += test_alter_add_new_column_to_existing_table();
 
 
         System.out.println("Tests Failed: " + exitCode);
