@@ -3,6 +3,11 @@ import mocks.MockCLI;
 import mocks.MockStdoutBuilder;
 import util.Tester;
 
+import java.io.File;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Objects;
+
 /**
  * <b>File:</b> PhaseOneTest.java
  * <p>
@@ -11,13 +16,30 @@ import util.Tester;
  * @author Derek Garcia
  */
 public class TestRunner {
-    private static MockCLI MOCK_CLI;
 
     private static String DB_ROOT;
     private static int PAGE_SIZE;
     private static int BUFFER_SIZE;
+    
+    private static MockCLI buildMockCLI(){
+        PrintStream stdout = System.out;
+        System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
+        // Make the catalog (initialize the DB)
+        Catalog catalog = new Catalog(PAGE_SIZE, BUFFER_SIZE, DB_ROOT);
+        System.setOut(stdout);
+        return new MockCLI(
+                catalog,
+                catalog.StorageManager
+        );
+    }
 
-    public static int test_display_schema(){
+    private static void cleanUp(){
+        for(File file: Objects.requireNonNull(new File(DB_ROOT).listFiles()))
+            if (!file.isDirectory())
+                file.delete();
+    }
+
+    private static int test_display_schema(){
         String expected = new MockStdoutBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
@@ -28,49 +50,57 @@ public class TestRunner {
                 .build();
 
         // Given
+        MockCLI mockCLI = buildMockCLI();
         String command = "display schema;";
         // When
-        String actual = MOCK_CLI.mockInput(command);
+        String actual = mockCLI.mockInput(command);
         // Then
+        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
-    public static int test_display_info_for_missing_table(){
+    private static int test_display_info_for_missing_table(){
         String expected = new MockStdoutBuilder()
                 .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
                 .addLine("ERROR")
                 .build();
 
         // Given
+        MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
         // When
-        String actual = MOCK_CLI.mockInput(command);
+        String actual = mockCLI.mockInput(command);
         // Then
+        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
-    public static int test_select_from_missing_table(){
+    private static int test_select_from_missing_table(){
         String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
 
         // Given
+        MockCLI mockCLI = buildMockCLI();
         String command = "select * from foo;";
         // When
-        String actual = MOCK_CLI.mockInput(command);
+        String actual = mockCLI.mockInput(command);
         // Then
+        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
-    public static int test_create_valid_table(){
+    private static int test_create_valid_table(){
         // Given
         String command = "create table foo( id integer primarykey);";
         // When
-        String actual = MOCK_CLI.mockInput(command);
+        MockCLI mockCLI = buildMockCLI();
+        String actual = mockCLI.mockInput(command);
         // Then
         // todo actually check table was made
+        cleanUp();
         return Tester.isEquals(command, "", actual);
     }
 
-    public static int test_display_from_existing_table(){
+    private static int test_display_from_existing_table(){
         String expected = new MockStdoutBuilder()
                 .addLine("Table Name: foo")
                 .addLine("Table Schema: ")
@@ -81,9 +111,10 @@ public class TestRunner {
                 .build();
 
         // Given
+        MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
         // When
-        String actual = MOCK_CLI.mockInput(command);
+        String actual = mockCLI.mockInput(command);
         // Then
         return Tester.isEquals(command, expected, actual);
     }
@@ -95,14 +126,6 @@ public class TestRunner {
         DB_ROOT = args[0];
         PAGE_SIZE = Integer.parseInt(args[1]);
         BUFFER_SIZE = Integer.parseInt(args[2]);
-
-        // Make the catalog (initialize the DB)
-        Catalog catalog = new Catalog(PAGE_SIZE, BUFFER_SIZE, DB_ROOT);
-
-        MOCK_CLI = new MockCLI(
-                catalog,
-                catalog.StorageManager
-        );
 
         System.out.println("Running Test Cases");
         System.out.println("\tBuffer Size: " + BUFFER_SIZE);

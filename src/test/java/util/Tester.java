@@ -9,6 +9,7 @@ package util;
  */
 public class Tester {
     private static final String RESET = "\033[0m";
+    private static final String RED = "\033[0;31m";
     private static final String GREEN = "\033[0;32m";
 
     private static String buildMessage(String command, String expected, String actual){
@@ -19,10 +20,10 @@ public class Tester {
 
     public static int isEquals(String command, String expected, String actual){
         if( expected.equals(actual) ){
-            System.out.println(GREEN + "\nTest Passed!\n" + buildMessage(command, expected, actual) + "\n" + RESET);
+            System.out.println(GREEN + "\nTest Passed!\n" + buildMessage(command, expected, actual) + RESET);
             return 0;
         } else {
-            System.err.println("\nTest Failed!\n" + buildMessage(command, expected, actual));
+            System.out.println(RED + "\nTest Failed!\n" + buildMessage(command, expected, actual) + RESET);
             return 1;
         }
     }
