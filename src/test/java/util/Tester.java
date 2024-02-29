@@ -21,10 +21,10 @@ public class Tester {
         return new StrBuilder()
                 .addLine("COMMAND: " + command)
                 .addLine("===Expected===")
-                .addLine(expected)
+                .addLine(expected.strip())
                 .skipLine()
                 .addLine("====Actual====")
-                .addLine(actual)
+                .addLine(actual.strip())
                 .skipLine()
                 .addLine("==============")
                 .build().strip();
@@ -33,11 +33,9 @@ public class Tester {
     public int isEquals(String command, String expected, String actual){
         boolean isEquals = expected.equals(actual);
         String msg = new StrBuilder()
-                .addLine(isEquals ? GREEN : RED)
-                .addLine("TEST: " + this.testName)
+                .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
                 .addLine(isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!")
-                .addLine(buildMessage(command, expected, actual))
-                .addLine(RESET)
+                .addLine(buildMessage(command, expected, actual) + RESET)
                 .build();
 
         System.out.println(msg);
