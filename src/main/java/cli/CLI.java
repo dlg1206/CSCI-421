@@ -145,25 +145,32 @@ public class CLI {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(commandsPath))){
-            String stdin = br.readLine();
-            while (stdin != null) {
-                // Skip '#' comment
-                if(stdin.charAt(0) == '#'){
-                    stdin = br.readLine();
+            String line = br.readLine();
+            while (line != null) {
+                // Skip empty lines and '#' comment
+                if(line.isBlank() || line.charAt(0) == '#'){
+                    line = br.readLine();
                     continue;
                 }
 
+                // Parse multiline commands
+                StringBuilder stdin = new StringBuilder(line);
+                while (!stdin.toString().endsWith(";") && line != null){
+                    line = br.readLine();
+                    stdin.append(" ").append(line);
+                }
+
                 // print the command as if user input it
-                Console.mockInput(stdin);
+                Console.mockInput(stdin.toString().strip());
 
                 // exit if requested
-                if(stdin.equalsIgnoreCase("exit;")){
+                if(stdin.toString().equalsIgnoreCase("exit;")){
                     after();
                     startCLI = false;
                     break;
                 }
-                executeStdin(stdin);
-                stdin = br.readLine();
+                executeStdin(stdin.toString());
+                line = br.readLine();
             }
 
         } catch (Exception e) {
