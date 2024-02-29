@@ -22,6 +22,7 @@ public class TestRunner {
     private static int BUFFER_SIZE;
     
     private static MockCLI buildMockCLI(){
+        cleanUp();  // remove old db
         PrintStream stdout = System.out;
         System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
         // Make the catalog (initialize the DB)
@@ -55,7 +56,6 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
@@ -71,7 +71,6 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
@@ -84,7 +83,6 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        cleanUp();
         return Tester.isEquals(command, expected, actual);
     }
 
@@ -96,11 +94,10 @@ public class TestRunner {
         String actual = mockCLI.mockInput(command);
         // Then
         // todo actually check table was made
-        cleanUp();
         return Tester.isEquals(command, "", actual);
     }
 
-    private static int test_display_from_existing_table(){
+    private static int test_display_table_info(){
         String expected = new MockStdoutBuilder()
                 .addLine("Table Name: foo")
                 .addLine("Table Schema: ")
@@ -113,6 +110,33 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
+        // When
+        mockCLI.mockInput("create table foo( id integer primarykey);");
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return Tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_display_schema_with_one_table(){
+        String expected = new MockStdoutBuilder()
+                .addLine("DB location: " + DB_ROOT)
+                .addLine("Page Size: " + PAGE_SIZE)
+                .addLine("Buffer Size: " + BUFFER_SIZE)
+                .addLine("Tables: ")
+                .skipLine()
+                .addLine("Table Name: foo")
+                .addLine("Table Schema: ")
+                .addLine("     id:integer primarykey")
+                .addLine("Pages: 0")
+                .addLine("Records: 0")
+                .skipLine()
+                .skipLine()
+                .addLine("SUCCESS")
+                .build();
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        String command = "display schema;";
         // When
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
@@ -133,13 +157,15 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
-        int totalTest = 5;
+        int totalTest = 6;
 
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
         exitCode += test_select_from_missing_table();
         exitCode += test_create_valid_table();
-        exitCode += test_display_from_existing_table();
+        exitCode += test_display_table_info();
+        exitCode += test_display_schema_with_one_table();
+
 
         System.out.println("Tests Passed: " + (totalTest - exitCode));
         System.out.println("Tests Failed: " + exitCode);
