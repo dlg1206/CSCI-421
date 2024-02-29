@@ -49,6 +49,7 @@ public class TestRunner {
                 .addLine("No tables to display")
                 .addLine("SUCCESS")
                 .build();
+        Tester tester = new Tester("display_schema");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -56,7 +57,7 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_display_info_for_missing_table(){
@@ -64,6 +65,7 @@ public class TestRunner {
                 .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
                 .addLine("ERROR")
                 .build();
+        Tester tester = new Tester("display_info_for_missing_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -71,11 +73,12 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_from_missing_table(){
         String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog\n";
+        Tester tester = new Tester("select_from_missing_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -83,18 +86,20 @@ public class TestRunner {
         // When
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_create_valid_table(){
         // Given
         String command = "create table foo( id integer primarykey);";
+        Tester tester = new Tester("create_valid_table");
+
         // When
         MockCLI mockCLI = buildMockCLI();
         String actual = mockCLI.mockInput(command);
         // Then
         // todo actually check table was made
-        return Tester.isEquals(command, "", actual);
+        return tester.isEquals(command, "", actual);
     }
 
     private static int test_display_table_info(){
@@ -106,6 +111,7 @@ public class TestRunner {
                 .addLine("Records: 0")
                 .addLine("SUCCESS")
                 .build();
+        Tester tester = new Tester("display_table_info");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -114,7 +120,7 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_display_schema_with_one_table(){
@@ -133,6 +139,7 @@ public class TestRunner {
                 .skipLine()
                 .addLine("SUCCESS")
                 .build();
+        Tester tester = new Tester("display_schema_with_one_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -141,7 +148,7 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_from_empty_table(){
@@ -151,6 +158,7 @@ public class TestRunner {
                 .addLine("-------")
                 .skipLine()
                 .build();
+        Tester tester = new Tester("select_from_empty_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -159,7 +167,7 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
         // Then
-        return Tester.isEquals(command, expected, actual);
+        return tester.isEquals(command, expected, actual);
     }
 
 
