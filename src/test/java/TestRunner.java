@@ -49,6 +49,19 @@ public class TestRunner {
         return Tester.isEquals(command, expected, actual);
     }
 
+    public static int test_select_from_missing_table(){
+        String expected = new MockStdoutBuilder()
+                .addLine("Invalid Usage (select * from foo;): Table foo does not exist in the Catalog")
+                .build();
+
+        // Given
+        String command = "select * from foo;";
+        // When
+        String actual = MOCK_CLI.mockInput(command);
+        // Then
+        return Tester.isEquals(command, expected, actual);
+    }
+
     public static void main(String[] args) {
 
         // Build CLI
@@ -69,10 +82,11 @@ public class TestRunner {
         System.out.println("\tPage Size: " + DB_ROOT);
 
         int exitCode = 0;
-        int totalTest = 2;
+        int totalTest = 3;
 
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
+        exitCode += test_select_from_missing_table();
 
         System.out.println("Tests Passed: " + (totalTest - exitCode));
         System.out.println("Tests Failed: " + exitCode);
