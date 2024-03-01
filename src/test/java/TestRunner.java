@@ -459,7 +459,7 @@ public class TestRunner {
     }
 
     private static int test_alter_drop_primary_key_column_from_table() {
-        String expected = "Execution Failure: Extion failure cannot drop primary key";
+        String expected = "Execution Failure: Execution failure cannot drop primary key";
         Tester tester = new Tester("alter_drop_primary_key_column_from_table");
 
         // Given
