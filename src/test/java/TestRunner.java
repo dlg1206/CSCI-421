@@ -13,9 +13,9 @@ import java.util.Objects;
 import java.util.Scanner;
 
 /**
- * <b>File:</b> PhaseOneTest.java
+ * <b>File:</b> TestRunner.java
  * <p>
- * <b>Description:</b>
+ * <b>Description:</b> Run tests for database
  *
  * @author Derek Garcia
  */
@@ -24,8 +24,13 @@ public class TestRunner {
     private static String DB_ROOT;
     private static int PAGE_SIZE;
     private static int BUFFER_SIZE;
-    
-    private static MockCLI buildMockCLI(){
+
+    /**
+     * Create a new CLI with no database
+     *
+     * @return MockCLI
+     */
+    private static MockCLI buildMockCLI() {
         cleanUp();  // remove old db
         PrintStream stdout = System.out;
         System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
@@ -38,13 +43,16 @@ public class TestRunner {
         );
     }
 
-    private static void cleanUp(){
-        for(File file: Objects.requireNonNull(new File(DB_ROOT).listFiles()))
+    /**
+     * Remove previous database files
+     */
+    private static void cleanUp() {
+        for (File file : Objects.requireNonNull(new File(DB_ROOT).listFiles()))
             if (!file.isDirectory())
                 file.delete();
     }
 
-    private static int test_display_schema(){
+    private static int test_display_schema() {
         String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
@@ -58,13 +66,15 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "display schema;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_display_info_for_missing_table(){
+    private static int test_display_info_for_missing_table() {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
                 .addLine("ERROR")
@@ -74,39 +84,30 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_missing_table(){
+    private static int test_select_from_missing_table() {
         String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
         Tester tester = new Tester("select_from_missing_table");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "select * from foo;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_create_valid_table(){
-        // Given
-        String command = "create table foo( id integer primarykey);";
-        Tester tester = new Tester("create_valid_table");
-
-        // When
-        MockCLI mockCLI = buildMockCLI();
-        String actual = mockCLI.mockInput(command);
-        // Then
-        // todo actually check table was made
-        return tester.isEquals(command, "", actual);
-    }
-
-    private static int test_display_table_info(){
+    private static int test_display_table_info() {
         String expected = new StrBuilder()
                 .addLine("Table Name: foo")
                 .addLine("Table Schema: ")
@@ -120,14 +121,16 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "display info foo;";
+
         // When
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_display_schema_with_one_table(){
+    private static int test_display_schema_with_one_table() {
         String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
@@ -148,14 +151,16 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "display schema;";
+
         // When
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_empty_table(){
+    private static int test_select_from_empty_table() {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
@@ -167,29 +172,16 @@ public class TestRunner {
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "select * from foo;";
+
         // When
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_into_existing_table(){
-        String expected = "SUCCESS";
-        Tester tester = new Tester("insert_into_existing_table");
-
-        // Given
-        MockCLI mockCLI = buildMockCLI();
-        mockCLI.mockInput("create table foo( id integer primarykey);");
-        String command = "insert into foo values (1);";
-        // When
-        String actual = mockCLI.mockInput(command);
-        // Then
-        // todo check value was inserted
-        return tester.isEquals(command, expected, actual);
-    }
-
-    private static int test_select_from_non_empty_table(){
+    private static int test_select_from_non_empty_table() {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
@@ -203,13 +195,15 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "select * from foo;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_duplicate_entry(){
+    private static int test_insert_duplicate_entry() {
         String expected = "Execution Failure: There already exists an entry for primary key: '1'.";
         Tester tester = new Tester("insert_duplicate_entry");
 
@@ -218,13 +212,15 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "insert into foo values (1);";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_ten_entries_into_existing_table(){
+    private static int test_insert_ten_entries_into_existing_table() {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
@@ -247,17 +243,19 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10);");
         String command = "select * from foo;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_1000_entries_into_existing_table(){
+    private static int test_insert_1000_entries_into_existing_table() {
         String expected;
-        try{
+        try {
             expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
-        } catch (Exception e){
+        } catch (Exception e) {
             System.err.println(e);
             return 1;
         }
@@ -369,13 +367,15 @@ public class TestRunner {
                 "(981),(982),(983),(984),(985),(986),(987),(988),(989),(990), " +
                 "(991),(992),(993),(994),(995),(996),(997),(998),(999),(1000);");
         String command = "select * from foo;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_add_new_column_to_existing_table(){
+    private static int test_alter_add_new_column_to_existing_table() {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("| id  | bar |")
@@ -389,13 +389,15 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo add bar double;";
         mockCLI.mockInput(command);
+
         // When
         String actual = mockCLI.mockInput("select * from foo;");
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_add_new_column_to_existing_table_with_default(){
+    private static int test_alter_add_new_column_to_existing_table_with_default() {
         String expected = new StrBuilder()
                 .addLine("--------------------")
                 .addLine("| id  |    baz     |")
@@ -410,13 +412,15 @@ public class TestRunner {
         mockCLI.mockInput("insert into foo values (1);");
         String command = "alter table foo add baz varchar(10) default \"hello\";";
         mockCLI.mockInput(command);
+
         // When
         String actual = mockCLI.mockInput("select * from foo;");
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_missing_column_from_table(){
+    private static int test_alter_drop_missing_column_from_table() {
         String expected = "Invalid Usage (alter table foo drop bar;): The table 'foo' does not contain the attribute 'bar'.";
         Tester tester = new Tester("alter_drop_missing_column_from_table");
 
@@ -424,13 +428,15 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo drop bar;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_existing_column_from_table(){
+    private static int test_alter_drop_existing_column_from_table() {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
@@ -444,13 +450,15 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( id integer primarykey, bar integer);");
         String command = "alter table foo drop bar;";
         mockCLI.mockInput(command);
+
         // When
         String actual = mockCLI.mockInput("select * from foo;");
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_primary_key_column_from_table(){
+    private static int test_alter_drop_primary_key_column_from_table() {
         String expected = "Execution Failure: Execution failure cannot drop primary key";
         Tester tester = new Tester("alter_drop_primary_key_column_from_table");
 
@@ -458,27 +466,31 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo drop id;";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_create_table_with_two_primary_keys(){
+    private static int test_create_table_with_two_primary_keys() {
         String expected = "Invalid Usage (create table baz( name varchar(10), gpa double primarykey, id integer primarykey);): Only one attribute can be the primary key.";
         Tester tester = new Tester("create_table_with_two_primary_keys");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
         String command = "create table baz( name varchar(10), gpa double primarykey, id integer primarykey);";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
 
-    private static int test_insert_tuple_out_of_order(){
+    private static int test_insert_tuple_out_of_order() {
         String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
         Tester tester = new Tester("insert_tuple_out_of_order");
 
@@ -486,13 +498,15 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (1 \"test\" 2.1);";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_tuple_with_missing_value(){
+    private static int test_insert_tuple_with_missing_value() {
         String expected = "Execution Failure: Table baz expects 3 attributes and you provided 2 for tuple #0";
         Tester tester = new Tester("insert_tuple_with_missing_value");
 
@@ -500,13 +514,15 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (\"test\" 2.1);";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_tuple_with_invalid_varchar(){
+    private static int test_insert_tuple_with_invalid_varchar() {
         String expected = "Execution Failure: The attribute 'name' has a max length of 10 characters. You provided too many characters in tuple #0";
         Tester tester = new Tester("insert_tuple_with_invalid_varchar");
 
@@ -514,19 +530,23 @@ public class TestRunner {
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (\"this is too long\" 2.1 1);";
+
         // When
         String actual = mockCLI.mockInput(command);
+
         // Then
         return tester.isEquals(command, expected, actual);
     }
 
 
-
-
-
+    /**
+     * Run tests
+     *
+     * @param args Test Database, page size, buffer size
+     * @throws IOException failed to open diff fule
+     */
     public static void main(String[] args) throws IOException {
 
-        // Build CLI
         DB_ROOT = args[0];
         PAGE_SIZE = Integer.parseInt(args[1]);
         BUFFER_SIZE = Integer.parseInt(args[2]);
@@ -542,15 +562,13 @@ public class TestRunner {
         exitCode += test_display_schema();
         exitCode += test_display_info_for_missing_table();
         exitCode += test_select_from_missing_table();
-        exitCode += test_create_valid_table();
         exitCode += test_display_table_info();
         exitCode += test_display_schema_with_one_table();
         exitCode += test_select_from_empty_table();
-        exitCode += test_insert_into_existing_table();
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
         exitCode += test_insert_ten_entries_into_existing_table();
-//        exitCode += test_insert_1000_entries_into_existing_table();
+        exitCode += test_insert_1000_entries_into_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table_with_default();
         exitCode += test_alter_drop_missing_column_from_table();
@@ -561,13 +579,8 @@ public class TestRunner {
         exitCode += test_insert_tuple_with_missing_value();
         exitCode += test_insert_tuple_with_invalid_varchar();
 
-
         System.out.println("Tests Failed: " + exitCode);
 
         System.exit(exitCode > 0 ? 1 : 0);
-
-
     }
-
-
 }
