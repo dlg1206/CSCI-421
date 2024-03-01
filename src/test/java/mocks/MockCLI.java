@@ -11,9 +11,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
 /**
- * <b>File:</b> util.MockCLI.java
+ * <b>File:</b> MockCLI.java
  * <p>
- * <b>Description:</b>
+ * <b>Description:</b> MockCLI to pass in commands to for testing
  *
  * @author Derek Garcia
  */
@@ -24,14 +24,26 @@ public class MockCLI {
     private final StorageManager DBStorageManager;
 
 
+    /**
+     * Mimicked Constructor of the actual CLI class
+     *
+     * @param catalog Catalog with table metadata
+     * @param storageManager StorageManager to access hardware
+     */
     public MockCLI(Catalog catalog, StorageManager storageManager) {
         DBCatalog = catalog;
         DBStorageManager = storageManager;
     }
 
+    /**
+     * Mock input to the CLI
+     *
+     * @param stdin Input to the CLI
+     * @return Stdout result of the given command
+     */
     public String mockInput(String stdin) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(baos));
+        System.setOut(new PrintStream(baos));   // record output
 
         try {
             Command cmd = CommandFactory.buildCommand(stdin, this.DBCatalog, this.DBStorageManager);
@@ -41,7 +53,7 @@ public class MockCLI {
             Console.err(e.getMessage());
         }
 
-        System.setOut(new PrintStream(this.stdout));
+        System.setOut(new PrintStream(this.stdout));    // reset output
 
         return baos.toString()
                 .replace("\r", "")      // Remove carriage return ( windows )
