@@ -480,12 +480,26 @@ public class TestRunner {
 
     private static int test_insert_tuple_out_of_order(){
         String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
-        Tester tester = new Tester("alter_drop_primary_key_column_from_table");
+        Tester tester = new Tester("insert_tuple_out_of_order");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (1 \"test\" 2.1);";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_insert_tuple_with_missing_value(){
+        String expected = "Execution Failure: Table baz expects 3 attributes and you provided 2 for tuple #0";
+        Tester tester = new Tester("insert_tuple_with_missing_value");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
+        String command = "insert into baz values (\"test\" 2.1);";
         // When
         String actual = mockCLI.mockInput(command);
         // Then
@@ -530,6 +544,7 @@ public class TestRunner {
         exitCode += test_alter_drop_primary_key_column_from_table();
         exitCode += test_create_table_with_two_primary_keys();
         exitCode += test_insert_tuple_out_of_order();
+        exitCode += test_insert_tuple_with_missing_value();
 
 
         System.out.println("Tests Failed: " + exitCode);
