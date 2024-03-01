@@ -466,7 +466,7 @@ public class TestRunner {
 
     private static int test_create_table_with_two_primary_keys(){
         String expected = "Invalid Usage (create table baz( name varchar(10), gpa double primarykey, id integer primarykey);): Only one attribute can be the primary key.";
-        Tester tester = new Tester("alter_drop_primary_key_column_from_table");
+        Tester tester = new Tester("create_table_with_two_primary_keys");
 
         // Given
         MockCLI mockCLI = buildMockCLI();
@@ -476,6 +476,22 @@ public class TestRunner {
         // Then
         return tester.isEquals(command, expected, actual);
     }
+
+
+    private static int test_insert_tuple_out_of_order(){
+        String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
+        Tester tester = new Tester("alter_drop_primary_key_column_from_table");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
+        String command = "insert into baz values (1 \"test\" 2.1);";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
 
@@ -513,6 +529,7 @@ public class TestRunner {
         exitCode += test_alter_drop_existing_column_from_table();
         exitCode += test_alter_drop_primary_key_column_from_table();
         exitCode += test_create_table_with_two_primary_keys();
+        exitCode += test_insert_tuple_out_of_order();
 
 
         System.out.println("Tests Failed: " + exitCode);
