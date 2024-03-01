@@ -14,4 +14,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Compile Code
-        run: find ./src -name "*.java" > sources.txt && javac @sources.txt
+        run: chmod +x build-lin.sh && ./build-lin.sh
+
+      - name: Run Tests
+        run: java -cp ./out TestRunner test-db 512 10
