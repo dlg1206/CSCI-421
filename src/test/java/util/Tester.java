@@ -1,9 +1,9 @@
 package util;
 
 /**
- * <b>File:</b> TestCaseStatus.java
+ * <b>File:</b> Tester.java
  * <p>
- * <b>Description:</b>
+ * <b>Description:</b> Compares strings to determine if things were executed
  *
  * @author Derek Garcia
  */
@@ -14,9 +14,23 @@ public class Tester {
     private final String testName;
 
 
+    /**
+     * Create new tester
+     *
+     * @param testName Name of the test
+     */
     public Tester(String testName){
         this.testName = testName;
     }
+
+    /**
+     * Build a diff message
+     *
+     * @param command Command that was executed
+     * @param expected Expected String
+     * @param actual Actual String
+     * @return Formatted diff message
+     */
     private String buildMessage(String command, String expected, String actual){
         return new StrBuilder()
                 .addLine("COMMAND: " + command)
@@ -32,6 +46,14 @@ public class Tester {
                 .build();
     }
 
+    /**
+     * Test if the strings match
+     *
+     * @param command Command that was executed
+     * @param expected Expected String
+     * @param actual Actual String
+     * @return 0 if match, 1 otherwise
+     */
     public int isEquals(String command, String expected, String actual){
         boolean isEquals = expected.trim().equals(actual.trim());
         String msg = new StrBuilder()
