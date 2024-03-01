@@ -506,6 +506,20 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_insert_tuple_with_invalid_varchar(){
+        String expected = "Execution Failure: The attribute 'name' has a max length of 10 characters. You provided too many characters in tuple #0";
+        Tester tester = new Tester("insert_tuple_with_invalid_varchar");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
+        String command = "insert into baz values (\"this is too long\" 2.1 1);";
+        // When
+        String actual = mockCLI.mockInput(command);
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
 
@@ -545,6 +559,7 @@ public class TestRunner {
         exitCode += test_create_table_with_two_primary_keys();
         exitCode += test_insert_tuple_out_of_order();
         exitCode += test_insert_tuple_with_missing_value();
+        exitCode += test_insert_tuple_with_invalid_varchar();
 
 
         System.out.println("Tests Failed: " + exitCode);
