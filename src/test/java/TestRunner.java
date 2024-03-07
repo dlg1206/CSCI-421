@@ -31,16 +31,8 @@ public class TestRunner {
      * @return MockCLI
      */
     private static MockCLI buildMockCLI() {
-        cleanUp();  // remove old db
-        PrintStream stdout = System.out;
-        System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
-        // Make the catalog (initialize the DB)
-        Catalog catalog = new Catalog(PAGE_SIZE, BUFFER_SIZE, DB_ROOT);
-        System.setOut(stdout);
-        return new MockCLI(
-                catalog,
-                catalog.StorageManager
-        );
+        cleanUp();
+        return new MockCLI(DB_ROOT, PAGE_SIZE, BUFFER_SIZE);
     }
 
     /**
@@ -579,6 +571,7 @@ public class TestRunner {
         exitCode += test_insert_tuple_with_missing_value();
         exitCode += test_insert_tuple_with_invalid_varchar();
 
+        cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
 
         System.exit(exitCode > 0 ? 1 : 0);

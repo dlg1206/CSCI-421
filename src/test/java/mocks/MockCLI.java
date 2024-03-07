@@ -8,7 +8,10 @@ import sm.StorageManager;
 import util.Console;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Objects;
 
 /**
  * <b>File:</b> MockCLI.java
@@ -27,12 +30,16 @@ public class MockCLI {
     /**
      * Mimicked Constructor of the actual CLI class
      *
-     * @param catalog Catalog with table metadata
-     * @param storageManager StorageManager to access hardware
+     * @param dbRoot Root path of database
+     * @param pageSize Page size in bytes
+     * @param bufferSize Number of pages buffer can hold
      */
-    public MockCLI(Catalog catalog, StorageManager storageManager) {
-        DBCatalog = catalog;
-        DBStorageManager = storageManager;
+    public MockCLI(String dbRoot, int pageSize, int bufferSize){
+        PrintStream stdout = System.out;
+        System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
+        this.DBCatalog = new Catalog(pageSize, bufferSize, dbRoot);
+        this.DBStorageManager = this.DBCatalog.StorageManager;
+        System.setOut(stdout);
     }
 
     /**
