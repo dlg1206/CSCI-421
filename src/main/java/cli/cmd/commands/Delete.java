@@ -5,6 +5,8 @@ import catalog.Attribute;
 import catalog.ICatalog;
 import catalog.Table;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,10 +36,12 @@ public class Delete extends Command{
     private final StorageManager sm;
     private final Set<String> attributeNames;
     private final String tableName;
+    private final HashMap<String, List<String>> conditionMap;
 
     public Delete(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
         this.sm = storageManager;
+        this.conditionMap = new HashMap<>();
 
         Matcher fullMatcher = FULL_MATCH.matcher(args);
 
@@ -103,16 +107,33 @@ public class Delete extends Command{
 
     private void validateConditions(String args) throws InvalidUsage {
         String conditionals = args.toLowerCase().contains("where")
-            ? args.split("where")[1].trim().replace(";", "")
+            ? args.substring(args.toLowerCase().indexOf("where") + 5).trim().replace(";", "")
             : "";
-
+    
         if (!conditionals.isEmpty()) {
-            String[] conditions = conditionals.split("(?i)\\s+(and|or)\\s+");
+            if (conditionals.trim().matches(".*(and|or)\\s*$")) {
+                throw new InvalidUsage(args, "Invalid conditional expression: ");
+            }
+    
+            String[] conditions = conditionals.split("\\s+(and|or)\\s+");
             for (String condition : conditions) {
-                if (!EACH_CONDITIONAL_MATCH.matcher(condition).matches()) {
-                    throw new InvalidUsage(args, "Using an Invalid Conditional");
+                parseConditionsIntoMap(condition);
+                if (!EACH_CONDITIONAL_MATCH.matcher(condition.trim()).matches()) {
+                    throw new InvalidUsage(args, "Invalid conditional expression: " + condition);
                 }
             }
+        }
+    }
+    
+
+    private void parseConditionsIntoMap(String conditions) {
+        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
+        while (conditionMatcher.find()) {
+            String attribute = conditionMatcher.group(1);
+            String condition = conditionMatcher.group(0); // The entire condition matched
+
+            conditionMap.putIfAbsent(attribute, new ArrayList<>());
+            conditionMap.get(attribute).add(condition);
         }
     }
 
