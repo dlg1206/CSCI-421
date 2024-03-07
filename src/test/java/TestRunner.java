@@ -568,7 +568,7 @@ public class TestRunner {
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
         exitCode += test_insert_ten_entries_into_existing_table();
-        // exitCode += test_insert_1000_entries_into_existing_table();     // excluded b/c takes forever
+        exitCode += test_insert_1000_entries_into_existing_table();     // excluded b/c takes forever
         exitCode += test_alter_add_new_column_to_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table_with_default();
         exitCode += test_alter_drop_missing_column_from_table();
