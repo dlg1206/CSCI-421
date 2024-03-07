@@ -15,7 +15,7 @@ For linux only
 
 ## To Run
 ```bash
-java Main <db loc> <page size> <buffer size>
+java -cp ./out Main <db loc> <page size> <buffer size>
 ```
 
 Arguments:
