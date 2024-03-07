@@ -33,7 +33,7 @@ The following are additional testing resources available for tests
 
 - [`MockCLI`](../src/test/java/mocks/MockCLI.java): A mock instance of a CLI that takes in input and captures the output.
 
-  - The constructor creates a new CLI, database, catalog, and storage manager instances.
+  - The constructor creates a new CLI, catalog, and storage manager instances.
 
 - [`StrBuilder`](../src/test/java/util/StrBuilder.java): Custom string build to be used to build complex expected outputs or queries.
 
