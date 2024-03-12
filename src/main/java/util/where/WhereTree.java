@@ -230,8 +230,10 @@ public class WhereTree {
                 case "<=" -> t -> t <= 0;
                 case "=" -> t -> t == 0;
                 case "!=" -> t -> t != 0;
-                default -> t -> t == Integer.MAX_VALUE;
+                default -> t -> t == Integer.MAX_VALUE; // This will be ignored when the Comparator is "and" or "or"
             };
+
+
 
         if (iNode.Left instanceof LeafNode lLeaf && iNode.Right instanceof LeafNode rLeaf) {
             DataType lValue;
@@ -251,7 +253,10 @@ public class WhereTree {
             return comparator.test(lValue.compareTo(rValue));
         }
 
-        return false;
+        if (iNode.Comparator.equalsIgnoreCase("and"))
+            return passesSubtree(iNode.Left, record) && passesSubtree(iNode.Right, record);
+        else
+            return passesSubtree(iNode.Left, record) || passesSubtree(iNode.Right, record);
     }
 
     private LeafNode createLeaf(String value) {
