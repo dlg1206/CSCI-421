@@ -47,11 +47,6 @@ public class Table implements ITable {
         Attributes.add(attribute);
     }
 
-    @Override
-    public void removeAttribute(String name) {
-        Attributes.removeIf(a -> Objects.equals(a.getName(), name));
-    }
-
     public int getIndexOfPrimaryKey() {
         for (int i = 0; i < Attributes.size(); i++) {
             if (Attributes.get(i).isPrimaryKey())

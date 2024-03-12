@@ -151,11 +151,6 @@ public class Catalog implements ICatalog {
     }
 
     @Override
-    public int getBufferSie() {
-        return BufferSize;
-    }
-
-    @Override
     public Set<String> getExistingTableNames() {
         return Tables.keySet();
     }
