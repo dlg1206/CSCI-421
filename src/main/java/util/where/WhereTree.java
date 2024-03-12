@@ -291,4 +291,8 @@ public class WhereTree {
         return node;
     }
 
+    @Override
+    public String toString() {
+        return tree.toString();
+    }
 }
