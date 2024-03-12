@@ -536,7 +536,6 @@ public class TestRunner {
     }
 
     private static int test_whereTreeCreation_with_variousInputs() {
-        Tester tester = new Tester("test_whereTreeCreation_with_variousInputs");
         ICatalog mockCatalog = new ICatalog() {
             @Override
             public Table getRecordSchema(String tableName) {
@@ -778,6 +777,7 @@ public class TestRunner {
                 } catch (ExecutionFailure e) {
                     result = e.getMessage();
                 }
+                Tester tester = new Tester("test_whereTreeCreation_with_variousInputs_" + testI);
                 failedCount += tester.isEquals(tests.get(testI % tests.size()) + " - " + tNames, expected.get(testI), result);
                 testI++;
             }
@@ -787,7 +787,6 @@ public class TestRunner {
     }
 
     private static int test_whereCompare_with_variousInputs() {
-        Tester tester = new Tester("test_whereCompare_with_variousInputs");
         ICatalog mockCatalog = new ICatalog() {
             @Override
             public Table getRecordSchema(String tableName) {
@@ -916,6 +915,7 @@ public class TestRunner {
             } catch (ExecutionFailure ef) {
                 actual = ef.getMessage();
             }
+            Tester tester = new Tester("test_whereCompare_with_variousInputs_" + i);
             failedTests += tester.isEquals(test, exp, actual);
         }
         return failedTests;
