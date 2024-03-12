@@ -54,4 +54,12 @@ public class Table implements ITable {
         }
         return -1; // Should never happen. All tables should have a PK.
     }
+
+    public int getIndexOfAttribute(String attrName) {
+        for (int i = 0; i < Attributes.size(); i++) {
+            if (Attributes.get(i).getName().equals(attrName))
+                return i;
+        }
+        return -1; // Should never happen. Never call this function without already validating the name exists.
+    }
 }
