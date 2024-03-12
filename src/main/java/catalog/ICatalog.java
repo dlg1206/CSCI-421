@@ -9,6 +9,7 @@ import java.util.Set;
 public interface ICatalog {
 
     Table getRecordSchema(String tableName);
+    Attribute getTableAttribute(String tableName, String attrName);
     int getTableNumber(String name);
     int getPageSize();
     int getBufferSie();

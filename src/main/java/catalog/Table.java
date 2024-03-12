@@ -37,6 +37,11 @@ public class Table implements ITable {
     }
 
     @Override
+    public Attribute getAttribute(String attrName) {
+        return Attributes.stream().filter(a -> Objects.equals(a.getName(), attrName)).findFirst().orElseThrow();
+    }
+
+    @Override
     public void addAttribute(Attribute attribute) {
         // This does not check for unique attribute names, that should be handled by the command.
         Attributes.add(attribute);

@@ -172,6 +172,11 @@ public class Catalog implements ICatalog {
         return Tables.get(tableName);
     }
 
+    @Override
+    public Attribute getTableAttribute(String tableName, String attrName) {
+        return getRecordSchema(tableName).getAttribute(attrName);
+    }
+
 
     public void deleteTable(String name) throws ExecutionFailure, IOException {
         name = name.toLowerCase();
