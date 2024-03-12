@@ -6,13 +6,15 @@ import cli.cmd.exception.ExecutionFailure;
 import dataTypes.*;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WhereTree {
 
-    private ICatalog Catalog;
+    private final ICatalog Catalog;
     private final List<String> TableNames;
+    private final Map<String, Integer> TableAttrOffsets = new HashMap<>();
     private final Map<String, String> DistinctAttrNames = new HashMap<>();
     private final List<String> AllAttrNames = new ArrayList<>();
     private InternalNode tree;
@@ -37,8 +39,12 @@ public class WhereTree {
 
         Map<String, List<String>> attrNameCounts = new HashMap<>();
 
+        int totalAttrCount = 0;
+
         for (String tName : TableNames) {
+            TableAttrOffsets.put(tName, totalAttrCount);
             for (Attribute a : Catalog.getRecordSchema(tName).getAttributes()) {
+                totalAttrCount++;
                 if (!attrNameCounts.containsKey(a.getName())) {
                     attrNameCounts.put(a.getName(), new ArrayList<>());
                 }
@@ -186,16 +192,20 @@ public class WhereTree {
                     if (lLeaf.getReturnType() == AttributeType.VARCHAR && rLeaf.getReturnType() == AttributeType.CHAR && rLeaf.Value != null) {
                         rLeaf.Value = new DTVarchar(rLeaf.Value.stringValue());
                         rLeaf.ReturnType = AttributeType.VARCHAR;
+                        return true;
                     } else if (rLeaf.getReturnType() == AttributeType.VARCHAR && lLeaf.getReturnType() == AttributeType.CHAR && lLeaf.Value != null) {
                         lLeaf.Value = new DTVarchar(lLeaf.Value.stringValue());
                         lLeaf.ReturnType = AttributeType.VARCHAR;
+                        return true;
                     }
-                    return true;
                 }
 
                 parseErrors.add(internal.toString());
-                parseErrors.add("^".repeat(internal.Left.toString().length()) + " ".repeat(internal.Comparator.length() + 2) + "^".repeat(internal.Right.toString().length()));
-                parseErrors.add("The return types of these two expressions is not comparable.");
+                parseErrors.add("^".repeat(internal.Left.toString().length()) +
+                        " ".repeat(internal.Comparator.length() + 2) +
+                        "^".repeat(internal.Right.toString().length()) +
+                        " The return types of these two expressions are not comparable ( " + internal.Left.getReturnType().name() +
+                        " and " + internal.Right.getReturnType().name() + " ).");
                 return false;
             }
             return true;
@@ -204,8 +214,43 @@ public class WhereTree {
         return false;
     }
 
-    private boolean passesTree(List<DataType> record) {
-        // TODO
+    public boolean passesTree(List<DataType> record) {
+        return passesSubtree(tree, record);
+    }
+
+    private boolean passesSubtree(Node node, List<DataType> record) {
+        if (!(node instanceof InternalNode iNode))
+            return false; // This should never happen, the recursion should never pass in a leaf node here.
+
+        Predicate<Integer> comparator =
+            switch (iNode.Comparator) {
+                case ">" ->  t -> t > 0;
+                case ">="  -> t -> t >= 0;
+                case "<" -> t -> t < 0;
+                case "<=" -> t -> t <= 0;
+                case "=" -> t -> t == 0;
+                case "!=" -> t -> t != 0;
+                default -> t -> t == Integer.MAX_VALUE;
+            };
+
+        if (iNode.Left instanceof LeafNode lLeaf && iNode.Right instanceof LeafNode rLeaf) {
+            DataType lValue;
+            if (lLeaf.Value != null)
+                lValue = lLeaf.Value;
+            else {
+                lValue = record.get(Catalog.getRecordSchema(lLeaf.TableName).getIndexOfAttribute(lLeaf.Attribute) +
+                        TableAttrOffsets.get(lLeaf.TableName));
+            }
+            DataType rValue;
+            if (rLeaf.Value != null)
+                rValue = rLeaf.Value;
+            else {
+                rValue = record.get(Catalog.getRecordSchema(rLeaf.TableName).getIndexOfAttribute(rLeaf.Attribute) +
+                        TableAttrOffsets.get(rLeaf.TableName));
+            }
+            return comparator.test(lValue.compareTo(rValue));
+        }
+
         return false;
     }
 
