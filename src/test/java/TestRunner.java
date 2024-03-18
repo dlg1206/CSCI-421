@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 
+
 /**
  * <b>File:</b> TestRunner.java
  * <p>
@@ -535,6 +536,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+
     private static int test_whereTreeCreation_with_variousInputs() {
         ICatalog mockCatalog = new ICatalog() {
             @Override
@@ -921,7 +923,6 @@ public class TestRunner {
         return failedTests;
     }
 
-
     /**
      * Run tests
      *
@@ -963,6 +964,7 @@ public class TestRunner {
         exitCode += test_insert_tuple_with_invalid_varchar();
         exitCode += test_whereTreeCreation_with_variousInputs();
         exitCode += test_whereCompare_with_variousInputs();
+
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
