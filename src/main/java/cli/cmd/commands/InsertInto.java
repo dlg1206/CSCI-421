@@ -39,10 +39,11 @@ public class InsertInto extends Command {
     private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
 
-    private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+((?:\\([0-9\\s\"a-z.]+\\),*[\\s\\t]*)+);", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+(\\(.*\\));", Pattern.CASE_INSENSITIVE);
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
-    private static final Pattern TUPLE_PATTERN = Pattern.compile("\\(\\s*([0-9\\s\"a-z.]+)\\s*\\)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern STRING_PATTERN = Pattern.compile("\"(.+)\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TUPLE_PATTERN = Pattern.compile("\\s*\\(\\s*([0-9\\s\"a-z.]+)\\s*\\)\\s*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VALUE_PATTERN = Pattern.compile("\".*\"|\\S+", Pattern.CASE_INSENSITIVE);
 
     /**
      * Create a new Insert Into command to be executed. Parse the arguments to allow
@@ -77,9 +78,12 @@ public class InsertInto extends Command {
 
         String allTuples = fullMatcher.group(2);
 
-        Matcher tupleMatcher = TUPLE_PATTERN.matcher(allTuples);
+        List<String> unparsedTuples = List.of(allTuples.split(","));
 
-        while (tupleMatcher.find()) {
+        for (String tuple : unparsedTuples) {
+            Matcher tupleMatcher = TUPLE_PATTERN.matcher(tuple);
+            if (!tupleMatcher.matches())
+                throw new InvalidUsage(args, CORRECT_USAGE_MSG);
             tuples.add(tupleMatcher.group(1));
         }
 
@@ -136,7 +140,7 @@ public class InsertInto extends Command {
     }
 
     private List<DataType> convertStringToTuple(String entry, List<Attribute> attrs, int tupleNum) throws ExecutionFailure {
-        List<String> values = List.of(entry.split("\\s+"));
+        List<String> values = customSplit(entry);
 
         if (values.size() != attrs.size()) {
             throw new ExecutionFailure(UNEQUAL_ATTR_MSG.formatted(tableName, attrs.size(), values.size(), tupleNum));
@@ -187,5 +191,16 @@ public class InsertInto extends Command {
         }
 
         return tuple;
+    }
+
+    private List<String> customSplit(String input) {
+        List<String> result = new ArrayList<>();
+        Matcher valueMatcher = VALUE_PATTERN.matcher(input);
+
+        while (valueMatcher.find()) {
+            result.add(valueMatcher.group());
+        }
+
+        return result;
     }
 }

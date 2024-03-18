@@ -3,8 +3,10 @@ package sm;
 import catalog.Attribute;
 import catalog.NotSupportedConstraint;
 import dataTypes.*;
+import dataTypes.DataType;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,8 +29,10 @@ public class BInterpreter {
      */
     public static List<List<DataType>> convertPageToRecords(byte[] data, List<Attribute> attributes) {
         List<List<DataType>> records = new ArrayList<>();
-        int numRecords = data[0];
-        int dataIdx = 1; // skip index 0 which contains number of records
+
+        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 4));
+        int numRecords = numRecBuff.getInt();
+        int dataIdx = 4; // skip indexes 0-3 which contains number of records
 
         // parse each record
         for (int i = 0; i < numRecords; i++) {
@@ -134,8 +138,8 @@ public class BInterpreter {
     public static byte[] convertRecordsToPage(List<List<DataType>> records) {
         ByteArrayOutputStream pageData = new ByteArrayOutputStream();
 
-        // write number of records (1 byte)
-        pageData.write((char) records.size());
+        // write number of records (4 bytes)
+        pageData.writeBytes(ByteBuffer.allocate(4).putInt(records.size()).array());
 
         int bitmapSize = ((records.get(0).size()-1) / 8) + 1; // allocate bytes based on number of attributes
 
@@ -172,8 +176,6 @@ public class BInterpreter {
             pageData.writeBytes(recordData.toByteArray());
 
         }
-
-        // TODO pad page using page size?
 
         return pageData.toByteArray();
     }
