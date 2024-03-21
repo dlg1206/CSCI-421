@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import dataTypes.AttributeType;
 import util.Console;
 import sm.StorageManager;
+import util.where.WhereTree;
 
 /**
  * <b>File:</b> Display.java
@@ -34,9 +35,9 @@ public class Delete extends Command{
 
     private final ICatalog catalog;
     private final StorageManager sm;
-    private final Set<String> attributeNames;
     private final String tableName;
     private final HashMap<String, List<String>> conditionMap;
+    private WhereTree whereTree;
 
     public Delete(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
@@ -55,14 +56,14 @@ public class Delete extends Command{
         validateTableExists(tableName);
         validateConditions(args);
 
-        Set<String> attributeNames = null;
+
         if (fullMatcher.group(2) != null) {
-            attributeNames = extractAttributeNames(fullMatcher.group(2));
-            for (String attr : attributeNames) {
-                validateAttributeExists(attr, tableName, args);
+            try{
+                this.whereTree = new WhereTree(fullMatcher.group(2), this.catalog, List.of(this.tableName));
+            } catch (ExecutionFailure e){
+                throw new InvalidUsage(args, e.getMessage());
             }
         }
-        this.attributeNames = attributeNames;
 
     }
 
@@ -144,8 +145,9 @@ public class Delete extends Command{
     }
 
     @Override
-    public void execute() throws ExecutionFailure { 
-        
+    public void execute() throws ExecutionFailure {
+
+
     }
 
     
