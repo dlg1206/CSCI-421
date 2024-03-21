@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import dataTypes.AttributeType;
+import dataTypes.DataType;
 import util.Console;
 import sm.StorageManager;
 import util.where.WhereTree;
@@ -86,8 +87,17 @@ public class Delete extends Command{
 
     @Override
     public void execute() throws ExecutionFailure {
+        int tableID = this.catalog.getTableNumber(this.tableName);
+        int pki = this.catalog.getRecordSchema(this.tableName).getIndexOfPrimaryKey();
 
-
+        // For each record, if where clause matches delete from table
+        this.sm.getAllRecords(
+                tableID,
+                this.catalog.getRecordSchema(this.tableName).getAttributes()
+        ).forEach( (record) -> {
+            if(this.whereTree.passesTree(record))
+                this.sm.deleteRecord(tableID, record.get(pki));
+        });
     }
 
     
