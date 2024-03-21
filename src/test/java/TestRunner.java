@@ -1,16 +1,22 @@
-import catalog.Catalog;
+import catalog.Attribute;
+import catalog.ICatalog;
+import catalog.Table;
+import cli.cmd.exception.ExecutionFailure;
+import dataTypes.*;
 import mocks.MockCLI;
 import util.StrBuilder;
 import util.Tester;
+import util.where.WhereTree;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.Set;
+
 
 /**
  * <b>File:</b> TestRunner.java
@@ -531,6 +537,392 @@ public class TestRunner {
     }
 
 
+    private static int test_whereTreeCreation_with_variousInputs() {
+        ICatalog mockCatalog = new ICatalog() {
+            @Override
+            public Table getRecordSchema(String tableName) {
+                return tableName.equals("a")
+                        ? new Table("a", 1, List.of(new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("i", AttributeType.INTEGER, false, false),
+                        new Attribute("d", AttributeType.DOUBLE, false, false)))
+                        : new Table("b", 0, List.of(
+                        new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("z", AttributeType.BOOLEAN, false, false),
+                        new Attribute("q", AttributeType.CHAR, 10, false, false),
+                        new Attribute("f", AttributeType.VARCHAR, 5, false, false)));
+            }
+
+            @Override
+            public Attribute getTableAttribute(String tableName, String attrName) {
+                return tableName.equals("a")
+                        ? attrName.equals("x")
+                        ? new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("d") ? new Attribute("x", AttributeType.DOUBLE, false, false)
+                        : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x") ?
+                        new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("z") ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                        : attrName.equals("q") ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+            }
+
+            @Override
+            public int getTableNumber(String name) {
+                return name.equals("a") ? 1 : 0;
+            }
+
+            @Override
+            public int getPageSize() {
+                return 0;
+            }
+
+            @Override
+            public Set<String> getExistingTableNames() {
+                return null;
+            }
+
+            @Override
+            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
+
+            }
+
+            @Override
+            public void deleteTable(String name) throws ExecutionFailure, IOException {
+
+            }
+
+            @Override
+            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
+
+            }
+        };
+
+        List<String> tests = List.of(
+                "where 1=1 or 2=2 and 3=3 or 4=4;",
+                "where \"crash\" > 10 and x = \"test\";",
+                "where \"crash test dummy\" > 10 and x = \"test\";",
+                "where a.x = a.y;",
+                "where a.x = a.x;",
+                "where a.x = b.x;",
+                "where x = x;",
+                "where a.x = x;",
+                "where x = b.x;",
+                "where x > 10 and b.q = \"test\";",
+                "where 9 >= 7;",
+                "where x.y = 7;",
+                "where x.p = q.w;",
+                "where x.p = z.x;",
+                "where x.p = 3.2;",
+                "where x.p = \"hey\";",
+                "where x.p = true;",
+                "where \"cra\"h = 8;",
+                "where x = y and \"cra\"h = 8;",
+                "where x = y and \"cra\"h = 8;",
+                "where x.y=z.e;",
+                "where 6 and 7;",
+                "where 6 plus 7;",
+                "where 6 = 6 plus 7 = 7;",
+                "where 1=1;",
+                "where 1=true;",
+                "where 1=3.0;",
+                "where 1=3.;",
+                "where b.q = b.f;",
+                "where b.q = \"TEST\";",
+                "where b.f = \"TEST\";",
+                "where b.x = 1 and 3.4;",
+                "where \"TEST\" = \"TEST2\";");
+
+        List<String> expected = List.of("1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "b.x = b.x",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "b.x = b.x",
+                "b.x > 10 and b.q = \"test\"",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "b.q = \"TEST\"",
+                "b.f = \"TEST\"",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "a.x = a.y",
+                "a.x = a.x",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "a.x = a.x",
+                "a.x = a.x",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "a.x = a.y",
+                "a.x = a.x",
+                "a.x = b.x",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "b.q = \"TEST\"",
+                "b.f = \"TEST\"",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"");
+
+        int testI = 0;
+        int failedCount = 0;
+
+        for (List<String> tNames : List.of(
+            List.of("b"), List.of("a"), List.of("c", "d"),
+            List.of("a", "b"))) {
+            for (String t : tests) {
+                String result;
+                try {
+                    WhereTree test = new WhereTree(t, mockCatalog, tNames);
+                    result = test.toString();
+                } catch (ExecutionFailure e) {
+                    result = e.getMessage();
+                }
+                Tester tester = new Tester("test_whereTreeCreation_with_variousInputs_" + testI);
+                failedCount += tester.isEquals(tests.get(testI % tests.size()) + " - " + tNames, expected.get(testI), result);
+                testI++;
+            }
+        }
+
+        return failedCount;
+    }
+
+    private static int test_whereCompare_with_variousInputs() {
+        ICatalog mockCatalog = new ICatalog() {
+            @Override
+            public Table getRecordSchema(String tableName) {
+                return tableName.equals("a")
+                        ? new Table("a", 1, List.of(new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("i", AttributeType.INTEGER, false, false),
+                        new Attribute("d", AttributeType.DOUBLE, false, false)))
+                        : new Table("b", 0, List.of(
+                        new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("z", AttributeType.BOOLEAN, false, false),
+                        new Attribute("q", AttributeType.CHAR, 10, false, false),
+                        new Attribute("f", AttributeType.VARCHAR, 5, false, false)));
+            }
+
+            @Override
+            public Attribute getTableAttribute(String tableName, String attrName) {
+                return tableName.equals("a")
+                        ? attrName.equals("x")
+                        ? new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("d") ? new Attribute("x", AttributeType.DOUBLE, false, false)
+                        : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x") ?
+                        new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("z") ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                        : attrName.equals("q") ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+            }
+
+            @Override
+            public int getTableNumber(String name) {
+                return name.equals("a") ? 1 : 0;
+            }
+
+            @Override
+            public int getPageSize() {
+                return 0;
+            }
+
+            @Override
+            public Set<String> getExistingTableNames() {
+                return null;
+            }
+
+            @Override
+            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
+
+            }
+
+            @Override
+            public void deleteTable(String name) throws ExecutionFailure, IOException {
+
+            }
+
+            @Override
+            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
+
+            }
+        };
+        List<String> expected = List.of("true",
+                "false",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "true",
+                "false",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "true",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "false",
+                "true",
+                "Execution Failure: The where clause is invalid:\n	a.d = 1\n	^^^   ^ The return types of these two expressions are not comparable ( DOUBLE and INTEGER ).\n",
+                "true",
+                "false",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "false");
+        List<DataType> cartesianProductRecord = List.of(
+                new DTInteger("1"), new DTInteger("2"), new DTDouble("1.2"), // a
+                new DTInteger("2"), new DTBoolean("TRUE"), new DTChar("HI", 10), new DTVarchar("HI"));
+
+        List<String> tests = List.of("where 1=1;",
+                "where 2=1;",
+                "where \"HI\"=\"HI\";",
+                "where \"HI\"=\"BYE\";",
+                "where a.i=2;",
+                "where i=2;",
+                "where 2=2;",
+                "where a.i=b.x;",
+                "where a.x=b.x;",
+                "where q=f;",
+                "where q=\"HI\";",
+                "where f=\"HI\";",
+                "where q=\"BYE\";",
+                "where b.q=\"HI\";",
+                "where b.z=True;",
+                "where b.z=TRUE;",
+                "where a.d=2.0;",
+                "where a.d=1.2;",
+                "where a.d=1;",
+                "where 1=1 and 2=2;",
+                "where 1=1 and 1=2;",
+                "where 1=1 or 1=2;",
+                "where 0=1 or 1=2;",
+                "where 1=1 or 2=2;",
+                "where 1=1 or 2=2 and 3=3 or 4=4;",
+                "where 1=1 or 1=2 and 3=3 or 4=4;",
+                "where 2=1 or 1=2 and 3=3 or 3=4;");
+
+        int failedTests = 0;
+        for (int i = 0; i < tests.size(); i++) {
+            String test = tests.get(i);
+            String exp = expected.get(i);
+            String actual;
+            try {
+                WhereTree testTree = new WhereTree(test, mockCatalog, List.of("a", "b"));
+                actual = Objects.toString(testTree.passesTree(cartesianProductRecord));
+            } catch (ExecutionFailure ef) {
+                actual = ef.getMessage();
+            }
+            Tester tester = new Tester("test_whereCompare_with_variousInputs_" + i);
+            failedTests += tester.isEquals(test, exp, actual);
+        }
+        return failedTests;
+    }
+
     /**
      * Run tests
      *
@@ -570,6 +962,9 @@ public class TestRunner {
         exitCode += test_insert_tuple_out_of_order();
         exitCode += test_insert_tuple_with_missing_value();
         exitCode += test_insert_tuple_with_invalid_varchar();
+        exitCode += test_whereTreeCreation_with_variousInputs();
+        exitCode += test_whereCompare_with_variousInputs();
+
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);

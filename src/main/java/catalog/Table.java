@@ -37,14 +37,14 @@ public class Table implements ITable {
     }
 
     @Override
-    public void addAttribute(Attribute attribute) {
-        // This does not check for unique attribute names, that should be handled by the command.
-        Attributes.add(attribute);
+    public Attribute getAttribute(String attrName) {
+        return Attributes.stream().filter(a -> Objects.equals(a.getName(), attrName)).findFirst().orElseThrow();
     }
 
     @Override
-    public void removeAttribute(String name) {
-        Attributes.removeIf(a -> Objects.equals(a.getName(), name));
+    public void addAttribute(Attribute attribute) {
+        // This does not check for unique attribute names, that should be handled by the command.
+        Attributes.add(attribute);
     }
 
     public int getIndexOfPrimaryKey() {
@@ -53,5 +53,13 @@ public class Table implements ITable {
                 return i;
         }
         return -1; // Should never happen. All tables should have a PK.
+    }
+
+    public int getIndexOfAttribute(String attrName) {
+        for (int i = 0; i < Attributes.size(); i++) {
+            if (Attributes.get(i).getName().equals(attrName))
+                return i;
+        }
+        return -1; // Should never happen. Never call this function without already validating the name exists.
     }
 }
