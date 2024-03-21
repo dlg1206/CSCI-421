@@ -54,8 +54,6 @@ public class Delete extends Command{
         this.tableName = tableName;
         validateTableName(tableName);
         validateTableExists(tableName);
-        validateConditions(args);
-
 
         if (fullMatcher.group(2) != null) {
             try{
@@ -65,17 +63,6 @@ public class Delete extends Command{
             }
         }
 
-    }
-
-    private Set<String> extractAttributeNames(String conditions) {
-        Set<String> attributeNames = new HashSet<>();
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-
-        while (conditionMatcher.find()) {
-            attributeNames.add(conditionMatcher.group(1));
-        }
-
-        return attributeNames;
     }
 
     private void validateTableName(String tableName) throws InvalidUsage {
@@ -88,53 +75,6 @@ public class Delete extends Command{
         Set<String> allTables = catalog.getExistingTableNames();
         if (!allTables.contains(tableName)) {
             throw new InvalidUsage(tableName, "Table " + tableName + " does not exist in the catalog \nERROR");
-        }
-    }
-
-    private void validateAttributeExists(String attr, String tableName, String args) throws InvalidUsage {
-        Table table = catalog.getRecordSchema(tableName);
-        List<Attribute> attributes = table.getAttributes();
-        Boolean temp = false;
-        for (Attribute a : attributes) {
-            if (a.getName().equals(attr)) {
-                temp = true;
-            }
-        }
-        if(!temp){
-            throw new InvalidUsage(args, "Table " + tableName + " does not contain the attribute " + attr + "\nERROR");
-        }
-        
-    }
-
-    private void validateConditions(String args) throws InvalidUsage {
-        String conditionals = args.toLowerCase().contains("where")
-            ? args.substring(args.toLowerCase().indexOf("where") + 5).trim().replace(";", "")
-            : "";
-    
-        if (!conditionals.isEmpty()) {
-            if (conditionals.trim().matches(".*(and|or)\\s*$")) {
-                throw new InvalidUsage(args, "Invalid conditional expression: ");
-            }
-    
-            String[] conditions = conditionals.split("\\s+(and|or)\\s+");
-            for (String condition : conditions) {
-                parseConditionsIntoMap(condition);
-                if (!EACH_CONDITIONAL_MATCH.matcher(condition.trim()).matches()) {
-                    throw new InvalidUsage(args, "Invalid conditional expression: " + condition);
-                }
-            }
-        }
-    }
-    
-
-    private void parseConditionsIntoMap(String conditions) {
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-        while (conditionMatcher.find()) {
-            String attribute = conditionMatcher.group(1);
-            String condition = conditionMatcher.group(0); // The entire condition matched
-
-            conditionMap.putIfAbsent(attribute, new ArrayList<>());
-            conditionMap.get(attribute).add(condition);
         }
     }
 
