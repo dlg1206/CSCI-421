@@ -24,7 +24,7 @@ public class WhereTree {
     private final List<String> parseErrors = new ArrayList<>();
     private static final String BAD_WHERE_MSG = "The where clause is invalid:";
 
-    private static final Pattern GLOBAL_PATTERN = Pattern.compile("where\\s+(.*);", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GLOBAL_PATTERN = Pattern.compile("where\\s+(.*)", Pattern.CASE_INSENSITIVE);
     private static final Pattern ALGEBRA_BRANCH_PATTERN = Pattern.compile("((?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(?:>|<|=|!=|<=|>=)\\s*(?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+))(?:\\s+(.*))?", Pattern.CASE_INSENSITIVE);
     private static final Pattern CONDITIONAL_BRANCH_PATTERN = Pattern.compile("(and|or)\\s+(.*)", Pattern.CASE_INSENSITIVE);
     private static final Pattern LEAF_NODE_PATTERN = Pattern.compile("(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(>|<|=|!=|<=|>=)\\s*(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)", Pattern.CASE_INSENSITIVE);
