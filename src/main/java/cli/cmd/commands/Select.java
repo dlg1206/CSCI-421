@@ -2,18 +2,17 @@ package cli.cmd.commands;
 
 import catalog.Attribute;
 import catalog.ICatalog;
-import catalog.Table;
 import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 import util.Console;
 import util.Format;
 import dataTypes.*;
 import sm.StorageManager;
+import util.where.WhereTree;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -28,11 +27,17 @@ public class Select extends Command {
     private final ICatalog catalog;
     private final StorageManager sm;
 
+    private WhereTree whereTree = null;
+
     private static final int MIN_WIDTH = 3;
     private static final int EXTRA_SPACES = 2;
     private static final String TABLE_DNE_MSG = "Table %s does not exist in the Catalog";
+    private static final String BAD_ATTR_NAME_MSG = "The attribute names could not be parsed:";
+    private static final Pattern TABLE_ATTR_PATTERN = Pattern.compile("([a-z][a-z0-9]*)(?:\\.([a-z][a-z0-9]*))?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FULL_SELECT_STMT = Pattern.compile("select\\s+(\\*|(?:[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?(?:,\\s*)?)+)\\s+from\\s+((?:[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?(?:,\\s*)?)+)(?:\\s+(where\\s+.+?))?(?:\\s+orderby\\s+(.+?))?\\s*;", Pattern.CASE_INSENSITIVE);
 
-    private final String tableName;
+    private final List<String> tableNames;
+    private List<String> attrsToDisplay = null;
 
     public Select(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
@@ -40,17 +45,42 @@ public class Select extends Command {
         this.sm = storageManager;
 
         // Select String Syntax Validation
-        List<String> input = getInput(args);
-        if(input.size() != 4 || !input.get(1).equals("*") || !input.get(2).equalsIgnoreCase("from")){
-            throw new InvalidUsage(args, "Correct Usage: (Select * From <table name>;)");
-        }
-        tableName = input.get(3).toLowerCase();
+        Matcher FullMatch = FULL_SELECT_STMT.matcher(args);
+
+        if (!FullMatch.matches())
+            throw new InvalidUsage(args, "Correct Usage: (select <a_1>, ..., <a_N> from <t_1>, ..., <t_N> [where <condition(s)>] [orderby <a_1>];)");
+
+        tableNames = List.of(FullMatch.group(2).split(",\\s*"));
 
         Set<String> allTables = catalog.getExistingTableNames();
 
-        if (!allTables.contains(tableName)) {
-            throw new InvalidUsage(args, TABLE_DNE_MSG.formatted(tableName));
+        for (String tName : tableNames){
+            if (!allTables.contains(tName.toLowerCase())) {
+                throw new InvalidUsage(args, TABLE_DNE_MSG.formatted(tName));
+            }
         }
+
+        if (FullMatch.group(3) != null) {
+            try {
+                whereTree = new WhereTree(FullMatch.group(3), catalog, tableNames);
+            } catch (ExecutionFailure ef) {
+                throw new InvalidUsage(args, ef.getMessage());
+            }
+        }
+
+
+        if (!FullMatch.group(1).equals("*")){
+            try {
+                if (whereTree != null)
+                    attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")), whereTree);
+                else
+                    attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")));
+            } catch (ExecutionFailure ef) {
+                throw new InvalidUsage(args, ef.getMessage());
+            }
+        }
+
+        // TODO check Orderby condition on group 4
     }
 
     @Override
@@ -61,17 +91,108 @@ public class Select extends Command {
     @Override
     public void execute() throws ExecutionFailure {
 
-        int tableNum = catalog.getTableNumber(tableName);
+        List<List<DataType>> cartesianProduct = new ArrayList<>();
 
-        List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tableName).getAttributes());
+        int totalAttrCount = 0;
+        Map<String, List<String>> attrNameCounts = new HashMap<>();
+        Map<String, Integer> TableAttrOffsets = new HashMap<>();
+        Map<String, String> distinctAttrNames = new HashMap<>();
+        List<Attribute> allAttrs = new ArrayList<>();
 
-        Table table = catalog.getRecordSchema(tableName);
-        List<Attribute> attrs = table.getAttributes();
 
-        List<Integer> colWidths = getColumnWidths(attrs);
+        for (String tName : tableNames) {
+            TableAttrOffsets.put(tName, totalAttrCount);
+            for (Attribute a : catalog.getRecordSchema(tName).getAttributes()) {
+                allAttrs.add(a);
+                totalAttrCount++;
+                if (!attrNameCounts.containsKey(a.getName())) {
+                    attrNameCounts.put(a.getName(), new ArrayList<>());
+                }
+                attrNameCounts.get(a.getName()).add(tName);
+            }
+        }
 
-        Console.out(createHeader(colWidths, attrs));
-        Console.out(createFormattedRows(colWidths, allRecords));
+        attrNameCounts.forEach((k, v) -> {
+            if (v.size() == 1)
+                distinctAttrNames.put(k, v.getFirst());
+        });
+
+        for (String tName : tableNames) {
+            int tableNum = catalog.getTableNumber(tName);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
+
+            if (cartesianProduct.isEmpty()) {
+                cartesianProduct = allRecords;
+                continue;
+            }
+
+            List<List<DataType>> newCProduct = new ArrayList<>();
+            for (List<DataType> cRecord : cartesianProduct) {
+                for (List<DataType> nRecord : allRecords) {
+                    List<DataType> joined = new ArrayList<>(cRecord);
+                    joined.addAll(nRecord);
+                    newCProduct.add(joined);
+                }
+            }
+            cartesianProduct = newCProduct;
+        }
+
+        List<List<DataType>> goodRecords = new ArrayList<>();
+
+        for (List<DataType> record : cartesianProduct) {
+            if (whereTree == null || whereTree.passesTree(record))
+                goodRecords.add(record);
+        }
+
+        List<Attribute> finalAttrs = new ArrayList<>();
+        List<List<DataType>> finalRecords = new ArrayList<>();
+        for (int i = 0; i < goodRecords.size(); i++)
+            finalRecords.add(new ArrayList<>());
+
+        if (attrsToDisplay == null) {
+            for (String t : tableNames)
+                for (Attribute a : catalog.getRecordSchema(t).getAttributes()) {
+                    if (distinctAttrNames.containsKey(a.getName())) {
+                        finalAttrs.add(a);
+                    }
+                    else {
+                        String newName = "%s.%s".formatted(t, a.getName());
+                        if (a.getDataType() == AttributeType.CHAR || a.getDataType() == AttributeType.VARCHAR)
+                            finalAttrs.add(new Attribute(newName, a.getDataType(), a.getMaxDataLength()));
+                        else
+                            finalAttrs.add(new Attribute(newName, a.getDataType()));
+                    }
+                }
+            finalRecords = goodRecords;
+        } else {
+            for (String attr : attrsToDisplay) {
+                String[] attrData = attr.split("\\.");  // attrData[0] is table name, attrData[1] is attr name
+
+                int attrIdx = TableAttrOffsets.get(attrData[0]) + catalog.getRecordSchema(attrData[0]).getIndexOfAttribute(attrData[1]);
+                Attribute oldAttr = allAttrs.get(attrIdx);
+                if (distinctAttrNames.containsKey(oldAttr.getName())) {
+                    finalAttrs.add(oldAttr);
+                }
+                else {
+                    String newName = "%s.%s".formatted(attrData[0], attrData[1]);
+                    if (oldAttr.getDataType() == AttributeType.CHAR || oldAttr.getDataType() == AttributeType.VARCHAR)
+                        finalAttrs.add(new Attribute(newName, oldAttr.getDataType(), oldAttr.getMaxDataLength()));
+                    else
+                        finalAttrs.add(new Attribute(newName, oldAttr.getDataType()));
+                }
+
+                for (int i = 0; i < goodRecords.size(); i++) {
+                    finalRecords.get(i).add(goodRecords.get(i).get(attrIdx));
+                }
+            }
+        }
+
+        // TODO Implement orderby on the finalRecords list
+
+        List<Integer> colWidths = getColumnWidths(finalAttrs);
+
+        Console.out(createHeader(colWidths, finalAttrs));
+        Console.out(createFormattedRows(colWidths, finalRecords));
     }
 
     private List<Integer> getColumnWidths(List<Attribute> attrs) {
@@ -140,5 +261,81 @@ public class Select extends Command {
         }
 
         return row.toString();
+    }
+
+    private List<String> validateAttributeSet(List<String> attrNames, WhereTree whereTree) throws ExecutionFailure {
+        return validateAttributeSet(attrNames, whereTree.AllAttrNames, whereTree.DistinctAttrNames);
+    }
+
+    private List<String> validateAttributeSet(List<String> attrNames) throws ExecutionFailure {
+
+        Map<String, List<String>> attrNameCounts = new HashMap<>();
+
+        Map<String, String> DistinctAttrNames = new HashMap<>();
+        List<String> AllAttrNames = new ArrayList<>();
+
+        for (String tName : tableNames) {
+            for (Attribute a : catalog.getRecordSchema(tName).getAttributes()) {
+                if (!attrNameCounts.containsKey(a.getName())) {
+                    attrNameCounts.put(a.getName(), new ArrayList<>());
+                }
+                attrNameCounts.get(a.getName()).add(tName);
+            }
+        }
+
+        attrNameCounts.forEach((k, v) -> {
+            if (v.size() == 1)
+                DistinctAttrNames.put(k, v.getFirst());
+            AllAttrNames.add(k);
+        });
+
+        return validateAttributeSet(attrNames, AllAttrNames, DistinctAttrNames);
+    }
+
+    private List<String> validateAttributeSet(List<String> attrNames, List<String> AllAttrNames, Map<String, String> DistinctAttrNames) throws ExecutionFailure {
+        List<String> result = new ArrayList<>();
+        List<String> parseErrors = new ArrayList<>();
+        for (String name : attrNames) {
+
+            Matcher attrNameMatcher = TABLE_ATTR_PATTERN.matcher(name);
+            if (!attrNameMatcher.matches())
+                throw new ExecutionFailure("The attribute %s is not parsable.".formatted(name));
+            String preDot = attrNameMatcher.group(1);
+            String postDot = attrNameMatcher.group(2);
+
+            if (postDot == null) {
+                if (!AllAttrNames.contains(preDot)) {
+                    parseErrors.add(preDot);
+                    parseErrors.add("^ This attribute is not part of any of the requested tables.");
+                    break;
+                } else if (!DistinctAttrNames.containsKey(preDot)) {
+                    parseErrors.add(preDot);
+                    parseErrors.add("^ This attribute name is ambiguous between multiple tables.");
+                    break;
+                } else {
+                    postDot = preDot;
+                    preDot = DistinctAttrNames.get(preDot);
+                }
+            }
+            if (!tableNames.contains(preDot)) {
+                parseErrors.add(preDot);
+                parseErrors.add("^ This table name does not exist.");
+                break;
+            }
+
+            result.add("%s.%s".formatted(preDot, postDot));
+        }
+
+        if (!parseErrors.isEmpty()) {
+            StringBuilder sb = new StringBuilder(BAD_ATTR_NAME_MSG).append("\n");
+
+            for (String e : parseErrors) {
+                sb.append("\t").append(e).append("\n");
+            }
+
+            throw new ExecutionFailure(sb.toString());
+        }
+
+        return result;
     }
 }

@@ -14,9 +14,9 @@ public class WhereTree {
 
     private final ICatalog Catalog;
     private final List<String> TableNames;
-    private final Map<String, Integer> TableAttrOffsets = new HashMap<>();
-    private final Map<String, String> DistinctAttrNames = new HashMap<>();
-    private final List<String> AllAttrNames = new ArrayList<>();
+    public final Map<String, Integer> TableAttrOffsets = new HashMap<>();
+    public final Map<String, String> DistinctAttrNames = new HashMap<>();
+    public final List<String> AllAttrNames = new ArrayList<>();
     private InternalNode tree;
 
     private String UnparsedContent;
