@@ -323,7 +323,20 @@ public class Select extends Command {
                 break;
             }
 
-            result.add("%s.%s".formatted(preDot, postDot));
+            String fullName = "%s.%s".formatted(preDot, postDot);
+
+            String attrName = postDot; // postDot needs to be final for the lambda to work. This doesn't actually do anything.
+
+            if (catalog.getRecordSchema(preDot).getAttributes().stream().map(Attribute::getName)
+                    .noneMatch(n -> n.equals(attrName))) {
+                parseErrors.add(fullName);
+                parseErrors.add(" ".repeat(preDot.length() + 1) +   // Extra 1 for the dot separator
+                        "^".repeat(postDot.length()) +
+                        " This attribute does not exist in the table.");
+                break;
+            }
+
+            result.add(fullName);
         }
 
         if (!parseErrors.isEmpty()) {

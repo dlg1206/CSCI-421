@@ -176,6 +176,16 @@ public class WhereTree {
                 parseErrors.add("^ This table name does not exist.");
                 return false;
             }
+
+            if (Catalog.getRecordSchema(leaf.TableName).getAttributes().stream().map(Attribute::getName)
+                    .noneMatch(n -> n.equals(leaf.Attribute))) {
+                parseErrors.add(leaf.toString());
+                parseErrors.add(" ".repeat(leaf.TableName.length() + 1) +   // Extra 1 for the dot separator
+                        "^".repeat(leaf.Attribute.length()) +
+                        " This attribute does not exist in the table.");
+                return false;
+            }
+
             leaf.ReturnType = Catalog.getTableAttribute(leaf.TableName, leaf.Attribute).getDataType();
             leaf.TableNum = Catalog.getTableNumber(leaf.TableName);
             return true;
