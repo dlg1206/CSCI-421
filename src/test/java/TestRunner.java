@@ -46,8 +46,9 @@ public class TestRunner {
      */
     private static void cleanUp() {
         for (File file : Objects.requireNonNull(new File(DB_ROOT).listFiles()))
-            if (!file.isDirectory())
+            if (!file.isDirectory()) {
                 file.delete();
+            }
     }
 
     private static int test_display_schema() {
@@ -254,7 +255,7 @@ public class TestRunner {
         try {
             expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
             return 1;
         }
 
@@ -556,14 +557,17 @@ public class TestRunner {
             public Attribute getTableAttribute(String tableName, String attrName) {
                 return tableName.equals("a")
                         ? attrName.equals("x")
-                        ? new Attribute("x", AttributeType.INTEGER)
-                        : attrName.equals("d") ? new Attribute("x", AttributeType.DOUBLE, false, false)
-                        : new Attribute("i", AttributeType.INTEGER, false, false)
-                        : attrName.equals("x") ?
-                        new Attribute("x", AttributeType.INTEGER)
-                        : attrName.equals("z") ? new Attribute("z", AttributeType.BOOLEAN, false, false)
-                        : attrName.equals("q") ? new Attribute("q", AttributeType.CHAR, 10, false, false)
-                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("d")
+                                ? new Attribute("d", AttributeType.DOUBLE, false, false)
+                                : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x")
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("z")
+                                ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                                : attrName.equals("q")
+                                    ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                                    : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
             }
 
             @Override
@@ -582,19 +586,13 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
-
-            }
+            public void createTable(String name, List<Attribute> attributes) {}
 
             @Override
-            public void deleteTable(String name) throws ExecutionFailure, IOException {
-
-            }
+            public void deleteTable(String name) {}
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
-
-            }
+            public void addAttribute(String tableName, Attribute attribute) {}
         };
 
         List<String> tests = List.of(
@@ -668,7 +666,7 @@ public class TestRunner {
                 "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
                 "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
                 "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
-                "a.x = a.y",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
                 "a.x = a.x",
                 "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
                 "a.x = a.x",
@@ -734,7 +732,7 @@ public class TestRunner {
                 "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
                 "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
                 "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
-                "a.x = a.y",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
                 "a.x = a.x",
                 "a.x = b.x",
                 "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
@@ -833,19 +831,13 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
-
-            }
+            public void createTable(String name, List<Attribute> attributes) {}
 
             @Override
-            public void deleteTable(String name) throws ExecutionFailure, IOException {
-
-            }
+            public void deleteTable(String name) {}
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
-
-            }
+            public void addAttribute(String tableName, Attribute attribute) {}
         };
         List<String> expected = List.of("true",
                 "false",
