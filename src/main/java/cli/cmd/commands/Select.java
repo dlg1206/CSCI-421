@@ -39,10 +39,14 @@ public class Select extends Command {
     private final List<String> tableNames;
     private List<String> attrsToDisplay = null;
 
+    private final String args;
+    private String[] orderByData;
+
     public Select(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
         this.sm = storageManager;
+        this.args = args;
 
         // Select String Syntax Validation
         Matcher FullMatch = FULL_SELECT_STMT.matcher(args);
@@ -70,17 +74,23 @@ public class Select extends Command {
 
 
         if (!FullMatch.group(1).equals("*")){
-            try {
-                if (whereTree != null)
-                    attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")), whereTree);
-                else
-                    attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")));
-            } catch (ExecutionFailure ef) {
-                throw new InvalidUsage(args, ef.getMessage());
-            }
+            if (whereTree != null)
+                attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")), whereTree);
+            else
+                attrsToDisplay = validateAttributeSet(List.of(FullMatch.group(1).split(",\\s*")));
         }
 
-        // TODO check Orderby condition on group 4
+        String orderByArg = FullMatch.group(4);
+        if (orderByArg != null) {
+            if (whereTree != null)
+                orderByData = validateAttributeSet(List.of(FullMatch.group(4)), whereTree).getFirst().split("\\.");
+            else
+                orderByData = validateAttributeSet(List.of(FullMatch.group(4))).getFirst().split("\\.");
+        }
+
+        if (attrsToDisplay != null && attrsToDisplay.stream().noneMatch(a -> a.equalsIgnoreCase("%s.%s".formatted(orderByData[0], orderByData[1])))) {
+            throw new InvalidUsage(args, "The orderby attribute must be part of the projection in the select clause.");
+        }
     }
 
     @Override
@@ -188,6 +198,13 @@ public class Select extends Command {
         }
 
         // TODO Implement orderby on the finalRecords list
+        if (orderByData != null) {
+            int sortColIdx = TableAttrOffsets.get(orderByData[0]) + catalog.getRecordSchema(orderByData[0]).getIndexOfAttribute(orderByData[1]);
+
+            finalRecords.sort((r1, r2) -> {
+                return r2.get(sortColIdx).compareTo(r1.get(sortColIdx)); // reverse the order
+            });
+        }
 
         List<Integer> colWidths = getColumnWidths(finalAttrs);
 
@@ -263,11 +280,11 @@ public class Select extends Command {
         return row.toString();
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames, WhereTree whereTree) throws ExecutionFailure {
+    private List<String> validateAttributeSet(List<String> attrNames, WhereTree whereTree) throws InvalidUsage {
         return validateAttributeSet(attrNames, whereTree.AllAttrNames, whereTree.DistinctAttrNames);
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames) throws ExecutionFailure {
+    private List<String> validateAttributeSet(List<String> attrNames) throws InvalidUsage {
 
         Map<String, List<String>> attrNameCounts = new HashMap<>();
 
@@ -292,14 +309,14 @@ public class Select extends Command {
         return validateAttributeSet(attrNames, AllAttrNames, DistinctAttrNames);
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames, List<String> AllAttrNames, Map<String, String> DistinctAttrNames) throws ExecutionFailure {
+    private List<String> validateAttributeSet(List<String> attrNames, List<String> AllAttrNames, Map<String, String> DistinctAttrNames) throws InvalidUsage {
         List<String> result = new ArrayList<>();
         List<String> parseErrors = new ArrayList<>();
         for (String name : attrNames) {
 
             Matcher attrNameMatcher = TABLE_ATTR_PATTERN.matcher(name);
             if (!attrNameMatcher.matches())
-                throw new ExecutionFailure("The attribute %s is not parsable.".formatted(name));
+                throw new InvalidUsage(args, "The attribute %s is not parsable.".formatted(name));
             String preDot = attrNameMatcher.group(1);
             String postDot = attrNameMatcher.group(2);
 
@@ -328,7 +345,7 @@ public class Select extends Command {
             String attrName = postDot; // postDot needs to be final for the lambda to work. This doesn't actually do anything.
 
             if (catalog.getRecordSchema(preDot).getAttributes().stream().map(Attribute::getName)
-                    .noneMatch(n -> n.equals(attrName))) {
+                    .noneMatch(n -> n.equalsIgnoreCase(attrName))) {
                 parseErrors.add(fullName);
                 parseErrors.add(" ".repeat(preDot.length() + 1) +   // Extra 1 for the dot separator
                         "^".repeat(postDot.length()) +
@@ -346,7 +363,7 @@ public class Select extends Command {
                 sb.append("\t").append(e).append("\n");
             }
 
-            throw new ExecutionFailure(sb.toString());
+            throw new InvalidUsage(args, sb.toString());
         }
 
         return result;
