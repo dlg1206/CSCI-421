@@ -101,8 +101,6 @@ public class Select extends Command {
     @Override
     public void execute() throws ExecutionFailure {
 
-        List<List<DataType>> cartesianProduct = new ArrayList<>();
-
         int totalAttrCount = 0;
         Map<String, List<String>> attrNameCounts = new HashMap<>();
         Map<String, Integer> TableAttrOffsets = new HashMap<>();
@@ -127,31 +125,50 @@ public class Select extends Command {
                 distinctAttrNames.put(k, v.getFirst());
         });
 
-        for (String tName : tableNames) {
-            int tableNum = catalog.getTableNumber(tName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
-
-            if (cartesianProduct.isEmpty()) {
-                cartesianProduct = allRecords;
-                continue;
-            }
-
-            List<List<DataType>> newCProduct = new ArrayList<>();
-            for (List<DataType> cRecord : cartesianProduct) {
-                for (List<DataType> nRecord : allRecords) {
-                    List<DataType> joined = new ArrayList<>(cRecord);
-                    joined.addAll(nRecord);
-                    newCProduct.add(joined);
-                }
-            }
-            cartesianProduct = newCProduct;
-        }
-
         List<List<DataType>> goodRecords = new ArrayList<>();
 
-        for (List<DataType> record : cartesianProduct) {
-            if (whereTree == null || whereTree.passesTree(record))
-                goodRecords.add(record);
+        if (tableNames.size() == 1) {
+            String tName = tableNames.getFirst();
+            int tableNum = catalog.getTableNumber(tName);
+            if (whereTree != null)
+                goodRecords = sm.selectRecords(tableNum, catalog.getRecordSchema(tName).getAttributes(), whereTree);
+            else
+                goodRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
+        }
+        else {
+            List<List<DataType>> cartesianProduct = new ArrayList<>();
+
+            for (String tName : tableNames) {
+                int tableNum = catalog.getTableNumber(tName);
+                List<List<DataType>> allRecords;
+
+                if (whereTree != null && whereTree.TableOptimizations.containsKey(tName)) {
+                    WhereTree optimizingTree = whereTree.TableOptimizations.get(tName);
+                    allRecords = sm.selectRecords(tableNum, catalog.getRecordSchema(tName).getAttributes(), optimizingTree);
+                }
+                else
+                    allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
+
+                if (cartesianProduct.isEmpty()) {
+                    cartesianProduct = allRecords;
+                    continue;
+                }
+
+                List<List<DataType>> newCProduct = new ArrayList<>();
+                for (List<DataType> cRecord : cartesianProduct) {
+                    for (List<DataType> nRecord : allRecords) {
+                        List<DataType> joined = new ArrayList<>(cRecord);
+                        joined.addAll(nRecord);
+                        newCProduct.add(joined);
+                    }
+                }
+                cartesianProduct = newCProduct;
+            }
+
+            for (List<DataType> record : cartesianProduct) {
+                if (whereTree == null || whereTree.passesTree(record))
+                    goodRecords.add(record);
+            }
         }
 
         List<Attribute> finalAttrs = new ArrayList<>();

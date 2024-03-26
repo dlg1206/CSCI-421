@@ -4,6 +4,7 @@ package sm;
 import catalog.Attribute;
 import cli.cmd.exception.ExecutionFailure;
 import dataTypes.DataType;
+import util.where.WhereTree;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -120,9 +121,40 @@ public class StorageManager {
     //
     // READ
     //
-    public List<DataType> getRecord(int tableID, DataType primaryKey) {
-        // TODO
-        return null;
+
+    /**
+     * NOTE: This method will fail if the where tree has multiple tables attached to it, this expects an algebraic select to be passed into it.
+     * @param tableID       TableId to get records from
+     * @param attributes    Constants of data types
+     * @param whereTree     WhereTree to act as an algebraic select clause
+     * @return              List of records that pass the select clause
+     */
+    public List<List<DataType>> selectRecords(int tableID, List<Attribute> attributes, WhereTree whereTree) throws ExecutionFailure {
+        try {
+            // Get page details
+            TableFile tf = new TableFile(this.databaseRoot, tableID);
+            int pageCount = tf.readPageCount();
+
+            // Get all records
+            List<List<DataType>> records = new ArrayList<>();
+            for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
+                List<List<DataType>> readRecords = BInterpreter.convertPageToRecords(page.getData(), attributes);
+                List<List<DataType>> goodRecords = new ArrayList<>();
+
+                for (List<DataType> record : readRecords) {
+                    if (whereTree.passesTree(record))
+                        goodRecords.add(record);
+                }
+
+                records.addAll(goodRecords);
+            }
+
+            return records;
+        } catch (Exception e) {
+            throw new ExecutionFailure("Failed to read records from table file: " + e.getMessage());
+        }
+
     }
 
 
