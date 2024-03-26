@@ -37,10 +37,10 @@ public class Select extends Command {
     private static final Pattern FULL_SELECT_STMT = Pattern.compile("select\\s+(\\*|(?:[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?(?:,\\s*)?)+)\\s+from\\s+((?:[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?(?:,\\s*)?)+)(?:\\s+(where\\s+.+?))?(?:\\s+orderby\\s+(.+?))?\\s*;", Pattern.CASE_INSENSITIVE);
 
     private final List<String> tableNames;
-    private List<String> attrsToDisplay = null;
+    private List<AttributeName> attrsToDisplay = null;
 
     private final String args;
-    private String[] orderByData;
+    private AttributeName orderByData;
 
     public Select(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
@@ -83,14 +83,15 @@ public class Select extends Command {
         String orderByArg = FullMatch.group(4);
         if (orderByArg != null) {
             if (whereTree != null)
-                orderByData = validateAttributeSet(List.of(FullMatch.group(4)), whereTree).getFirst().split("\\.");
+                orderByData = validateAttributeSet(List.of(FullMatch.group(4)), whereTree).getFirst();
             else
-                orderByData = validateAttributeSet(List.of(FullMatch.group(4))).getFirst().split("\\.");
+                orderByData = validateAttributeSet(List.of(FullMatch.group(4))).getFirst();
+
+            if (attrsToDisplay != null && attrsToDisplay.stream().noneMatch(a -> a.getFullName().equalsIgnoreCase(orderByData.getFullName()))) {
+                throw new InvalidUsage(args, "The orderby attribute must be part of the projection in the select clause.");
+            }
         }
 
-        if (attrsToDisplay != null && attrsToDisplay.stream().noneMatch(a -> a.equalsIgnoreCase("%s.%s".formatted(orderByData[0], orderByData[1])))) {
-            throw new InvalidUsage(args, "The orderby attribute must be part of the projection in the select clause.");
-        }
     }
 
     @Override
@@ -192,21 +193,17 @@ public class Select extends Command {
                 }
             finalRecords = goodRecords;
         } else {
-            for (String attr : attrsToDisplay) {
-                String[] attrData = attr.split("\\.");  // attrData[0] is table name, attrData[1] is attr name
+            for (AttributeName attr : attrsToDisplay) {
 
-                int attrIdx = TableAttrOffsets.get(attrData[0]) + catalog.getRecordSchema(attrData[0]).getIndexOfAttribute(attrData[1]);
+                int attrIdx = TableAttrOffsets.get(attr.TableName) + catalog.getRecordSchema(attr.TableName).getIndexOfAttribute(attr.AttributeName);
                 Attribute oldAttr = allAttrs.get(attrIdx);
-                if (distinctAttrNames.containsKey(oldAttr.getName())) {
-                    finalAttrs.add(oldAttr);
-                }
-                else {
-                    String newName = "%s.%s".formatted(attrData[0], attrData[1]);
-                    if (oldAttr.getDataType() == AttributeType.CHAR || oldAttr.getDataType() == AttributeType.VARCHAR)
-                        finalAttrs.add(new Attribute(newName, oldAttr.getDataType(), oldAttr.getMaxDataLength()));
-                    else
-                        finalAttrs.add(new Attribute(newName, oldAttr.getDataType()));
-                }
+
+                String displayName = distinctAttrNames.containsKey(oldAttr.getName()) ? attr.RequestedName : attr.getFullName();
+
+                if (oldAttr.getDataType() == AttributeType.CHAR || oldAttr.getDataType() == AttributeType.VARCHAR)
+                    finalAttrs.add(new Attribute(displayName, oldAttr.getDataType(), oldAttr.getMaxDataLength()));
+                else
+                    finalAttrs.add(new Attribute(displayName, oldAttr.getDataType()));
 
                 for (int i = 0; i < goodRecords.size(); i++) {
                     finalRecords.get(i).add(goodRecords.get(i).get(attrIdx));
@@ -214,9 +211,8 @@ public class Select extends Command {
             }
         }
 
-        // TODO Implement orderby on the finalRecords list
         if (orderByData != null) {
-            int sortColIdx = TableAttrOffsets.get(orderByData[0]) + catalog.getRecordSchema(orderByData[0]).getIndexOfAttribute(orderByData[1]);
+            int sortColIdx = TableAttrOffsets.get(orderByData.TableName) + catalog.getRecordSchema(orderByData.TableName).getIndexOfAttribute(orderByData.AttributeName);
 
             finalRecords.sort((r1, r2) -> {
                 return r2.get(sortColIdx).compareTo(r1.get(sortColIdx)); // reverse the order
@@ -297,11 +293,11 @@ public class Select extends Command {
         return row.toString();
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames, WhereTree whereTree) throws InvalidUsage {
+    private List<AttributeName> validateAttributeSet(List<String> attrNames, WhereTree whereTree) throws InvalidUsage {
         return validateAttributeSet(attrNames, whereTree.AllAttrNames, whereTree.DistinctAttrNames);
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames) throws InvalidUsage {
+    private List<AttributeName> validateAttributeSet(List<String> attrNames) throws InvalidUsage {
 
         Map<String, List<String>> attrNameCounts = new HashMap<>();
 
@@ -326,8 +322,8 @@ public class Select extends Command {
         return validateAttributeSet(attrNames, AllAttrNames, DistinctAttrNames);
     }
 
-    private List<String> validateAttributeSet(List<String> attrNames, List<String> AllAttrNames, Map<String, String> DistinctAttrNames) throws InvalidUsage {
-        List<String> result = new ArrayList<>();
+    private List<AttributeName> validateAttributeSet(List<String> attrNames, List<String> AllAttrNames, Map<String, String> DistinctAttrNames) throws InvalidUsage {
+        List<AttributeName> result = new ArrayList<>();
         List<String> parseErrors = new ArrayList<>();
         for (String name : attrNames) {
 
@@ -370,7 +366,7 @@ public class Select extends Command {
                 break;
             }
 
-            result.add(fullName);
+            result.add(new AttributeName(name, preDot, postDot));
         }
 
         if (!parseErrors.isEmpty()) {
@@ -384,5 +380,21 @@ public class Select extends Command {
         }
 
         return result;
+    }
+
+    private static class AttributeName {
+        String RequestedName;
+        String TableName;
+        String AttributeName;
+
+        AttributeName(String requestedName, String tableName, String attributeName) {
+            RequestedName = requestedName;
+            TableName = tableName;
+            AttributeName = attributeName;
+        }
+
+        String getFullName() {
+            return "%s.%s".formatted(TableName, AttributeName);
+        }
     }
 }
