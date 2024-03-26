@@ -224,10 +224,10 @@ public class WhereTree {
 
         Predicate<Integer> comparator =
             switch (iNode.Comparator) {
-                case ">" ->  t -> t > 0;
-                case ">="  -> t -> t >= 0;
-                case "<" -> t -> t < 0;
-                case "<=" -> t -> t <= 0;
+                case ">" ->  t -> t < 0; // TODO: This feels so wrong, someone should check if this is right.
+                case ">="  -> t -> t <= 0;
+                case "<" -> t -> t > 0;
+                case "<=" -> t -> t >= 0;
                 case "=" -> t -> t == 0;
                 case "!=" -> t -> t != 0;
                 default -> t -> t == Integer.MAX_VALUE; // This will be ignored when the Comparator is "and" or "or"
