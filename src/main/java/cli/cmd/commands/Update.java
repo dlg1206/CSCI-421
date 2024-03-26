@@ -13,7 +13,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import dataTypes.AttributeType;
+import dataTypes.DTBoolean;
+import dataTypes.DTChar;
+import dataTypes.DTDouble;
+import dataTypes.DTInteger;
+import dataTypes.DTVarchar;
+import dataTypes.DataType;
 import util.Console;
+import util.where.WhereTree;
 import sm.StorageManager;
 
 /**
@@ -39,6 +46,13 @@ public class Update extends Command{
     private final String tableName;
     private final Set<String> attributeNames;
     private final HashMap<String, List<String>> conditionMap;
+    private final String updateValue;
+    private Attribute setAttribute;
+    private WhereTree whereTree = null;
+    private final List<String> tableNames;
+    private Attribute primaryKey;
+    private Integer attributeIndex;
+    private final String columnName;
 
     public Update(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
@@ -55,14 +69,27 @@ public class Update extends Command{
     
         String tableName = fullMatcher.group(1).toLowerCase();
         this.tableName = tableName;
+        this.updateValue = fullMatcher.group(3);
         validateTableName(tableName);
         validateTableExists(tableName);
         
-        String columnName = fullMatcher.group(2);
+        this.columnName = fullMatcher.group(2);
         validateAttributeExists(columnName, tableName, args);
-    
-    
-        String conditions = fullMatcher.group(4) != null ? fullMatcher.group(4) : "";
+        // Validing if column contains set value type
+        try {
+            switch(setAttribute.getDataType()){
+                case INTEGER -> new DTInteger(updateValue);
+                case DOUBLE -> new DTDouble(updateValue);
+                case BOOLEAN -> new DTBoolean(updateValue);
+                case CHAR -> new DTChar(updateValue, setAttribute.getMaxDataLength());
+                case VARCHAR -> new DTVarchar(updateValue);
+            }
+        } catch (Exception e) {
+            throw new InvalidUsage(args, "Cannot set %s to value %s".formatted(columnName, updateValue));
+        }
+        
+        String allConditions = fullMatcher.group(4);
+        String conditions =  allConditions != null ? fullMatcher.group(4) : "";
         Set<String> attributeNames = new HashSet<>();
         if (!conditions.isEmpty()) {
             attributeNames = extractAttributeNames(conditions);
@@ -73,6 +100,16 @@ public class Update extends Command{
             parseConditionsIntoMap(conditions);
         }
         this.attributeNames = attributeNames;
+
+        this.tableNames = new ArrayList<>();
+        this.tableNames.add(tableName);
+        if (allConditions != null) {
+            try {
+                whereTree = new WhereTree(allConditions, catalog, tableNames);
+            } catch (ExecutionFailure ef) {
+                throw new InvalidUsage(args, ef.getMessage());
+            }
+        }
     }
 
     private void parseConditionsIntoMap(String conditions) {
@@ -115,10 +152,19 @@ public class Update extends Command{
         Table table = catalog.getRecordSchema(tableName);
         List<Attribute> attributes = table.getAttributes();
         Boolean temp = false;
+        Integer count = 0;
         for (Attribute a : attributes) {
+            if(a.isPrimaryKey()){
+                primaryKey = a;
+            }
             if (a.getName().equals(attr)) {
                 temp = true;
+                setAttribute = a;
             }
+            if(a.getName().equals(columnName)){
+                attributeIndex = count;
+            }
+            count++;
         }
         if(!temp){
             throw new InvalidUsage(args, "Table " + tableName + " does not contain the attribute " + attr + "\nERROR");
@@ -149,7 +195,51 @@ public class Update extends Command{
 
     @Override
     public void execute() throws ExecutionFailure {
-        // Logic to perform update operation
+        List<List<DataType>> cartesianProduct = new ArrayList<>();
+
+        for (String tName : tableNames) {
+            int tableNum = catalog.getTableNumber(tName);
+            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
+
+            if (cartesianProduct.isEmpty()) {
+                cartesianProduct = allRecords;
+                continue;
+            }
+        }
+
+        List<List<DataType>> goodRecords = new ArrayList<>();
+
+        for (List<DataType> record : cartesianProduct) {
+            if (whereTree == null || whereTree.passesTree(record))
+                goodRecords.add(record);
+        }
+
+
+        for (List<DataType> record : goodRecords) {
+            String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(0).stringValue() + ";";
+            String values = "( ";
+            for (int i = 0; i < record.size(); i++) {
+                if(i == attributeIndex){
+                    values = values + updateValue + " ";
+                }
+                else{
+                    values = values + record.get(i).stringValue() + " ";
+                }
+            }
+            String insertCommand = "INSERT INTO " + tableName + " VALUES " + values + ");";
+            System.out.println(deleteCommand);
+            System.out.println(insertCommand);
+            try {
+                // Run each command
+                Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
+                newDeleteExecutable.execute();
+                InsertInto newInsertIntoExecutable = new InsertInto(insertCommand, this.catalog, this.sm);
+                newInsertIntoExecutable.execute();
+            } catch (InvalidUsage e) {
+                throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
+            }
+        }
+
     }
 
 }
