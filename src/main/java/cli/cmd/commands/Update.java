@@ -48,7 +48,6 @@ public class Update extends Command{
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
-    private final Set<String> attributeNames;
     private final HashMap<String, List<String>> conditionMap;
     private final String updateValue;
     private Attribute setAttribute;
@@ -115,18 +114,6 @@ public class Update extends Command{
         }
         
         String allConditions = fullMatcher.group(4);
-        String conditions =  allConditions != null ? fullMatcher.group(4) : "";
-        Set<String> attributeNames = new HashSet<>();
-        if (!conditions.isEmpty()) {
-            attributeNames = extractAttributeNames(conditions);
-            for (String attr : attributeNames) {
-                validateAttributeExists(attr, tableName, args);
-            }
-            validateConditions(conditions); 
-            parseConditionsIntoMap(conditions);
-        }
-        this.attributeNames = attributeNames;
-
         this.tableNames = new ArrayList<>();
         this.tableNames.add(tableName);
         if (allConditions != null) {
