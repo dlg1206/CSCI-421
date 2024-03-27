@@ -14,17 +14,18 @@ public class WhereTree {
 
     private final ICatalog Catalog;
     private final List<String> TableNames;
-    private final Map<String, Integer> TableAttrOffsets = new HashMap<>();
-    private final Map<String, String> DistinctAttrNames = new HashMap<>();
-    private final List<String> AllAttrNames = new ArrayList<>();
+    public final Map<String, Integer> TableAttrOffsets = new HashMap<>();
+    public final Map<String, String> DistinctAttrNames = new HashMap<>();
+    public final List<String> AllAttrNames = new ArrayList<>();
     private InternalNode tree;
 
+    public final Map<String, WhereTree> TableOptimizations = new HashMap<>();
     private String UnparsedContent;
 
     private final List<String> parseErrors = new ArrayList<>();
     private static final String BAD_WHERE_MSG = "The where clause is invalid:";
 
-    private static final Pattern GLOBAL_PATTERN = Pattern.compile("where\\s+(.*);", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GLOBAL_PATTERN = Pattern.compile("where\\s+(.*)", Pattern.CASE_INSENSITIVE);
     private static final Pattern ALGEBRA_BRANCH_PATTERN = Pattern.compile("((?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(?:>|<|=|!=|<=|>=)\\s*(?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+))(?:\\s+(.*))?", Pattern.CASE_INSENSITIVE);
     private static final Pattern CONDITIONAL_BRANCH_PATTERN = Pattern.compile("(and|or)\\s+(.*)", Pattern.CASE_INSENSITIVE);
     private static final Pattern LEAF_NODE_PATTERN = Pattern.compile("(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(>|<|=|!=|<=|>=)\\s*(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)", Pattern.CASE_INSENSITIVE);
@@ -68,6 +69,34 @@ public class WhereTree {
 
             throw new ExecutionFailure(sb.toString());
         }
+    }
+
+    public WhereTree(InternalNode tree, ICatalog catalog, List<String> tableNames) throws ExecutionFailure {
+        Catalog = catalog;
+        TableNames = tableNames;
+
+        Map<String, List<String>> attrNameCounts = new HashMap<>();
+
+        int totalAttrCount = 0;
+
+        for (String tName : TableNames) {
+            TableAttrOffsets.put(tName, totalAttrCount);
+            for (Attribute a : Catalog.getRecordSchema(tName).getAttributes()) {
+                totalAttrCount++;
+                if (!attrNameCounts.containsKey(a.getName())) {
+                    attrNameCounts.put(a.getName(), new ArrayList<>());
+                }
+                attrNameCounts.get(a.getName()).add(tName);
+            }
+        }
+
+        attrNameCounts.forEach((k, v) -> {
+            if (v.size() == 1)
+                DistinctAttrNames.put(k, v.getFirst());
+            AllAttrNames.add(k);
+        });
+
+        this.tree = tree;
     }
 
     private void parseInput(String input) {
@@ -157,7 +186,7 @@ public class WhereTree {
     private boolean validateSubtree(Node node) {
         if (node instanceof LeafNode leaf) {
             if (leaf.Attribute == null)
-                return true;
+                return true;    // constants are always valid
             if (leaf.TableName == null) {
                 if (!AllAttrNames.contains(leaf.Attribute)) {
                     parseErrors.add(leaf.Attribute);
@@ -176,6 +205,16 @@ public class WhereTree {
                 parseErrors.add("^ This table name does not exist.");
                 return false;
             }
+
+            if (Catalog.getRecordSchema(leaf.TableName).getAttributes().stream().map(Attribute::getName)
+                    .noneMatch(n -> n.equals(leaf.Attribute))) {
+                parseErrors.add(leaf.toString());
+                parseErrors.add(" ".repeat(leaf.TableName.length() + 1) +   // Extra 1 for the dot separator
+                        "^".repeat(leaf.Attribute.length()) +
+                        " This attribute does not exist in the table.");
+                return false;
+            }
+
             leaf.ReturnType = Catalog.getTableAttribute(leaf.TableName, leaf.Attribute).getDataType();
             leaf.TableNum = Catalog.getTableNumber(leaf.TableName);
             return true;
@@ -208,10 +247,31 @@ public class WhereTree {
                         " and " + internal.Right.getReturnType().name() + " ).");
                 return false;
             }
+
+            if (internal.Left instanceof LeafNode lLeaf && lLeaf.Attribute == null  // left = constant & right = table attribute
+                    && internal.Right instanceof LeafNode rLeaf && rLeaf.TableName != null) {
+                createOptimization(rLeaf, internal);
+            }
+
+            if (internal.Left instanceof LeafNode lLeaf && lLeaf.TableName != null  // left = constant & right = table attribute
+                    && internal.Right instanceof LeafNode rLeaf && rLeaf.Attribute == null) {
+                createOptimization(lLeaf, internal);
+            }
+
             return true;
         }
         parseErrors.add("Something bad happened. A tree node was found that didn't match a Leaf or Internal node.");
         return false;
+    }
+
+    private void createOptimization(LeafNode tableNode, InternalNode parentNode) {
+        try {
+            if (!TableOptimizations.containsKey(tableNode.TableName) ||
+                    (TableOptimizations.containsKey(tableNode.TableName) &&
+                            Catalog.getRecordSchema(tableNode.TableName).getAttribute(tableNode.Attribute).isPrimaryKey())) {
+                TableOptimizations.put(tableNode.TableName, new WhereTree(parentNode, Catalog, List.of(tableNode.TableName)));
+            }
+        } catch (ExecutionFailure ignored) {} // By the time we get to here, we know the tree will be valid.
     }
 
     public boolean passesTree(List<DataType> record) {
@@ -224,10 +284,10 @@ public class WhereTree {
 
         Predicate<Integer> comparator =
             switch (iNode.Comparator) {
-                case ">" ->  t -> t > 0;
-                case ">="  -> t -> t >= 0;
-                case "<" -> t -> t < 0;
-                case "<=" -> t -> t <= 0;
+                case ">" ->  t -> t < 0; // TODO: This feels so wrong, someone should check if this is right.
+                case ">="  -> t -> t <= 0;
+                case "<" -> t -> t > 0;
+                case "<=" -> t -> t >= 0;
                 case "=" -> t -> t == 0;
                 case "!=" -> t -> t != 0;
                 default -> t -> t == Integer.MAX_VALUE; // This will be ignored when the Comparator is "and" or "or"

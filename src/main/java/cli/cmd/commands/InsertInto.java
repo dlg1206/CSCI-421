@@ -41,7 +41,7 @@ public class InsertInto extends Command {
 
     private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+(\\(.*\\));", Pattern.CASE_INSENSITIVE);
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
-    private static final Pattern TUPLE_PATTERN = Pattern.compile("\\s*\\(\\s*([0-9\\s\"a-z.]+)\\s*\\)\\s*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TUPLE_PATTERN = Pattern.compile("\\s*\\(\\s*([-0-9\\s\"a-z.]+)\\s*\\)\\s*", Pattern.CASE_INSENSITIVE);
     private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
     private static final Pattern VALUE_PATTERN = Pattern.compile("\".*?\"|\\S+", Pattern.CASE_INSENSITIVE);
 
