@@ -26,12 +26,12 @@ public class WhereTree {
     private static final String BAD_WHERE_MSG = "The where clause is invalid:";
 
     private static final Pattern GLOBAL_PATTERN = Pattern.compile("where\\s+(.*)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern ALGEBRA_BRANCH_PATTERN = Pattern.compile("((?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(?:>|<|=|!=|<=|>=)\\s*(?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+))(?:\\s+(.*))?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ALGEBRA_BRANCH_PATTERN = Pattern.compile("((?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|-?[0-9]+\\.[0-9]*|-?[0-9]+)\\s*(?:>|<|=|!=|<=|>=)\\s*(?:\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|-?[0-9]+\\.[0-9]*|-?[0-9]+))(?:\\s+(.*))?", Pattern.CASE_INSENSITIVE);
     private static final Pattern CONDITIONAL_BRANCH_PATTERN = Pattern.compile("(and|or)\\s+(.*)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern LEAF_NODE_PATTERN = Pattern.compile("(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)\\s*(>|<|=|!=|<=|>=)\\s*(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|[0-9]+\\.[0-9]*|[0-9]+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LEAF_NODE_PATTERN = Pattern.compile("(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|-?[0-9]+\\.[0-9]*|-?[0-9]+)\\s*(>|<|=|!=|<=|>=)\\s*(\".*?\"|[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)?|-?[0-9]+\\.[0-9]*|-?[0-9]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern TABLE_ATTR_PATTERN = Pattern.compile("([a-z][a-z0-9]*)(?:\\.([a-z][a-z0-9]*))?", Pattern.CASE_INSENSITIVE);
     private static final Pattern QUOTED_STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DOUBLE_PATTERN = Pattern.compile("[0-9]+\\.[0-9]*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DOUBLE_PATTERN = Pattern.compile("-?[0-9]+\\.[0-9]*", Pattern.CASE_INSENSITIVE);
     private static final Pattern BOOLEAN_PATTERN = Pattern.compile("true|false", Pattern.CASE_INSENSITIVE);
 
     public WhereTree(String input, ICatalog catalog, List<String> tableNames) throws ExecutionFailure {
