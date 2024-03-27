@@ -41,6 +41,10 @@ public class Update extends Command{
         "([a-z0-9_]+|'[^']*'|\"[^\"]*\"|true|false|\\d+(?:\\.\\d+)?)\\s*",
         Pattern.CASE_INSENSITIVE);
 
+    private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
+    private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
+
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
@@ -75,17 +79,39 @@ public class Update extends Command{
         
         this.columnName = fullMatcher.group(2);
         validateAttributeExists(columnName, tableName, args);
+        if(primaryKey.getName().equals(columnName)){
+            throw new InvalidUsage(args, "Cannot change primary key");
+        }
         // Validing if column contains set value type
+        DataType dt;
         try {
-            switch(setAttribute.getDataType()){
+            dt = switch(setAttribute.getDataType()){
                 case INTEGER -> new DTInteger(updateValue);
                 case DOUBLE -> new DTDouble(updateValue);
                 case BOOLEAN -> new DTBoolean(updateValue);
                 case CHAR -> new DTChar(updateValue, setAttribute.getMaxDataLength());
                 case VARCHAR -> new DTVarchar(updateValue);
-            }
-        } catch (Exception e) {
+            };
+        } catch (NumberFormatException nfe) {
             throw new InvalidUsage(args, "Cannot set %s to value %s".formatted(columnName, updateValue));
+        }
+        if ((setAttribute.getDataType() == AttributeType.CHAR || setAttribute.getDataType() == AttributeType.VARCHAR) && updateValue != null) {
+            Matcher stringMatcher = STRING_PATTERN.matcher(updateValue);
+
+            if (!stringMatcher.matches()) {
+                throw new InvalidUsage(NO_QUOTES_MSG.formatted(setAttribute.getName(), columnName), "");
+            }
+
+            String val = stringMatcher.group(1);
+
+            if (val.length() > setAttribute.getMaxDataLength()) {
+                throw new InvalidUsage(INVALID_ATTR_LENGTH_MSG.formatted(setAttribute.getName(), setAttribute.getMaxDataLength(), columnName), "");
+            }
+        }
+        else if(setAttribute.getDataType() == AttributeType.BOOLEAN){
+            if(!(updateValue.equalsIgnoreCase("true") || updateValue.equalsIgnoreCase("false"))){
+                throw new InvalidUsage(updateValue, "Booleans only accept true/false values");
+            }
         }
         
         String allConditions = fullMatcher.group(4);
@@ -229,16 +255,17 @@ public class Update extends Command{
             String insertCommand = "INSERT INTO " + tableName + " VALUES " + values + ");";
             System.out.println(deleteCommand);
             System.out.println(insertCommand);
-            try {
-                // Run each command
-                Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
-                newDeleteExecutable.execute();
-                InsertInto newInsertIntoExecutable = new InsertInto(insertCommand, this.catalog, this.sm);
-                newInsertIntoExecutable.execute();
-            } catch (InvalidUsage e) {
-                throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
-            }
+            // try {
+            //     // Run each command
+            //     Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
+            //     newDeleteExecutable.execute();
+            //     InsertInto newInsertIntoExecutable = new InsertInto(insertCommand, this.catalog, this.sm);
+            //     newInsertIntoExecutable.execute();
+            // } catch (InvalidUsage e) {
+            //     throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
+            // }
         }
+        System.out.println("SUCCESS: " + goodRecords.size() + " Records Changed");
 
     }
 
