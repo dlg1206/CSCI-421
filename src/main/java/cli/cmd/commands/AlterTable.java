@@ -23,6 +23,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import util.Console;
 
+import static util.ReservedKeywords.INVALID_ATTR_NAME_MSG;
+import static util.ReservedKeywords.isValidName;
+
 /**
  * <b>File:</b> AlterTable.java
  * <p>
@@ -125,6 +128,10 @@ public class AlterTable extends Command {
         List<Attribute> attributes = table.getAttributes();
 
         attributeName = input.get(4).toLowerCase();
+
+        if (!isValidName(attributeName))
+            throw new InvalidUsage(args, INVALID_ATTR_NAME_MSG.formatted(attributeName));
+
         List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).toList();
         if (input.get(3).equalsIgnoreCase("drop")){
             if (!tableAttributeNames.contains(attributeName)){
