@@ -98,6 +98,20 @@ class TableFile {
     }
 
     /**
+     * Read the first byte of the database file to get the page count
+     *
+     * @return Number of pages
+     * @throws IOException Failed to read file
+     */
+    private int updatePageCount(int pageCount) throws IOException {
+        try (RandomAccessFile raf = toRandomAccessFile()) {
+            byte[] buffer = new byte[] {(byte) pageCount};
+            raf.write(buffer, 0, 1);
+            return buffer[0];
+        }
+    }
+
+    /**
      * Insert a split page into the table file
      *
      * @throws IOException Failed to read file
@@ -120,6 +134,31 @@ class TableFile {
                 buffer.writeToBuffer(page.getSwapPage(swapOffset));
             }
         }
+        buffer.flush();     // Write out any remaining files
+        closeSwapFile();    // Save the swap file as the actual file
+    }
+
+    /**
+     * Delete a page from the table file
+     *
+     * @throws IOException Failed to read file
+     */
+    public void deletePage(PageBuffer buffer, int emptyPageNum) throws IOException {
+        int swapOffset = -1;
+        int pageCount = readPageCount();
+
+        // remove empty page from buffer
+        buffer.readFromBuffer(tableID, emptyPageNum, true);
+
+        // move all pages after empty page forward
+        for (int pageNumber = emptyPageNum + 1; pageNumber < pageCount; pageNumber++) {
+            Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
+            buffer.writeToBuffer(page.getSwapPage(swapOffset));
+        }
+
+        // decrement page count
+        updatePageCount(pageCount - 1);
+
         buffer.flush();     // Write out any remaining files
         closeSwapFile();    // Save the swap file as the actual file
     }

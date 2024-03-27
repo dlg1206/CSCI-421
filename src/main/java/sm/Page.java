@@ -4,7 +4,9 @@ import catalog.Attribute;
 import dataTypes.DataType;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -77,6 +79,31 @@ class Page {
     }
 
     /**
+     * Delete a record from the page
+     *
+     * @param primaryKeyIndex Index of the primary key
+     * @param primaryKey      PrimaryKey of record to delete
+     * @return True if deleted, false otherwise
+     */
+    public boolean deleteRecord(int primaryKeyIndex, List<Attribute> attributes, DataType primaryKey) {
+        // Get records
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+
+        // Search for record to delete
+        for (List<DataType> storedRecord : records) {
+            // Record exists in page, so delete it
+            if (primaryKey.equals(storedRecord.get(primaryKeyIndex))) {
+                records.remove(storedRecord);
+                this.data = BInterpreter.convertRecordsToPage(records);
+                return true;
+            }
+        }
+
+        // No record was deleted
+        return false;
+    }
+
+    /**
      * Append record to end of page
      * SHOULD ONLY BE USED IF LAST PAGE
      * todo better implementation?
@@ -143,6 +170,19 @@ class Page {
     }
 
     /**
+     * Check if the page is empty
+     *
+     * @return true if empty, false otherwise
+     */
+    public boolean isEmpty() {
+        // get number of records in page
+        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 4));
+        int numRecords = numRecBuff.getInt();
+
+        return numRecords == 0;
+    }
+
+    /**
      * @return Page write file
      */
     public TableFile getWriteFile() {
@@ -155,7 +195,6 @@ class Page {
     public int getPageNumber() {
         return this.pageNumber;
     }
-
 
     /**
      * @return Page byte data
