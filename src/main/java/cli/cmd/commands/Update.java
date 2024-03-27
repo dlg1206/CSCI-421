@@ -33,12 +33,7 @@ public class Update extends Command{
 
     private static final Pattern FULL_MATCH = Pattern.compile(
         "update\\s+([a-z0-9]+)\\s+set\\s+([a-z0-9_]+)\\s*=\\s*" +
-        "([a-z0-9_]+|'[^']*'|\"[^\"]*\"|true|false|\\d+(?:\\.\\d+)?)\\s*(where\\s+.+)?;", 
-        Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern EACH_CONDITIONAL_MATCH = Pattern.compile(
-        "([a-z0-9_]+)\\s*(=|>|<|>=|<=|!=)\\s*" +
-        "([a-z0-9_]+|'[^']*'|\"[^\"]*\"|true|false|\\d+(?:\\.\\d+)?)\\s*",
+        "([a-z0-9_]+|'[^']*'|\"[^\"]*\"|true|false|-?\\d+(?:\\.\\d+)?)\\s*(where\\s+.+)?;",
         Pattern.CASE_INSENSITIVE);
 
     private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
@@ -48,7 +43,6 @@ public class Update extends Command{
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
-    private final HashMap<String, List<String>> conditionMap;
     private final String updateValue;
     private Attribute setAttribute;
     private WhereTree whereTree = null;
@@ -60,7 +54,6 @@ public class Update extends Command{
     public Update(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
         this.sm = storageManager;
-        this.conditionMap = new HashMap<>();
     
         Matcher fullMatcher = FULL_MATCH.matcher(args);
     
@@ -68,8 +61,6 @@ public class Update extends Command{
             throw new InvalidUsage(args, "Correct Usage: update <name> set <column_1> = <value> where <condition>;");
         }
 
-        
-    
         String tableName = fullMatcher.group(1).toLowerCase();
         this.tableName = tableName;
         this.updateValue = fullMatcher.group(3);
@@ -81,10 +72,9 @@ public class Update extends Command{
         if(primaryKey.getName().equals(columnName)){
             throw new InvalidUsage(args, "Cannot change primary key");
         }
-        // Validing if column contains set value type
-        DataType dt;
+        // Validating if column contains set value type
         try {
-            dt = switch(setAttribute.getDataType()){
+            switch(setAttribute.getDataType()){
                 case INTEGER -> new DTInteger(updateValue);
                 case DOUBLE -> new DTDouble(updateValue);
                 case BOOLEAN -> new DTBoolean(updateValue);
@@ -125,29 +115,6 @@ public class Update extends Command{
         }
     }
 
-    private void parseConditionsIntoMap(String conditions) {
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-        while (conditionMatcher.find()) {
-            String attribute = conditionMatcher.group(1);
-            String condition = conditionMatcher.group(0); // The entire condition matched
-
-            conditionMap.putIfAbsent(attribute, new ArrayList<>());
-            conditionMap.get(attribute).add(condition);
-        }
-    }
-
-
-    private Set<String> extractAttributeNames(String conditions) {
-        Set<String> attributeNames = new HashSet<>();
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-
-        while (conditionMatcher.find()) {
-            attributeNames.add(conditionMatcher.group(1));
-        }
-
-        return attributeNames;
-    }
-
     private void validateTableName(String tableName) throws InvalidUsage {
         if (!tableName.matches("[a-z][a-z0-9]*")) {
             throw new InvalidUsage(tableName, "The name '%s' is not a valid table name.".formatted(tableName));
@@ -164,8 +131,8 @@ public class Update extends Command{
     private void validateAttributeExists(String attr, String tableName, String args) throws InvalidUsage {
         Table table = catalog.getRecordSchema(tableName);
         List<Attribute> attributes = table.getAttributes();
-        Boolean temp = false;
-        Integer count = 0;
+        boolean temp = false;
+        int count = 0;
         for (Attribute a : attributes) {
             if(a.isPrimaryKey()){
                 primaryKey = a;
@@ -185,22 +152,6 @@ public class Update extends Command{
         
     }
 
-    private void validateConditions(String args) throws InvalidUsage {
-        String conditionals = args.toLowerCase().contains("where")
-            ? args.split("where")[1].trim().replace(";", "")
-            : "";
-
-        if (!conditionals.isEmpty()) {
-            String[] conditions = conditionals.split("(?i)\\s+(and|or)\\s+");
-            for (String condition : conditions) {
-                if (!EACH_CONDITIONAL_MATCH.matcher(condition).matches()) {
-                    throw new InvalidUsage(args, "Using an Invalid Conditional");
-                }
-            }
-        }
-    }
-
-
     @Override
     protected void helpMessage() {
         // TODO
@@ -216,7 +167,6 @@ public class Update extends Command{
 
             if (cartesianProduct.isEmpty()) {
                 cartesianProduct = allRecords;
-                continue;
             }
         }
 
