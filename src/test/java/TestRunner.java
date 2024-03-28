@@ -46,8 +46,9 @@ public class TestRunner {
      */
     private static void cleanUp() {
         for (File file : Objects.requireNonNull(new File(DB_ROOT).listFiles()))
-            if (!file.isDirectory())
+            if (!file.isDirectory()) {
                 file.delete();
+            }
     }
 
     private static int test_display_schema() {
@@ -254,7 +255,7 @@ public class TestRunner {
         try {
             expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
             return 1;
         }
 
@@ -556,14 +557,17 @@ public class TestRunner {
             public Attribute getTableAttribute(String tableName, String attrName) {
                 return tableName.equals("a")
                         ? attrName.equals("x")
-                        ? new Attribute("x", AttributeType.INTEGER)
-                        : attrName.equals("d") ? new Attribute("x", AttributeType.DOUBLE, false, false)
-                        : new Attribute("i", AttributeType.INTEGER, false, false)
-                        : attrName.equals("x") ?
-                        new Attribute("x", AttributeType.INTEGER)
-                        : attrName.equals("z") ? new Attribute("z", AttributeType.BOOLEAN, false, false)
-                        : attrName.equals("q") ? new Attribute("q", AttributeType.CHAR, 10, false, false)
-                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("d")
+                                ? new Attribute("d", AttributeType.DOUBLE, false, false)
+                                : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x")
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("z")
+                                ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                                : attrName.equals("q")
+                                    ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                                    : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
             }
 
             @Override
@@ -582,55 +586,49 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
-
-            }
+            public void createTable(String name, List<Attribute> attributes) {}
 
             @Override
-            public void deleteTable(String name) throws ExecutionFailure, IOException {
-
-            }
+            public void deleteTable(String name) {}
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
-
-            }
+            public void addAttribute(String tableName, Attribute attribute) {}
         };
 
         List<String> tests = List.of(
-                "where 1=1 or 2=2 and 3=3 or 4=4;",
-                "where \"crash\" > 10 and x = \"test\";",
-                "where \"crash test dummy\" > 10 and x = \"test\";",
-                "where a.x = a.y;",
-                "where a.x = a.x;",
-                "where a.x = b.x;",
-                "where x = x;",
-                "where a.x = x;",
-                "where x = b.x;",
-                "where x > 10 and b.q = \"test\";",
-                "where 9 >= 7;",
-                "where x.y = 7;",
-                "where x.p = q.w;",
-                "where x.p = z.x;",
-                "where x.p = 3.2;",
-                "where x.p = \"hey\";",
-                "where x.p = true;",
-                "where \"cra\"h = 8;",
-                "where x = y and \"cra\"h = 8;",
-                "where x = y and \"cra\"h = 8;",
-                "where x.y=z.e;",
-                "where 6 and 7;",
-                "where 6 plus 7;",
-                "where 6 = 6 plus 7 = 7;",
-                "where 1=1;",
-                "where 1=true;",
-                "where 1=3.0;",
-                "where 1=3.;",
-                "where b.q = b.f;",
-                "where b.q = \"TEST\";",
-                "where b.f = \"TEST\";",
-                "where b.x = 1 and 3.4;",
-                "where \"TEST\" = \"TEST2\";");
+                "where 1=1 or 2=2 and 3=3 or 4=4",
+                "where \"crash\" > 10 and x = \"test\"",
+                "where \"crash test dummy\" > 10 and x = \"test\"",
+                "where a.x = a.y",
+                "where a.x = a.x",
+                "where a.x = b.x",
+                "where x = x",
+                "where a.x = x",
+                "where x = b.x",
+                "where x > 10 and b.q = \"test\"",
+                "where 9 >= 7",
+                "where x.y = 7",
+                "where x.p = q.w",
+                "where x.p = z.x",
+                "where x.p = 3.2",
+                "where x.p = \"hey\"",
+                "where x.p = true",
+                "where \"cra\"h = 8",
+                "where x = y and \"cra\"h = 8",
+                "where x = y and \"cra\"h = 8",
+                "where x.y=z.e",
+                "where 6 and 7",
+                "where 6 plus 7",
+                "where 6 = 6 plus 7 = 7",
+                "where 1=1",
+                "where 1=true",
+                "where 1=3.0",
+                "where 1=3.",
+                "where b.q = b.f",
+                "where b.q = \"TEST\"",
+                "where b.f = \"TEST\"",
+                "where b.x = 1 and 3.4",
+                "where \"TEST\" = \"TEST2\"");
 
         List<String> expected = List.of("1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
                 "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
@@ -668,7 +666,7 @@ public class TestRunner {
                 "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
                 "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
                 "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
-                "a.x = a.y",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
                 "a.x = a.x",
                 "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
                 "a.x = a.x",
@@ -734,7 +732,7 @@ public class TestRunner {
                 "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
                 "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
                 "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
-                "a.x = a.y",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
                 "a.x = a.x",
                 "a.x = b.x",
                 "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
@@ -833,19 +831,13 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure {
-
-            }
+            public void createTable(String name, List<Attribute> attributes) {}
 
             @Override
-            public void deleteTable(String name) throws ExecutionFailure, IOException {
-
-            }
+            public void deleteTable(String name) {}
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) throws ExecutionFailure, IOException {
-
-            }
+            public void addAttribute(String tableName, Attribute attribute) {}
         };
         List<String> expected = List.of("true",
                 "false",
@@ -878,33 +870,33 @@ public class TestRunner {
                 new DTInteger("1"), new DTInteger("2"), new DTDouble("1.2"), // a
                 new DTInteger("2"), new DTBoolean("TRUE"), new DTChar("HI", 10), new DTVarchar("HI"));
 
-        List<String> tests = List.of("where 1=1;",
-                "where 2=1;",
-                "where \"HI\"=\"HI\";",
-                "where \"HI\"=\"BYE\";",
-                "where a.i=2;",
-                "where i=2;",
-                "where 2=2;",
-                "where a.i=b.x;",
-                "where a.x=b.x;",
-                "where q=f;",
-                "where q=\"HI\";",
-                "where f=\"HI\";",
-                "where q=\"BYE\";",
-                "where b.q=\"HI\";",
-                "where b.z=True;",
-                "where b.z=TRUE;",
-                "where a.d=2.0;",
-                "where a.d=1.2;",
-                "where a.d=1;",
-                "where 1=1 and 2=2;",
-                "where 1=1 and 1=2;",
-                "where 1=1 or 1=2;",
-                "where 0=1 or 1=2;",
-                "where 1=1 or 2=2;",
-                "where 1=1 or 2=2 and 3=3 or 4=4;",
-                "where 1=1 or 1=2 and 3=3 or 4=4;",
-                "where 2=1 or 1=2 and 3=3 or 3=4;");
+        List<String> tests = List.of("where 1=1",
+                "where 2=1",
+                "where \"HI\"=\"HI\"",
+                "where \"HI\"=\"BYE\"",
+                "where a.i=2",
+                "where i=2",
+                "where 2=2",
+                "where a.i=b.x",
+                "where a.x=b.x",
+                "where q=f",
+                "where q=\"HI\"",
+                "where f=\"HI\"",
+                "where q=\"BYE\"",
+                "where b.q=\"HI\"",
+                "where b.z=True",
+                "where b.z=TRUE",
+                "where a.d=2.0",
+                "where a.d=1.2",
+                "where a.d=1",
+                "where 1=1 and 2=2",
+                "where 1=1 and 1=2",
+                "where 1=1 or 1=2",
+                "where 0=1 or 1=2",
+                "where 1=1 or 2=2",
+                "where 1=1 or 2=2 and 3=3 or 4=4",
+                "where 1=1 or 1=2 and 3=3 or 4=4",
+                "where 2=1 or 1=2 and 3=3 or 3=4");
 
         int failedTests = 0;
         for (int i = 0; i < tests.size(); i++) {

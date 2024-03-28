@@ -18,8 +18,13 @@ import catalog.Attribute;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import util.Console;
+
+import static util.ReservedKeywords.INVALID_ATTR_NAME_MSG;
+import static util.ReservedKeywords.isValidName;
 
 /**
  * <b>File:</b> AlterTable.java
@@ -38,16 +43,45 @@ public class AlterTable extends Command {
     private boolean isAdd = false;
 
 
-    private final String tableName;
-    private final String attributeName;
+    private String tableName;
+    private String attributeName;
     private AttributeType newType = null;
     private Integer maxDataLength = null;
+
+
+    private static final Pattern STRING_SIZE_PATTERN = Pattern.compile(
+        "(varchar|char)\\((\\d+)\\)",
+        Pattern.CASE_INSENSITIVE);
+    private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
+    private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ALTER_TABLE_PATTERN = Pattern.compile(
+        "alter table\\s+([a-z0-9_]+)\\s+(add|drop)\\s+([a-z0-9_]+)(\\s+([a-z0-9_()]+)(\\s+default\\s+([^;]+))?)?;",
+        Pattern.CASE_INSENSITIVE);
+
+    private String operation;
+    private String attributeType;
+    private String defaultValue;
 
     public AlterTable(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
 
         this.catalog = catalog;
         this.sm = storageManager;
         this.args = args;
+
+        Matcher matcher = ALTER_TABLE_PATTERN.matcher(args);
+        if (!matcher.find()) {
+            throw new InvalidUsage(args, "Invalid ALTER TABLE syntax. Expected syntax: 'ALTER TABLE <name> ADD|DROP <attribute> [type] [DEFAULT <value>];'");
+        }
+
+        tableName = matcher.group(1).toLowerCase();
+        operation = matcher.group(2).toLowerCase();
+        attributeName = matcher.group(3).toLowerCase();
+
+        if ("add".equalsIgnoreCase(operation)) {
+            attributeType = matcher.group(5) != null ? matcher.group(5).toUpperCase() : null;
+            defaultValue = matcher.group(7);
+        }
 
         // Alter Table Syntax Validation
         List<String> input = getInput(args);
@@ -64,6 +98,9 @@ public class AlterTable extends Command {
             case 5:
                 isValid = input.get(3).equalsIgnoreCase("drop");
                 this.isDrop = true;
+                if(!isValid){
+                    throw new InvalidUsage(args, errorMessage);
+                }
                 break;
             case 6:
                 isValid = input.get(3).equalsIgnoreCase("add");
@@ -77,9 +114,6 @@ public class AlterTable extends Command {
                 isValid = false;
         };
 
-        if (!isValid) {
-            throw new InvalidUsage(args, errorMessage);
-        }
 
         tableName = input.get(2).toLowerCase();
 
@@ -94,6 +128,10 @@ public class AlterTable extends Command {
         List<Attribute> attributes = table.getAttributes();
 
         attributeName = input.get(4).toLowerCase();
+
+        if (!isValidName(attributeName))
+            throw new InvalidUsage(args, INVALID_ATTR_NAME_MSG.formatted(attributeName));
+
         List<String> tableAttributeNames = attributes.stream().map(a -> a.getName().toLowerCase()).toList();
         if (input.get(3).equalsIgnoreCase("drop")){
             if (!tableAttributeNames.contains(attributeName)){
@@ -113,12 +151,60 @@ public class AlterTable extends Command {
             } catch (IllegalArgumentException iae) {
                 throw new InvalidUsage(args, "'%s' is not a valid attribute type.".formatted(typeString));
             }
+            String num;
+            int length = 1;
 
             switch (newType) {
                 case INTEGER, DOUBLE, BOOLEAN -> {
+                    if(defaultValue != null){
                     if (newAttributeData.length != 1) {
                         throw new InvalidUsage(args, "Attributes of type INTEGER, DOUBLE, or BOOLEAN do not require a max length.");
                     }
+                    else if(newType == AttributeType.BOOLEAN){
+                        if(!(defaultValue.equalsIgnoreCase("true") || defaultValue.equalsIgnoreCase("false"))){
+                            throw new InvalidUsage(defaultValue, "Booleans only accept true/false values");
+                        }
+                    }
+                    else if(newType == AttributeType.INTEGER){
+                        try {
+                            Integer.parseInt(defaultValue);
+                        } catch (NumberFormatException nfe) {
+                            throw new InvalidUsage(defaultValue, "The default value for an INTEGER must be a valid integer.");
+                        }
+                    }
+                    else if(newType == AttributeType.INTEGER){
+                        try {
+                            Double.parseDouble(defaultValue);
+                        } catch (NumberFormatException nfe) {
+                            throw new InvalidUsage(defaultValue, "The default value for a DOUBLE must be a valid double.");
+                        }
+                    }
+                }
+                    
+                }
+                case CHAR, VARCHAR -> {
+                    if(defaultValue != null){
+                    Matcher stringSizeMatcher = STRING_SIZE_PATTERN.matcher(attributeType);
+                    Matcher stringMatcher = STRING_PATTERN.matcher(defaultValue);
+                    if(stringSizeMatcher.find()){
+                        num = stringSizeMatcher.group(2);
+                        length = Integer.parseInt(num);
+                    }
+                    
+                    
+
+
+                if (!stringMatcher.matches()) {
+                    throw new InvalidUsage(NO_QUOTES_MSG.formatted(attributeType, defaultValue), "");
+                }
+
+                String val = stringMatcher.group(1);
+
+                if (val.length() > length) {
+                    throw new InvalidUsage(INVALID_ATTR_LENGTH_MSG.formatted(attributeType, length, attributeType), "");
+                }
+                }
+
                 }
                 default -> {
                     if (newAttributeData.length != 2) {
@@ -207,9 +293,9 @@ public class AlterTable extends Command {
                 insertValues += eachValue;
             }
             // Create each command
-            String dropTableCommand ="DROP TABLE " + tableName + ";".strip();
-            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );".strip();
-            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";".strip();
+            String dropTableCommand =("DROP TABLE " + tableName + ";").strip();
+            String createTableCommand = ("CREATE TABLE " + tableName + "( " + attributeValues + " );").strip();
+            String insertIntoCommand = ("INSERT INTO " + tableName + " VALUES" + insertValues + ";").strip();
             try {
                 // Run each command
                 DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
@@ -267,19 +353,19 @@ public class AlterTable extends Command {
                 }
                 // If argument contained default, then use default value, otherwise input null value
                 if(r == allRecordsList.size()-1){
-                    eachValue += args.toLowerCase().contains("default") ? " " + defaultValue + " )" : " null )";
+                    eachValue += args.toLowerCase().contains("default") ?  defaultValue + ")" : " null )";
                 }
                 else{
-                    eachValue += args.toLowerCase().contains("default") ? " " + defaultValue + " )," : " null ), ";
+                    eachValue += args.toLowerCase().contains("default") ?  defaultValue + ")," : " null ), ";
                 }
                 // Add each ( Value, Value, defaultValue ), or ( Value, Value, null ) to main string
                 // Result should look like ( Value, Value, null ), ( Value, Value, null ), ( Value, Value, null )
                 insertValues += eachValue;
             }
             // Create each command
-            String dropTableCommand ="DROP TABLE " + tableName + ";".strip();
-            String createTableCommand = "CREATE TABLE " + tableName + "( " + attributeValues + " );".strip();
-            String insertIntoCommand = "INSERT INTO " + tableName + " VALUES" + insertValues + ";".strip();
+            String dropTableCommand =("DROP TABLE " + tableName + ";").strip();
+            String createTableCommand = ("CREATE TABLE " + tableName + "( " + attributeValues + " );").strip();
+            String insertIntoCommand = ("INSERT INTO " + tableName + " VALUES " + insertValues.strip() + ";");
             try {
                 // Run each command
                 DropTable newDropTableExecutable = new DropTable(dropTableCommand, this.catalog, this.sm);
