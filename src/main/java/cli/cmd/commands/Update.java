@@ -41,8 +41,8 @@ public class Update extends Command{
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
     private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
 
-    private static final String UNEQUAL_ATTR_MSG = "Table %s expects %s attributes and you provided %s for tuple #%s";
-    private static final String INVALID_ATTR_TYPE_MSG = "The provided value '%s' for attribute '%s' is not of type %s for tuple #%s.";
+    private static final String UNEQUAL_ATTR_MSG = "Table %s expects %s attributes and you provided %s.";
+    private static final String INVALID_ATTR_TYPE_MSG = "The provided value '%s' for attribute '%s' is not of type %s.";
     private static final Pattern VALUE_PATTERN = Pattern.compile("\".*?\"|\\S+", Pattern.CASE_INSENSITIVE);
 
     private final List<String> tuples = new ArrayList<>();
@@ -75,9 +75,6 @@ public class Update extends Command{
         
         this.columnName = fullMatcher.group(2);
         validateAttributeExists(columnName, tableName, args);
-        if(primaryKey.getName().equals(columnName)){
-            throw new InvalidUsage(args, "Cannot change primary key");
-        }
         // Validating if column contains set value type
         try {
             switch(setAttribute.getDataType()){
@@ -103,7 +100,7 @@ public class Update extends Command{
                 throw new InvalidUsage(INVALID_ATTR_LENGTH_MSG.formatted(setAttribute.getName(), setAttribute.getMaxDataLength(), columnName), "");
             }
         }
-        else if(setAttribute.getDataType() == AttributeType.BOOLEAN){
+        else if(setAttribute.getDataType() == AttributeType.BOOLEAN && updateValue != null){
             if(!(updateValue.equalsIgnoreCase("true") || updateValue.equalsIgnoreCase("false"))){
                 throw new InvalidUsage(updateValue, "Booleans only accept true/false values");
             }
@@ -195,7 +192,7 @@ public class Update extends Command{
                 }
             }
 
-            values = values.strip();
+            values = values.replace("\"", "").strip();
             tuples.add(values);
             try {
                 // Run each command
@@ -268,20 +265,6 @@ public class Update extends Command{
             } else if (value.equalsIgnoreCase("null")) {
                 throw new ExecutionFailure("Attribute '%s' is not nullable"
                         .formatted(a.getName()));
-            }
-
-            if ((a.getDataType() == AttributeType.CHAR || a.getDataType() == AttributeType.VARCHAR) && value != null) {
-                Matcher stringMatcher = STRING_PATTERN.matcher(value);
-
-                if (!stringMatcher.matches()) {
-                    throw new ExecutionFailure(NO_QUOTES_MSG.formatted(a.getName()));
-                }
-
-                value = stringMatcher.group(1);
-
-                if (value.length() > a.getMaxDataLength()) {
-                    throw new ExecutionFailure(INVALID_ATTR_LENGTH_MSG.formatted(a.getName(), a.getMaxDataLength()));
-                }
             }
 
             try {
