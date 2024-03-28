@@ -172,7 +172,7 @@ public class AlterTable extends Command {
                             throw new InvalidUsage(defaultValue, "The default value for an INTEGER must be a valid integer.");
                         }
                     }
-                    else if(newType == AttributeType.INTEGER){
+                    else if(newType == AttributeType.DOUBLE){
                         try {
                             Double.parseDouble(defaultValue);
                         } catch (NumberFormatException nfe) {
