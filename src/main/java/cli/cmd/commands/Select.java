@@ -157,7 +157,10 @@ public class Select extends Command {
 
         // Order if necessary (only by one attribute, and only ascending)
         if (orderByData != null) {
-            int sortColIdx = getTableAttrOffsets().get(orderByData.TableName) + catalog.getRecordSchema(orderByData.TableName).getIndexOfAttribute(orderByData.AttributeName);
+            int sortColIdx = attrsToDisplay != null
+                ? attrsToDisplay.stream().map(AttributeName::getFullName).toList().indexOf(orderByData.getFullName())
+                : getTableAttrOffsets().get(orderByData.TableName) + catalog.getRecordSchema(orderByData.TableName).getIndexOfAttribute(orderByData.AttributeName);
+
 
             finalRecords.sort((r1, r2) -> {
                 return r2.get(sortColIdx).compareTo(r1.get(sortColIdx)); // reverse the order
