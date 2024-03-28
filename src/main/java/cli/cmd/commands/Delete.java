@@ -13,8 +13,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import dataTypes.AttributeType;
+import dataTypes.DataType;
 import util.Console;
 import sm.StorageManager;
+import util.where.WhereTree;
 
 /**
  * <b>File:</b> Display.java
@@ -34,9 +36,9 @@ public class Delete extends Command{
 
     private final ICatalog catalog;
     private final StorageManager sm;
-    private final Set<String> attributeNames;
     private final String tableName;
     private final HashMap<String, List<String>> conditionMap;
+    private WhereTree whereTree;
 
     public Delete(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
@@ -53,28 +55,15 @@ public class Delete extends Command{
         this.tableName = tableName;
         validateTableName(tableName);
         validateTableExists(tableName);
-        validateConditions(args);
 
-        Set<String> attributeNames = null;
         if (fullMatcher.group(2) != null) {
-            attributeNames = extractAttributeNames(fullMatcher.group(2));
-            for (String attr : attributeNames) {
-                validateAttributeExists(attr, tableName, args);
+            try{
+                this.whereTree = new WhereTree(fullMatcher.group(2), this.catalog, List.of(this.tableName));
+            } catch (ExecutionFailure e){
+                throw new InvalidUsage(args, e.getMessage());
             }
         }
-        this.attributeNames = attributeNames;
 
-    }
-
-    private Set<String> extractAttributeNames(String conditions) {
-        Set<String> attributeNames = new HashSet<>();
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-
-        while (conditionMatcher.find()) {
-            attributeNames.add(conditionMatcher.group(1));
-        }
-
-        return attributeNames;
     }
 
     private void validateTableName(String tableName) throws InvalidUsage {
@@ -90,53 +79,6 @@ public class Delete extends Command{
         }
     }
 
-    private void validateAttributeExists(String attr, String tableName, String args) throws InvalidUsage {
-        Table table = catalog.getRecordSchema(tableName);
-        List<Attribute> attributes = table.getAttributes();
-        Boolean temp = false;
-        for (Attribute a : attributes) {
-            if (a.getName().equals(attr)) {
-                temp = true;
-            }
-        }
-        if(!temp){
-            throw new InvalidUsage(args, "Table " + tableName + " does not contain the attribute " + attr + "\nERROR");
-        }
-        
-    }
-
-    private void validateConditions(String args) throws InvalidUsage {
-        String conditionals = args.toLowerCase().contains("where")
-            ? args.substring(args.toLowerCase().indexOf("where") + 5).trim().replace(";", "")
-            : "";
-    
-        if (!conditionals.isEmpty()) {
-            if (conditionals.trim().matches(".*(and|or)\\s*$")) {
-                throw new InvalidUsage(args, "Invalid conditional expression: ");
-            }
-    
-            String[] conditions = conditionals.split("\\s+(and|or)\\s+");
-            for (String condition : conditions) {
-                parseConditionsIntoMap(condition);
-                if (!EACH_CONDITIONAL_MATCH.matcher(condition.trim()).matches()) {
-                    throw new InvalidUsage(args, "Invalid conditional expression: " + condition);
-                }
-            }
-        }
-    }
-    
-
-    private void parseConditionsIntoMap(String conditions) {
-        Matcher conditionMatcher = EACH_CONDITIONAL_MATCH.matcher(conditions);
-        while (conditionMatcher.find()) {
-            String attribute = conditionMatcher.group(1);
-            String condition = conditionMatcher.group(0); // The entire condition matched
-
-            conditionMap.putIfAbsent(attribute, new ArrayList<>());
-            conditionMap.get(attribute).add(condition);
-        }
-    }
-
 
     @Override
     protected void helpMessage() {
@@ -144,8 +86,18 @@ public class Delete extends Command{
     }
 
     @Override
-    public void execute() throws ExecutionFailure { 
-        
+    public void execute() throws ExecutionFailure {
+        int tableID = this.catalog.getTableNumber(this.tableName);
+        int pki = this.catalog.getRecordSchema(this.tableName).getIndexOfPrimaryKey();
+
+        // For each record, if where clause matches delete from table
+        this.sm.getAllRecords(
+                tableID,
+                this.catalog.getRecordSchema(this.tableName).getAttributes()
+        ).forEach( (record) -> {
+            if(this.whereTree.passesTree(record))
+                this.sm.deleteRecord(tableID, record.get(pki));
+        });
     }
 
     
