@@ -488,7 +488,6 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-
     private static int test_insert_tuple_out_of_order() {
         String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
         Tester tester = new Tester("insert_tuple_out_of_order");
@@ -536,7 +535,6 @@ public class TestRunner {
         // Then
         return tester.isEquals(command, expected, actual);
     }
-
 
     private static int test_whereTreeCreation_with_variousInputs() {
         ICatalog mockCatalog = new ICatalog() {
@@ -915,6 +913,76 @@ public class TestRunner {
         return failedTests;
     }
 
+    private static int test_select_missing_value(){
+        return 1;
+    }
+
+    private static int test_select_attribute_by_alias(){
+        return 1;
+    }
+
+    private static int test_select_order_by_value(){
+        return 1;
+    }
+
+    private static int test_select_where_equals(){
+        return 1;
+    }
+
+    private static int test_select_where_less_than_equals(){
+        return 1;
+    }
+
+    private static int test_select_where_greater_than(){
+        return 1;
+    }
+
+    private static int test_select_where_greater_than_equals(){
+        return 1;
+    }
+
+    private static int test_select_where_and_condition(){
+        return 1;
+    }
+
+    private static int test_select_where_or_condition(){
+        return 1;
+    }
+
+    private static int test_select_where_different_types(){
+        return 1;
+    }
+
+    private static int test_select_from_multiple_tables(){
+        return 1;
+    }
+
+    private static int test_select_explicit_ambiguous_columns(){
+        return 1;
+    }
+
+    private static int test_delete_where_equals(){
+        return 1;
+    }
+
+    private static int test_delete_where_greater_than(){
+        return 1;
+    }
+
+    private static int test_update_where_equals(){
+        return 1;
+    }
+
+    private static int test_update_where_or(){
+        return 1;
+    }
+
+    private static int test_update_duplicate_primary_key(){
+        return 1;
+    }
+
+
+
     /**
      * Run tests
      *
@@ -944,7 +1012,7 @@ public class TestRunner {
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
         exitCode += test_insert_ten_entries_into_existing_table();
-        exitCode += test_insert_1000_entries_into_existing_table();     // excluded b/c takes forever
+        exitCode += test_insert_1000_entries_into_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table_with_default();
         exitCode += test_alter_drop_missing_column_from_table();
@@ -956,7 +1024,23 @@ public class TestRunner {
         exitCode += test_insert_tuple_with_invalid_varchar();
         exitCode += test_whereTreeCreation_with_variousInputs();
         exitCode += test_whereCompare_with_variousInputs();
-
+        exitCode += test_select_missing_value();
+        exitCode += test_select_attribute_by_alias();
+        exitCode += test_select_order_by_value();
+        exitCode += test_select_where_equals();
+        exitCode += test_select_where_less_than_equals();
+        exitCode += test_select_where_greater_than();
+        exitCode += test_select_where_greater_than_equals();
+        exitCode += test_select_where_and_condition();
+        exitCode += test_select_where_or_condition();
+        exitCode += test_select_where_different_types();
+        exitCode +=  test_select_from_multiple_tables();
+        exitCode +=  test_select_explicit_ambiguous_columns();
+        exitCode +=  test_delete_where_equals();
+        exitCode += test_delete_where_greater_than();
+        exitCode += test_update_where_equals();
+        exitCode += test_update_where_equals();
+        exitCode += test_update_duplicate_primary_key();
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
