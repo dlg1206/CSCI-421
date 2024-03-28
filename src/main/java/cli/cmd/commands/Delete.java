@@ -5,6 +5,7 @@ import catalog.Attribute;
 import catalog.ICatalog;
 import catalog.Table;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,15 +90,19 @@ public class Delete extends Command{
     public void execute() throws ExecutionFailure {
         int tableID = this.catalog.getTableNumber(this.tableName);
         int pki = this.catalog.getRecordSchema(this.tableName).getIndexOfPrimaryKey();
+        List<Attribute> attributes = this.catalog.getRecordSchema(this.tableName).getAttributes();
 
         // For each record, if where clause matches delete from table
-        this.sm.getAllRecords(
-                tableID,
-                this.catalog.getRecordSchema(this.tableName).getAttributes()
-        ).forEach( (record) -> {
-            if(this.whereTree.passesTree(record))
-                this.sm.deleteRecord(tableID, record.get(pki));
-        });
+        for (List<DataType> record: this.sm.getAllRecords(tableID, attributes)) {
+            try {
+                // note: if no where clause is given, delete all records
+                if (whereTree == null || this.whereTree.passesTree(record)) {
+                    this.sm.deleteRecord(tableID, record.get(pki), attributes);
+                }
+            } catch (IOException e) {
+                throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
+            }
+        }
     }
 
     

@@ -92,7 +92,7 @@ class Page {
         // Search for record to delete
         for (List<DataType> storedRecord : records) {
             // Record exists in page, so delete it
-            if (primaryKey.equals(storedRecord.get(primaryKeyIndex))) {
+            if (primaryKey.compareTo(storedRecord.get(primaryKeyIndex)) == 0) {
                 records.remove(storedRecord);
                 this.data = BInterpreter.convertRecordsToPage(records);
                 return true;
@@ -194,6 +194,13 @@ class Page {
      */
     public int getPageNumber() {
         return this.pageNumber;
+    }
+
+    /**
+     * @return Page Size
+     */
+    public int getPageSize() {
+        return this.pageSize;
     }
 
     /**
