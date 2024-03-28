@@ -56,13 +56,19 @@ public class Tester {
      */
     public int isEquals(String command, String expected, String actual){
         boolean isEquals = expected.trim().equals(actual.trim());
-        String msg = new StrBuilder()
+        StrBuilder msg = new StrBuilder()
                 .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
-                .addLine(isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!")
-                .addLine(buildMessage(command, expected, actual) + RESET)
-                .build();
+                .addLine((isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!" ) + RESET);
 
-        System.out.print(msg);
+        // Only show diff if err
+        if(!isEquals){
+            msg.addLine(buildMessage(command, expected, actual));
+        } else {
+            msg.skipLine();
+        }
+
+
+        System.out.print(msg.build());
 
         return isEquals ? 0 : 1;
     }
