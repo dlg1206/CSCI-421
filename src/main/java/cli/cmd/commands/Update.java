@@ -5,6 +5,7 @@ import catalog.Attribute;
 import catalog.ICatalog;
 import catalog.Table;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +41,11 @@ public class Update extends Command{
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
     private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
 
+    private static final String UNEQUAL_ATTR_MSG = "Table %s expects %s attributes and you provided %s for tuple #%s";
+    private static final String INVALID_ATTR_TYPE_MSG = "The provided value '%s' for attribute '%s' is not of type %s for tuple #%s.";
+    private static final Pattern VALUE_PATTERN = Pattern.compile("\".*?\"|\\S+", Pattern.CASE_INSENSITIVE);
+
+    private final List<String> tuples = new ArrayList<>();
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
@@ -177,10 +183,9 @@ public class Update extends Command{
                 goodRecords.add(record);
         }
 
-
         for (List<DataType> record : goodRecords) {
             String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(0).stringValue() + ";";
-            String values = "( ";
+            String values = "";
             for (int i = 0; i < record.size(); i++) {
                 if(i == attributeIndex){
                     values = values + updateValue + " ";
@@ -189,21 +194,123 @@ public class Update extends Command{
                     values = values + record.get(i).stringValue() + " ";
                 }
             }
-            String insertCommand = "INSERT INTO " + tableName + " VALUES " + values + ");";
-            System.out.println(deleteCommand);
-            System.out.println(insertCommand);
-            // try {
-            //     // Run each command
-            //     Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
-            //     newDeleteExecutable.execute();
-            //     InsertInto newInsertIntoExecutable = new InsertInto(insertCommand, this.catalog, this.sm);
-            //     newInsertIntoExecutable.execute();
-            // } catch (InvalidUsage e) {
-            //     throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
-            // }
+
+            values = values.strip();
+            tuples.add(values);
+            try {
+                // Run each command
+                int tableNumber = catalog.getTableNumber(tableName);
+                List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
+                int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
+                List<DataType> tuple = convertStringToTuple(values, attrs);
+                checkUniqueConstraint(tableNumber, attrs, tuple);
+                
+                Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
+                newDeleteExecutable.execute();
+                
+
+                
+
+                    try {
+        
+                        if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(record.get(PKIndex)) == 0))
+                            throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(record.get(PKIndex).stringValue()));
+        
+                        
+                        sm.insertRecord(tableNumber, attrs, tuple);
+        
+                        
+        
+                    } catch (IOException ioe) {
+                        throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
+                    }
+        
+
+
+
+            } catch (InvalidUsage e) {
+                throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
+            }
         }
         System.out.println("SUCCESS: " + goodRecords.size() + " Records Changed");
 
+    }
+
+    private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple) throws ExecutionFailure {
+            int i = attributeIndex;
+            Attribute a = attrs.get(i);
+            DataType value = tuple.get(i);
+
+            int finalI = i;
+            if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
+                throw new ExecutionFailure("Attribute '%s' is unique"
+                        .formatted(a.getName()));
+            }
+    }
+
+    private List<DataType> convertStringToTuple(String entry, List<Attribute> attrs) throws ExecutionFailure {
+        List<String> values = customSplit(entry);
+
+        if (values.size() != attrs.size()) {
+            throw new ExecutionFailure(UNEQUAL_ATTR_MSG.formatted(tableName, attrs.size(), values.size()));
+        }
+
+        List<DataType> tuple = new ArrayList<>();
+
+        for (int i = 0; i < attrs.size(); i++) {
+
+            DataType dt;
+
+            Attribute a = attrs.get(i);
+            String value = values.get(i);
+            if (a.isNullable()) {
+                value = value.equalsIgnoreCase("null") ? null : value;
+            } else if (value.equalsIgnoreCase("null")) {
+                throw new ExecutionFailure("Attribute '%s' is not nullable"
+                        .formatted(a.getName()));
+            }
+
+            if ((a.getDataType() == AttributeType.CHAR || a.getDataType() == AttributeType.VARCHAR) && value != null) {
+                Matcher stringMatcher = STRING_PATTERN.matcher(value);
+
+                if (!stringMatcher.matches()) {
+                    throw new ExecutionFailure(NO_QUOTES_MSG.formatted(a.getName()));
+                }
+
+                value = stringMatcher.group(1);
+
+                if (value.length() > a.getMaxDataLength()) {
+                    throw new ExecutionFailure(INVALID_ATTR_LENGTH_MSG.formatted(a.getName(), a.getMaxDataLength()));
+                }
+            }
+
+            try {
+                dt = switch (a.getDataType()) {
+                    case INTEGER -> new DTInteger(value);
+                    case DOUBLE -> new DTDouble(value);
+                    case BOOLEAN -> new DTBoolean(value);
+                    case CHAR -> new DTChar(value, a.getMaxDataLength());
+                    case VARCHAR -> new DTVarchar(value);
+                };
+            } catch (NumberFormatException nfe) {
+                throw new ExecutionFailure(INVALID_ATTR_TYPE_MSG.formatted(values.get(i), a.getName(), a.getDataType()));
+            }
+
+            tuple.add(dt);
+        }
+
+        return tuple;
+    }
+
+    private List<String> customSplit(String input) {
+        List<String> result = new ArrayList<>();
+        Matcher valueMatcher = VALUE_PATTERN.matcher(input);
+
+        while (valueMatcher.find()) {
+            result.add(valueMatcher.group());
+        }
+
+        return result;
     }
 
 }
