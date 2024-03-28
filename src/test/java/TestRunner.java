@@ -1428,9 +1428,9 @@ public class TestRunner {
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "update foo set x = 7 where foo.y = 0.1;";
-
+        mockCLI.mockInput(command);
         // When
-        String actual = mockCLI.mockInput(command);
+        String actual = mockCLI.mockInput("select * from foo;");
 
         // Then
         return tester.isEquals(command, expected, actual);
