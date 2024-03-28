@@ -233,8 +233,28 @@ public class StorageManager {
     //
     // DELETE
     //
-    public void deleteRecord(int tableID, DataType primaryKey) {
-        // TODO
+    public void deleteRecord(int tableID, DataType primaryKey, List<Attribute> attributes) throws IOException {
+        // Get table file details
+        TableFile tf = new TableFile(this.databaseRoot, tableID);
+        int pageCount = tf.readPageCount();
+        int pki = getPrimaryKeyIndex(attributes);
+
+
+        // read each table page in order from the table file
+        for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+            // read page from buffer and attempt to delete
+            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
+            boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
+
+
+            // Record deleted, delete page if empty
+            if (recordDeleted && page.isEmpty()) {
+                tf.deletePage(this.buffer, pageNumber);
+            }
+
+            // Record deleted, done
+            if (recordDeleted) break;
+        }
     }
 
     /**

@@ -98,6 +98,22 @@ class TableFile {
     }
 
     /**
+     * Delete last page and update page count
+     *
+     * @throws IOException Failed to read file
+     */
+    private void deleteLastPageFromFile(int pageSize) throws IOException {
+        try (RandomAccessFile raf = toRandomAccessFile()) {
+            // update page count
+            byte[] buffer = new byte[] {(byte) (readPageCount() - 1)};
+            raf.write(buffer, 0, 1);
+
+            // remove last page from file
+            raf.setLength(1 + (long) readPageCount() * pageSize);
+        }
+    }
+
+    /**
      * Insert a split page into the table file
      *
      * @throws IOException Failed to read file
@@ -122,6 +138,31 @@ class TableFile {
         }
         buffer.flush();     // Write out any remaining files
         closeSwapFile();    // Save the swap file as the actual file
+    }
+
+    /**
+     * Delete a page from the table file
+     *
+     * @throws IOException Failed to read file
+     */
+    public void deletePage(PageBuffer buffer, int emptyPageNum) throws IOException {
+        int swapOffset = -1;
+        int pageCount = readPageCount();
+
+        // get page size and remove empty page from buffer
+        int pageSize = buffer.readFromBuffer(tableID, emptyPageNum, true).getPageSize();
+
+        // move all pages after empty page forward
+        for (int pageNumber = emptyPageNum + 1; pageNumber < pageCount; pageNumber++) {
+            Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
+            //buffer.writeToBuffer(page.getSwapPage(swapOffset));
+            buffer.writeToBuffer(new Page(this, pageSize, pageNumber - 1, page.getData()));
+        }
+
+        // Write out any remaining files
+        buffer.flush();
+
+        deleteLastPageFromFile(pageSize);
     }
 
     /**
