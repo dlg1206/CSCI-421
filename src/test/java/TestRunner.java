@@ -1464,7 +1464,7 @@ public class TestRunner {
     }
 
     private static int test_update_duplicate_primary_key(){
-        String expected = "Invalid Usage (update foo set x = 1 where foo.y = 7.8;): Cannot change primary key";
+        String expected = "Execution Failure: Attribute 'x' is a primarykey: cannot duplicate";
         Tester tester = new Tester("update_duplicate_primary_key");
 
         // Given
