@@ -913,72 +913,571 @@ public class TestRunner {
         return failedTests;
     }
 
-    private static int test_select_missing_value(){
-        return 1;
+    private static int test_select_missing_attribute(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select f from foo;): The attribute names could not be parsed:")
+                .addLine("\tf")
+                .addLine("\t^ This attribute is not part of any of the requested tables.")
+                .build();
+        Tester tester = new Tester("select_missing_attribute");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        String command = "select f from foo;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_attribute_by_alias(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("---------")
+                .addLine("| foo.x |")
+                .addLine("---------")
+                .addLine("|      1|")
+                .addLine("|      2|")
+                .addLine("|      3|")
+                .addLine("|      4|")
+                .addLine("|      5|")
+                .build();
+        Tester tester = new Tester("select_attribute_by_alias");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select foo.x from foo;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_order_by_value(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("select_order_by_value");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo orderby x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_where_equals(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    2|  3.7|")
+                .build();
+        Tester tester = new Tester("select_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where x = 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_less_than_equals(){
-        return 1;
+    private static int test_select_where_alias_less_than_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .build();
+        Tester tester = new Tester("select_where_alias_less_than_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where foo.x <= 3;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_greater_than(){
-        return 1;
+    private static int test_select_where_alias_greater_than(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    2|  3.7|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("select_where_alias_greater_than");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where foo.y > 2.1;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_greater_than_equals(){
-        return 1;
+    private static int test_select_attribute_where_greater_than_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------")
+                .addLine("|  x  |")
+                .addLine("-------")
+                .addLine("|    2|")
+                .addLine("|    5|")
+                .build();
+        Tester tester = new Tester("select_attribute_where_greater_than_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select x from foo where foo.y > 2.1;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_where_and_condition(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    4|  0.1|")
+                .build();
+        Tester tester = new Tester("where_and_condition");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where x > 2 and foo.y < 2.0;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_or_condition(){
-        return 1;
+    private static int test_select_where_alias_or_condition_orderby(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  y  |  x  |")
+                .addLine("-------------")
+                .addLine("|  2.1|    1|")
+                .addLine("|  2.1|    3|")
+                .addLine("|  3.7|    2|")
+                .addLine("|  7.8|    5|")
+                .build();
+        Tester tester = new Tester("select_where_alias_or_condition_orderby");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select y, x from foo where foo.x = 2 or y > 2.0 orderby foo.y;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_where_different_types(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar where foo.x = bar.x;): Execution Failure: The where clause is invalid:")
+                .addLine("\tfoo.x = bar.x")
+                .addLine("\t^^^^^   ^^^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).")
+                .build();
+        Tester tester = new Tester("select_where_different_type");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where foo.x = bar.x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_select_from_multiple_tables(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-----------------------------")
+                .addLine("| foo.x |  y  |  a  | bar.x |")
+                .addLine("-----------------------------")
+                .addLine("|      1|  2.1|    1|   10.1|")
+                .addLine("|      1|  2.1|    2|   21.2|")
+                .addLine("|      1|  2.1|    5|    2.1|")
+                .addLine("|      1|  2.1|    6|    3.7|")
+                .addLine("|      1|  2.1|    9|   34.6|")
+                .addLine("|      2|  3.7|    1|   10.1|")
+                .addLine("|      2|  3.7|    2|   21.2|")
+                .addLine("|      2|  3.7|    5|    2.1|")
+                .addLine("|      2|  3.7|    6|    3.7|")
+                .addLine("|      2|  3.7|    9|   34.6|")
+                .addLine("|      3|  2.1|    1|   10.1|")
+                .addLine("|      3|  2.1|    2|   21.2|")
+                .addLine("|      3|  2.1|    5|    2.1|")
+                .addLine("|      3|  2.1|    6|    3.7|")
+                .addLine("|      3|  2.1|    9|   34.6|")
+                .addLine("|      4|  0.1|    1|   10.1|")
+                .addLine("|      4|  0.1|    2|   21.2|")
+                .addLine("|      4|  0.1|    5|    2.1|")
+                .addLine("|      4|  0.1|    6|    3.7|")
+                .addLine("|      4|  0.1|    9|   34.6|")
+                .addLine("|      5|  7.8|    1|   10.1|")
+                .addLine("|      5|  7.8|    2|   21.2|")
+                .addLine("|      5|  7.8|    5|    2.1|")
+                .addLine("|      5|  7.8|    6|    3.7|")
+                .addLine("|      5|  7.8|    9|   34.6|")
+                .build();
+        Tester tester = new Tester("select_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_explicit_ambiguous_columns(){
-        return 1;
+    private static int test_select_missing_table_from_multiple_tables(){
+        String expected = "Invalid Usage (select * from foo, baz;): Table baz does not exist in the Catalog";
+
+        Tester tester = new Tester("select_missing_table_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo, baz;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_columns(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar where x = 2;): Execution Failure: The where clause is invalid:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_columns");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where x = 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_orderby_ambiguous_columns(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar orderby x;): The attribute names could not be parsed:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_orderby_ambiguous_columns");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar orderby x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_by_alias(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.x | bar.x |")
+                .addLine("-----------------")
+                .addLine("|      1|   10.1|")
+                .addLine("|      1|   21.2|")
+                .addLine("|      1|    2.1|")
+                .addLine("|      1|    3.7|")
+                .addLine("|      1|   34.6|")
+                .addLine("|      2|   10.1|")
+                .addLine("|      2|   21.2|")
+                .addLine("|      2|    2.1|")
+                .addLine("|      2|    3.7|")
+                .addLine("|      2|   34.6|")
+                .addLine("|      3|   10.1|")
+                .addLine("|      3|   21.2|")
+                .addLine("|      3|    2.1|")
+                .addLine("|      3|    3.7|")
+                .addLine("|      3|   34.6|")
+                .addLine("|      4|   10.1|")
+                .addLine("|      4|   21.2|")
+                .addLine("|      4|    2.1|")
+                .addLine("|      4|    3.7|")
+                .addLine("|      4|   34.6|")
+                .addLine("|      5|   10.1|")
+                .addLine("|      5|   21.2|")
+                .addLine("|      5|    2.1|")
+                .addLine("|      5|    3.7|")
+                .addLine("|      5|   34.6|")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_by_alias");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select foo.x, bar.x from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_by_alias_and_attribute(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select foo.x, x from foo, bar;): The attribute names could not be parsed:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_by_alias_and_attribute");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select foo.x, x from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_alias_from_multiple_tables(){
+        String expected = new StrBuilder()
+                .addLine("-----------------------------")
+                .addLine("| foo.x |  y  |  a  | bar.x |")
+                .addLine("-----------------------------")
+                .addLine("|      1|  2.1|    1|   10.1|")
+                .addLine("|      2|  3.7|    2|   21.2|")
+                .addLine("|      5|  7.8|    5|    2.1|")
+                .build();
+        Tester tester = new Tester("select_where_alias_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where foo.x = a;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_delete_where_equals(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("delete_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "delete from foo where x = 2;";
+        mockCLI.mockInput(command);
+
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_delete_where_greater_than(){
-        return 1;
+    private static int test_delete_where_no_change(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("delete_where_no_change");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "delete from foo where x > 100;";
+        mockCLI.mockInput(command);
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_update_where_equals(){
-        return 1;
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    5|  7.8|")
+                .addLine("|    7|  0.1|")
+                .build();
+        Tester tester = new Tester("update_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set x = 7 where foo.y = 0.1;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_where_or(){
-        return 1;
+    private static int test_update_where_or_non_primary_key(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  0.0|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  0.0|")
+                .build();
+        Tester tester = new Tester("update_where_or_non_primary_key");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set y = 0.00 where x = 1 or y = 7.8;";
+        mockCLI.mockInput(command);
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
     private static int test_update_duplicate_primary_key(){
-        return 1;
+        String expected = "Invalid Usage (update foo set x = 1 where foo.y = 7.8;): Cannot change primary key";
+        Tester tester = new Tester("update_duplicate_primary_key");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set x = 1 where foo.y = 7.8;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
     }
 
 
@@ -997,9 +1496,11 @@ public class TestRunner {
 
         Files.createDirectories(Paths.get(DB_ROOT));
 
-        System.out.println("Running Test Cases");
-        System.out.println("\tBuffer Size: " + BUFFER_SIZE);
-        System.out.println("\tPage Size: " + PAGE_SIZE);
+        System.out.println(new StrBuilder()
+                .addLine("Running Test Cases")
+                .addLine("\tBuffer Size: " + BUFFER_SIZE)
+                .addLine("\tPage Size: " + PAGE_SIZE)
+                .build());
 
         int exitCode = 0;
 
@@ -1024,22 +1525,27 @@ public class TestRunner {
         exitCode += test_insert_tuple_with_invalid_varchar();
         exitCode += test_whereTreeCreation_with_variousInputs();
         exitCode += test_whereCompare_with_variousInputs();
-        exitCode += test_select_missing_value();
+        exitCode += test_select_missing_attribute();
         exitCode += test_select_attribute_by_alias();
         exitCode += test_select_order_by_value();
         exitCode += test_select_where_equals();
-        exitCode += test_select_where_less_than_equals();
-        exitCode += test_select_where_greater_than();
-        exitCode += test_select_where_greater_than_equals();
+        exitCode += test_select_where_alias_less_than_equals();
+        exitCode += test_select_where_alias_greater_than();
+        exitCode += test_select_attribute_where_greater_than_equals();
         exitCode += test_select_where_and_condition();
-        exitCode += test_select_where_or_condition();
+        exitCode += test_select_where_alias_or_condition_orderby();
         exitCode += test_select_where_different_types();
-        exitCode +=  test_select_from_multiple_tables();
-        exitCode +=  test_select_explicit_ambiguous_columns();
-        exitCode +=  test_delete_where_equals();
-        exitCode += test_delete_where_greater_than();
+        exitCode += test_select_from_multiple_tables();
+        exitCode += test_select_missing_table_from_multiple_tables();
+        exitCode += test_select_where_ambiguous_columns();
+        exitCode += test_select_orderby_ambiguous_columns();
+        exitCode += test_select_where_ambiguous_by_alias();
+        exitCode += test_select_where_ambiguous_by_alias_and_attribute();
+        exitCode += test_select_where_alias_from_multiple_tables();
+        exitCode += test_delete_where_equals();
+        exitCode += test_delete_where_no_change();
         exitCode += test_update_where_equals();
-        exitCode += test_update_where_equals();
+        exitCode += test_update_where_or_non_primary_key();
         exitCode += test_update_duplicate_primary_key();
 
         cleanUp();  // rm any testing db files
