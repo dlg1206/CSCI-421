@@ -239,7 +239,11 @@ public class Update extends Command{
             DataType value = tuple.get(i);
 
             int finalI = i;
-            if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
+            if (a.isUnique() && a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
+                throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
+                        .formatted(a.getName()));
+            }
+            else if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
                 throw new ExecutionFailure("Attribute '%s' is unique"
                         .formatted(a.getName()));
             }
