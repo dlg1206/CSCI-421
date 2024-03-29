@@ -16,6 +16,8 @@ import cli.cmd.exception.InvalidUsage;
 import dataTypes.AttributeType;
 import sm.StorageManager;
 
+import static util.ReservedKeywords.*;
+
 /**
  * <b>File:</b> CreateTable.java
  * <p>
@@ -63,6 +65,9 @@ public class CreateTable extends Command {
             throw new InvalidUsage(args, "Table " + tableName + " Already Exists");
         }
 
+        if (!isValidName(tableName))
+            throw new InvalidUsage(args, INVALID_TABLE_NAME_MSG.formatted(tableName));
+
         Matcher attrMatcher = ATTR_MATCH.matcher(fullMatcher.group(2));
 
         while (attrMatcher.find()) {
@@ -76,6 +81,10 @@ public class CreateTable extends Command {
             if (!attrNameMatcher.matches()) {
                 throw new InvalidUsage(args, "The name '%s' is not a valid attribute name.".formatted(attrName));
             }
+
+
+            if (!isValidName(attrName))
+                throw new InvalidUsage(args, INVALID_ATTR_NAME_MSG.formatted(attrName));
 
             if (attributes.stream().map(Attribute::getName).toList().contains(attrName)) {
                 throw new InvalidUsage(args, "The attribute name '%s' cannot be used more than once.".formatted(attrName));

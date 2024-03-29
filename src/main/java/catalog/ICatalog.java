@@ -9,9 +9,9 @@ import java.util.Set;
 public interface ICatalog {
 
     Table getRecordSchema(String tableName);
+    Attribute getTableAttribute(String tableName, String attrName);
     int getTableNumber(String name);
     int getPageSize();
-    int getBufferSie();
     Set<String> getExistingTableNames();
     void createTable(String name, List<Attribute> attributes) throws IOException, ExecutionFailure;
     void deleteTable(String name) throws ExecutionFailure, IOException;

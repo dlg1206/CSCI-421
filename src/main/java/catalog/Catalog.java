@@ -151,11 +151,6 @@ public class Catalog implements ICatalog {
     }
 
     @Override
-    public int getBufferSie() {
-        return BufferSize;
-    }
-
-    @Override
     public Set<String> getExistingTableNames() {
         return Tables.keySet();
     }
@@ -170,6 +165,11 @@ public class Catalog implements ICatalog {
     public Table getRecordSchema(String tableName) {
         tableName = tableName.toLowerCase();
         return Tables.get(tableName);
+    }
+
+    @Override
+    public Attribute getTableAttribute(String tableName, String attrName) {
+        return getRecordSchema(tableName).getAttribute(attrName);
     }
 
 

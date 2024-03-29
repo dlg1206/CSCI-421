@@ -141,40 +141,41 @@ public class BInterpreter {
         // write number of records (4 bytes)
         pageData.writeBytes(ByteBuffer.allocate(4).putInt(records.size()).array());
 
-        int bitmapSize = ((records.get(0).size()-1) / 8) + 1; // allocate bytes based on number of attributes
+        if (!records.isEmpty()) {
+            int bitmapSize = ((records.get(0).size() - 1) / 8) + 1; // allocate bytes based on number of attributes
 
-        // write each record
-        for (List<DataType> record: records) {
-            byte[] bitmap = new byte[bitmapSize];
+            // write each record
+            for (List<DataType> record : records) {
+                byte[] bitmap = new byte[bitmapSize];
 
-            ByteArrayOutputStream recordData = new ByteArrayOutputStream();
+                ByteArrayOutputStream recordData = new ByteArrayOutputStream();
 
-            for (int i = 0; i < record.size(); i++) {
-                DataType dataType = record.get(i);
+                for (int i = 0; i < record.size(); i++) {
+                    DataType dataType = record.get(i);
 
-                // if null, set bit in null bitmap
-                // don't write any data
-                if (dataType.isNull()) {
-                    setBit(bitmap, i, 1);
-                    continue;
+                    // if null, set bit in null bitmap
+                    // don't write any data
+                    if (dataType.isNull()) {
+                        setBit(bitmap, i, 1);
+                        continue;
+                    }
+
+                    if (dataType instanceof DTVarchar) {
+                        byte[] varcharData = dataType.convertToBytes();
+
+                        // for varchar, must write 1 byte for the length
+                        recordData.write((char) varcharData.length);
+                        recordData.writeBytes(varcharData);
+                    } else {
+                        recordData.writeBytes(dataType.convertToBytes());
+                    }
+
                 }
 
-                if (dataType instanceof DTVarchar) {
-                    byte[] varcharData = dataType.convertToBytes();
-
-                    // for varchar, must write 1 byte for the length
-                    recordData.write((char) varcharData.length);
-                    recordData.writeBytes(varcharData);
-                }
-                else {
-                    recordData.writeBytes(dataType.convertToBytes());
-                }
+                pageData.writeBytes(bitmap);
+                pageData.writeBytes(recordData.toByteArray());
 
             }
-
-            pageData.writeBytes(bitmap);
-            pageData.writeBytes(recordData.toByteArray());
-
         }
 
         return pageData.toByteArray();

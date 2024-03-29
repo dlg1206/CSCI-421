@@ -27,6 +27,8 @@ public class CommandFactory {
             case "insert" -> new InsertInto(args, catalog, storageManager);
             case "display" -> new Display(args, catalog, storageManager);
             case "select" -> new Select(args, catalog, storageManager);
+            case "delete" -> new Delete(args, catalog, storageManager);
+            case "update" -> new Update(args, catalog, storageManager);
             default -> throw new UnknownCommand(cmdKeyword);
         };
     }

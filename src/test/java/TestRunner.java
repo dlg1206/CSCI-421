@@ -1,16 +1,22 @@
-import catalog.Catalog;
+import catalog.Attribute;
+import catalog.ICatalog;
+import catalog.Table;
+import cli.cmd.exception.ExecutionFailure;
+import dataTypes.*;
 import mocks.MockCLI;
 import util.StrBuilder;
 import util.Tester;
+import util.where.WhereTree;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.Set;
+
 
 /**
  * <b>File:</b> TestRunner.java
@@ -40,8 +46,9 @@ public class TestRunner {
      */
     private static void cleanUp() {
         for (File file : Objects.requireNonNull(new File(DB_ROOT).listFiles()))
-            if (!file.isDirectory())
+            if (!file.isDirectory()) {
                 file.delete();
+            }
     }
 
     private static int test_display_schema() {
@@ -248,7 +255,7 @@ public class TestRunner {
         try {
             expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
             return 1;
         }
 
@@ -481,7 +488,6 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-
     private static int test_insert_tuple_out_of_order() {
         String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
         Tester tester = new Tester("insert_tuple_out_of_order");
@@ -530,6 +536,1098 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_whereTreeCreation_with_variousInputs() {
+        ICatalog mockCatalog = new ICatalog() {
+            @Override
+            public Table getRecordSchema(String tableName) {
+                return tableName.equals("a")
+                        ? new Table("a", 1, List.of(new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("i", AttributeType.INTEGER, false, false),
+                        new Attribute("d", AttributeType.DOUBLE, false, false)))
+                        : new Table("b", 0, List.of(
+                        new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("z", AttributeType.BOOLEAN, false, false),
+                        new Attribute("q", AttributeType.CHAR, 10, false, false),
+                        new Attribute("f", AttributeType.VARCHAR, 5, false, false)));
+            }
+
+            @Override
+            public Attribute getTableAttribute(String tableName, String attrName) {
+                return tableName.equals("a")
+                        ? attrName.equals("x")
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("d")
+                                ? new Attribute("d", AttributeType.DOUBLE, false, false)
+                                : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x")
+                            ? new Attribute("x", AttributeType.INTEGER)
+                            : attrName.equals("z")
+                                ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                                : attrName.equals("q")
+                                    ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                                    : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+            }
+
+            @Override
+            public int getTableNumber(String name) {
+                return name.equals("a") ? 1 : 0;
+            }
+
+            @Override
+            public int getPageSize() {
+                return 0;
+            }
+
+            @Override
+            public Set<String> getExistingTableNames() {
+                return null;
+            }
+
+            @Override
+            public void createTable(String name, List<Attribute> attributes) {}
+
+            @Override
+            public void deleteTable(String name) {}
+
+            @Override
+            public void addAttribute(String tableName, Attribute attribute) {}
+        };
+
+        List<String> tests = List.of(
+                "where 1=1 or 2=2 and 3=3 or 4=4",
+                "where \"crash\" > 10 and x = \"test\"",
+                "where \"crash test dummy\" > 10 and x = \"test\"",
+                "where a.x = a.y",
+                "where a.x = a.x",
+                "where a.x = b.x",
+                "where x = x",
+                "where a.x = x",
+                "where x = b.x",
+                "where x > 10 and b.q = \"test\"",
+                "where 9 >= 7",
+                "where x.y = 7",
+                "where x.p = q.w",
+                "where x.p = z.x",
+                "where x.p = 3.2",
+                "where x.p = \"hey\"",
+                "where x.p = true",
+                "where \"cra\"h = 8",
+                "where x = y and \"cra\"h = 8",
+                "where x = y and \"cra\"h = 8",
+                "where x.y=z.e",
+                "where 6 and 7",
+                "where 6 plus 7",
+                "where 6 = 6 plus 7 = 7",
+                "where 1=1",
+                "where 1=true",
+                "where 1=3.0",
+                "where 1=3.",
+                "where b.q = b.f",
+                "where b.q = \"TEST\"",
+                "where b.f = \"TEST\"",
+                "where b.x = 1 and 3.4",
+                "where \"TEST\" = \"TEST2\"");
+
+        List<String> expected = List.of("1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "b.x = b.x",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "b.x = b.x",
+                "b.x > 10 and b.q = \"test\"",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "b.q = \"TEST\"",
+                "b.f = \"TEST\"",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
+                "a.x = a.x",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "a.x = a.x",
+                "a.x = a.x",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	a\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	b\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"",
+                "1 = 1 or 2 = 2 and 3 = 3 or 4 = 4",
+                "Execution Failure: The where clause is invalid:\n	\"crash\" > 10\n	^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	\"crash test dummy\" > 10\n	^^^^^^^^^^^^^^^^^^   ^^ The return types of these two expressions are not comparable ( CHAR and INTEGER ).\n",
+                "Execution Failure: The where clause is invalid:\n	a.y\n	  ^ This attribute does not exist in the table.",
+                "a.x = a.x",
+                "a.x = b.x",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This attribute name is ambiguous between multiple tables.\n",
+                "9 >= 7",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	\"cra\"h = 8\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	x\n	^ This table name does not exist.\n",
+                "Execution Failure: The where clause is invalid:\n	6 and 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	6 plus 7\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "Execution Failure: The where clause is invalid:\n	plus 7 = 7\n	^ Parse error. Tokens \"and\" or \"or\" expected here.\n",
+                "1 = 1",
+                "Execution Failure: The where clause is invalid:\n	1 = T\n	^   ^ The return types of these two expressions are not comparable ( INTEGER and BOOLEAN ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	1 = 3.0\n	^   ^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).\n",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "b.q = \"TEST\"",
+                "b.f = \"TEST\"",
+                "Execution Failure: The where clause is invalid:\n	3.4\n	^ Parse error. The parser could not validate this relational algebra.\n",
+                "\"TEST\" = \"TEST2\"");
+
+        int testI = 0;
+        int failedCount = 0;
+
+        for (List<String> tNames : List.of(
+            List.of("b"), List.of("a"), List.of("c", "d"),
+            List.of("a", "b"))) {
+            for (String t : tests) {
+                String result;
+                try {
+                    WhereTree test = new WhereTree(t, mockCatalog, tNames);
+                    result = test.toString();
+                } catch (ExecutionFailure e) {
+                    result = e.getMessage();
+                }
+                Tester tester = new Tester("test_whereTreeCreation_with_variousInputs_" + testI);
+                failedCount += tester.isEquals(tests.get(testI % tests.size()) + " - " + tNames, expected.get(testI), result);
+                testI++;
+            }
+        }
+
+        return failedCount;
+    }
+
+    private static int test_whereCompare_with_variousInputs() {
+        ICatalog mockCatalog = new ICatalog() {
+            @Override
+            public Table getRecordSchema(String tableName) {
+                return tableName.equals("a")
+                        ? new Table("a", 1, List.of(new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("i", AttributeType.INTEGER, false, false),
+                        new Attribute("d", AttributeType.DOUBLE, false, false)))
+                        : new Table("b", 0, List.of(
+                        new Attribute("x", AttributeType.INTEGER),
+                        new Attribute("z", AttributeType.BOOLEAN, false, false),
+                        new Attribute("q", AttributeType.CHAR, 10, false, false),
+                        new Attribute("f", AttributeType.VARCHAR, 5, false, false)));
+            }
+
+            @Override
+            public Attribute getTableAttribute(String tableName, String attrName) {
+                return tableName.equals("a")
+                        ? attrName.equals("x")
+                        ? new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("d") ? new Attribute("x", AttributeType.DOUBLE, false, false)
+                        : new Attribute("i", AttributeType.INTEGER, false, false)
+                        : attrName.equals("x") ?
+                        new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("z") ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                        : attrName.equals("q") ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+            }
+
+            @Override
+            public int getTableNumber(String name) {
+                return name.equals("a") ? 1 : 0;
+            }
+
+            @Override
+            public int getPageSize() {
+                return 0;
+            }
+
+            @Override
+            public Set<String> getExistingTableNames() {
+                return null;
+            }
+
+            @Override
+            public void createTable(String name, List<Attribute> attributes) {}
+
+            @Override
+            public void deleteTable(String name) {}
+
+            @Override
+            public void addAttribute(String tableName, Attribute attribute) {}
+        };
+        List<String> expected = List.of("true",
+                "false",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "true",
+                "false",
+                "Execution Failure: The where clause is invalid:\n	b.q = b.f\n	^^^   ^^^ The return types of these two expressions are not comparable ( CHAR and VARCHAR ).\n",
+                "true",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "false",
+                "true",
+                "Execution Failure: The where clause is invalid:\n	a.d = 1\n	^^^   ^ The return types of these two expressions are not comparable ( DOUBLE and INTEGER ).\n",
+                "true",
+                "false",
+                "true",
+                "false",
+                "true",
+                "true",
+                "true",
+                "false");
+        List<DataType> cartesianProductRecord = List.of(
+                new DTInteger("1"), new DTInteger("2"), new DTDouble("1.2"), // a
+                new DTInteger("2"), new DTBoolean("TRUE"), new DTChar("HI", 10), new DTVarchar("HI"));
+
+        List<String> tests = List.of("where 1=1",
+                "where 2=1",
+                "where \"HI\"=\"HI\"",
+                "where \"HI\"=\"BYE\"",
+                "where a.i=2",
+                "where i=2",
+                "where 2=2",
+                "where a.i=b.x",
+                "where a.x=b.x",
+                "where q=f",
+                "where q=\"HI\"",
+                "where f=\"HI\"",
+                "where q=\"BYE\"",
+                "where b.q=\"HI\"",
+                "where b.z=True",
+                "where b.z=TRUE",
+                "where a.d=2.0",
+                "where a.d=1.2",
+                "where a.d=1",
+                "where 1=1 and 2=2",
+                "where 1=1 and 1=2",
+                "where 1=1 or 1=2",
+                "where 0=1 or 1=2",
+                "where 1=1 or 2=2",
+                "where 1=1 or 2=2 and 3=3 or 4=4",
+                "where 1=1 or 1=2 and 3=3 or 4=4",
+                "where 2=1 or 1=2 and 3=3 or 3=4");
+
+        int failedTests = 0;
+        for (int i = 0; i < tests.size(); i++) {
+            String test = tests.get(i);
+            String exp = expected.get(i);
+            String actual;
+            try {
+                WhereTree testTree = new WhereTree(test, mockCatalog, List.of("a", "b"));
+                actual = Objects.toString(testTree.passesTree(cartesianProductRecord));
+            } catch (ExecutionFailure ef) {
+                actual = ef.getMessage();
+            }
+            Tester tester = new Tester("test_whereCompare_with_variousInputs_" + i);
+            failedTests += tester.isEquals(test, exp, actual);
+        }
+        return failedTests;
+    }
+
+    private static int test_select_missing_attribute(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select f from foo;): The attribute names could not be parsed:")
+                .addLine("\tf")
+                .addLine("\t^ This attribute is not part of any of the requested tables.")
+                .build();
+        Tester tester = new Tester("select_missing_attribute");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        String command = "select f from foo;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_attribute_by_alias(){
+        String expected = new StrBuilder()
+                .addLine("---------")
+                .addLine("| foo.x |")
+                .addLine("---------")
+                .addLine("|      1|")
+                .addLine("|      2|")
+                .addLine("|      3|")
+                .addLine("|      4|")
+                .addLine("|      5|")
+                .build();
+        Tester tester = new Tester("select_attribute_by_alias");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select foo.x from foo;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_order_by_value(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("select_order_by_value");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo orderby x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    2|  3.7|")
+                .build();
+        Tester tester = new Tester("select_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where x = 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_alias_less_than_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .build();
+        Tester tester = new Tester("select_where_alias_less_than_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where foo.x <= 3;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_alias_greater_than(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    2|  3.7|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("select_where_alias_greater_than");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where foo.y > 2.1;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_attribute_where_greater_than_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------")
+                .addLine("|  x  |")
+                .addLine("-------")
+                .addLine("|    2|")
+                .addLine("|    5|")
+                .build();
+        Tester tester = new Tester("select_attribute_where_greater_than_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select x from foo where foo.y > 2.1;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_and_condition(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    4|  0.1|")
+                .build();
+        Tester tester = new Tester("where_and_condition");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo where x > 2 and foo.y < 2.0;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_alias_or_condition_orderby(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  y  |  x  |")
+                .addLine("-------------")
+                .addLine("|  2.1|    1|")
+                .addLine("|  2.1|    3|")
+                .addLine("|  3.7|    2|")
+                .addLine("|  7.8|    5|")
+                .build();
+        Tester tester = new Tester("select_where_alias_or_condition_orderby");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select y, x from foo where foo.x = 2 or y > 2.0 orderby foo.y;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_different_types(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar where foo.x = bar.x;): Execution Failure: The where clause is invalid:")
+                .addLine("\tfoo.x = bar.x")
+                .addLine("\t^^^^^   ^^^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).")
+                .build();
+        Tester tester = new Tester("select_where_different_type");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where foo.x = bar.x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_from_multiple_tables(){
+        String expected = new StrBuilder()
+                .addLine("-----------------------------")
+                .addLine("| foo.x |  y  |  a  | bar.x |")
+                .addLine("-----------------------------")
+                .addLine("|      1|  2.1|    1|   10.1|")
+                .addLine("|      1|  2.1|    2|   21.2|")
+                .addLine("|      1|  2.1|    5|    2.1|")
+                .addLine("|      1|  2.1|    6|    3.7|")
+                .addLine("|      1|  2.1|    9|   34.6|")
+                .addLine("|      2|  3.7|    1|   10.1|")
+                .addLine("|      2|  3.7|    2|   21.2|")
+                .addLine("|      2|  3.7|    5|    2.1|")
+                .addLine("|      2|  3.7|    6|    3.7|")
+                .addLine("|      2|  3.7|    9|   34.6|")
+                .addLine("|      3|  2.1|    1|   10.1|")
+                .addLine("|      3|  2.1|    2|   21.2|")
+                .addLine("|      3|  2.1|    5|    2.1|")
+                .addLine("|      3|  2.1|    6|    3.7|")
+                .addLine("|      3|  2.1|    9|   34.6|")
+                .addLine("|      4|  0.1|    1|   10.1|")
+                .addLine("|      4|  0.1|    2|   21.2|")
+                .addLine("|      4|  0.1|    5|    2.1|")
+                .addLine("|      4|  0.1|    6|    3.7|")
+                .addLine("|      4|  0.1|    9|   34.6|")
+                .addLine("|      5|  7.8|    1|   10.1|")
+                .addLine("|      5|  7.8|    2|   21.2|")
+                .addLine("|      5|  7.8|    5|    2.1|")
+                .addLine("|      5|  7.8|    6|    3.7|")
+                .addLine("|      5|  7.8|    9|   34.6|")
+                .build();
+        Tester tester = new Tester("select_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_missing_table_from_multiple_tables(){
+        String expected = "Invalid Usage (select * from foo, baz;): Table baz does not exist in the Catalog";
+
+        Tester tester = new Tester("select_missing_table_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "select * from foo, baz;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_columns(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar where x = 2;): Execution Failure: The where clause is invalid:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_columns");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where x = 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_orderby_ambiguous_columns(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select * from foo, bar orderby x;): The attribute names could not be parsed:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_orderby_ambiguous_columns");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar orderby x;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_by_alias(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.x | bar.x |")
+                .addLine("-----------------")
+                .addLine("|      1|   10.1|")
+                .addLine("|      1|   21.2|")
+                .addLine("|      1|    2.1|")
+                .addLine("|      1|    3.7|")
+                .addLine("|      1|   34.6|")
+                .addLine("|      2|   10.1|")
+                .addLine("|      2|   21.2|")
+                .addLine("|      2|    2.1|")
+                .addLine("|      2|    3.7|")
+                .addLine("|      2|   34.6|")
+                .addLine("|      3|   10.1|")
+                .addLine("|      3|   21.2|")
+                .addLine("|      3|    2.1|")
+                .addLine("|      3|    3.7|")
+                .addLine("|      3|   34.6|")
+                .addLine("|      4|   10.1|")
+                .addLine("|      4|   21.2|")
+                .addLine("|      4|    2.1|")
+                .addLine("|      4|    3.7|")
+                .addLine("|      4|   34.6|")
+                .addLine("|      5|   10.1|")
+                .addLine("|      5|   21.2|")
+                .addLine("|      5|    2.1|")
+                .addLine("|      5|    3.7|")
+                .addLine("|      5|   34.6|")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_by_alias");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select foo.x, bar.x from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_ambiguous_by_alias_and_attribute(){
+        String expected = new StrBuilder()
+                .addLine("Invalid Usage (select foo.x, x from foo, bar;): The attribute names could not be parsed:")
+                .addLine("\tx")
+                .addLine("\t^ This attribute name is ambiguous between multiple tables.")
+                .build();
+        Tester tester = new Tester("select_where_ambiguous_by_alias_and_attribute");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select foo.x, x from foo, bar;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_where_alias_from_multiple_tables(){
+        String expected = new StrBuilder()
+                .addLine("-----------------------------")
+                .addLine("| foo.x |  y  |  a  | bar.x |")
+                .addLine("-----------------------------")
+                .addLine("|      1|  2.1|    1|   10.1|")
+                .addLine("|      2|  3.7|    2|   21.2|")
+                .addLine("|      5|  7.8|    5|    2.1|")
+                .build();
+        Tester tester = new Tester("select_where_alias_from_multiple_tables");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        mockCLI.mockInput("create table bar( a integer primarykey, x double );");
+        mockCLI.mockInput("insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1), (6 3.7);");
+        String command = "select * from foo, bar where foo.x = a;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_delete_where_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("delete_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "delete from foo where x = 2;";
+        mockCLI.mockInput(command);
+
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_delete_where_no_change(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  7.8|")
+                .build();
+        Tester tester = new Tester("delete_where_no_change");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "delete from foo where x > 100;";
+        mockCLI.mockInput(command);
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_where_equals(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  2.1|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    5|  7.8|")
+                .addLine("|    7|  0.1|")
+                .build();
+        Tester tester = new Tester("update_where_equals");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set x = 7 where foo.y = 0.1;";
+        mockCLI.mockInput(command);
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_where_or_non_primary_key(){
+        String expected = new StrBuilder()
+                .addLine("-------------")
+                .addLine("|  x  |  y  |")
+                .addLine("-------------")
+                .addLine("|    1|  0.0|")
+                .addLine("|    2|  3.7|")
+                .addLine("|    3|  2.1|")
+                .addLine("|    4|  0.1|")
+                .addLine("|    5|  0.0|")
+                .build();
+        Tester tester = new Tester("update_where_or_non_primary_key");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set y = 0.00 where x = 1 or y = 7.8;";
+        mockCLI.mockInput(command);
+
+        // When
+        String actual = mockCLI.mockInput("select * from foo;");
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_duplicate_primary_key(){
+        String expected = "Execution Failure: Attribute 'x' is a primarykey: cannot duplicate";
+        Tester tester = new Tester("update_duplicate_primary_key");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( x integer primarykey, y double );");
+        mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
+        String command = "update foo set x = 1 where foo.y = 7.8;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| FOO.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT FOO.a, bar.a FROM FOO,bar WHERE foo.A = 100 and BAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesAllLower_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT foo.a, bar.a FROM FOO,BAR WHERE FOO.A = 100 and BAR.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| FOO.A | BAR.A |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT FOO.A, BAR.A FROM foo, bar WHERE Foo.A = 100 and bAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesDontExist_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT * FROM foo, bar WHERE Foo.A = 100 and bAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_when_attributeNamesAreCapitalized_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_attributeNamesAreCapitalized_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
+        String command = "update waffle set Y = 15 where Z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_when_tableNameHasWeirdCapitalization_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_tableNameHasWeirdCapitalization_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
+        String command = "update waFFle set Y = 15 where Z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_primaryKeyIsNotInPositionZero_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (y integer, x integer primarykey, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (1 2 1.0), (1 3 1.5), (1 4 1.5);");
+        String command = "update waffle set y = 15 where z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+
 
     /**
      * Run tests
@@ -545,9 +1643,11 @@ public class TestRunner {
 
         Files.createDirectories(Paths.get(DB_ROOT));
 
-        System.out.println("Running Test Cases");
-        System.out.println("\tBuffer Size: " + BUFFER_SIZE);
-        System.out.println("\tPage Size: " + PAGE_SIZE);
+        System.out.println(new StrBuilder()
+                .addLine("Running Test Cases")
+                .addLine("\tBuffer Size: " + BUFFER_SIZE)
+                .addLine("\tPage Size: " + PAGE_SIZE)
+                .build());
 
         int exitCode = 0;
 
@@ -560,7 +1660,7 @@ public class TestRunner {
         exitCode += test_select_from_non_empty_table();
         exitCode += test_insert_duplicate_entry();
         exitCode += test_insert_ten_entries_into_existing_table();
-        exitCode += test_insert_1000_entries_into_existing_table();     // excluded b/c takes forever
+        exitCode += test_insert_1000_entries_into_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table();
         exitCode += test_alter_add_new_column_to_existing_table_with_default();
         exitCode += test_alter_drop_missing_column_from_table();
@@ -570,6 +1670,37 @@ public class TestRunner {
         exitCode += test_insert_tuple_out_of_order();
         exitCode += test_insert_tuple_with_missing_value();
         exitCode += test_insert_tuple_with_invalid_varchar();
+        exitCode += test_whereTreeCreation_with_variousInputs();
+        exitCode += test_whereCompare_with_variousInputs();
+        exitCode += test_select_missing_attribute();
+        exitCode += test_select_attribute_by_alias();
+        exitCode += test_select_order_by_value();
+        exitCode += test_select_where_equals();
+        exitCode += test_select_where_alias_less_than_equals();
+        exitCode += test_select_where_alias_greater_than();
+        exitCode += test_select_attribute_where_greater_than_equals();
+        exitCode += test_select_where_and_condition();
+        exitCode += test_select_where_alias_or_condition_orderby();
+        exitCode += test_select_where_different_types();
+        exitCode += test_select_from_multiple_tables();
+        exitCode += test_select_missing_table_from_multiple_tables();
+        exitCode += test_select_where_ambiguous_columns();
+        exitCode += test_select_orderby_ambiguous_columns();
+        exitCode += test_select_where_ambiguous_by_alias();
+        exitCode += test_select_where_ambiguous_by_alias_and_attribute();
+        exitCode += test_select_where_alias_from_multiple_tables();
+        exitCode += test_delete_where_equals();
+        exitCode += test_delete_where_no_change();
+        exitCode += test_update_where_equals();
+        exitCode += test_update_where_or_non_primary_key();
+        exitCode += test_update_duplicate_primary_key();
+        exitCode += test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName();
+        exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally();
+        exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally();
+        exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally();
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
