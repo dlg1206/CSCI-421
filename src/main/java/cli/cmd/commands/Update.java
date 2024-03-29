@@ -7,8 +7,6 @@ import catalog.Table;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -20,7 +18,6 @@ import dataTypes.DTDouble;
 import dataTypes.DTInteger;
 import dataTypes.DTVarchar;
 import dataTypes.DataType;
-import util.Console;
 import util.where.WhereTree;
 import sm.StorageManager;
 
@@ -44,8 +41,6 @@ public class Update extends Command{
     private static final String UNEQUAL_ATTR_MSG = "Table %s expects %s attributes and you provided %s.";
     private static final String INVALID_ATTR_TYPE_MSG = "The provided value '%s' for attribute '%s' is not of type %s.";
     private static final Pattern VALUE_PATTERN = Pattern.compile("\".*?\"|\\S+", Pattern.CASE_INSENSITIVE);
-
-    private final List<String> tuples = new ArrayList<>();
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
@@ -83,7 +78,7 @@ public class Update extends Command{
                 case BOOLEAN -> new DTBoolean(updateValue);
                 case CHAR -> new DTChar(updateValue, setAttribute.getMaxDataLength());
                 case VARCHAR -> new DTVarchar(updateValue);
-            };
+            }
         } catch (NumberFormatException nfe) {
             throw new InvalidUsage(args, "Cannot set %s to value %s".formatted(columnName, updateValue));
         }
@@ -140,11 +135,11 @@ public class Update extends Command{
             if(a.isPrimaryKey()){
                 primaryKey = a;
             }
-            if (a.getName().equals(attr)) {
+            if (a.getName().equalsIgnoreCase(attr)) {
                 temp = true;
                 setAttribute = a;
             }
-            if(a.getName().equals(columnName)){
+            if(a.getName().equalsIgnoreCase(columnName)){
                 attributeIndex = count;
             }
             count++;
@@ -182,49 +177,36 @@ public class Update extends Command{
 
         for (List<DataType> record : goodRecords) {
             String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(0).stringValue() + ";";
-            String values = "";
+            StringBuilder values = new StringBuilder();
             for (int i = 0; i < record.size(); i++) {
                 if(i == attributeIndex){
-                    values = values + updateValue + " ";
+                    values.append(updateValue).append(" ");
                 }
                 else{
-                    values = values + record.get(i).stringValue() + " ";
+                    values.append(record.get(i).stringValue()).append(" ");
                 }
             }
 
-            values = values.replace("\"", "").strip();
-            tuples.add(values);
+            values = new StringBuilder(values.toString().replace("\"", "").strip());
             try {
                 // Run each command
                 int tableNumber = catalog.getTableNumber(tableName);
                 List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
                 int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
-                List<DataType> tuple = convertStringToTuple(values, attrs);
+                List<DataType> tuple = convertStringToTuple(values.toString(), attrs);
                 checkUniqueConstraint(tableNumber, attrs, tuple);
                 
                 Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
                 newDeleteExecutable.execute();
-                
 
-                
+                try {
+                    if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(record.get(PKIndex)) == 0))
+                        throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(record.get(PKIndex).stringValue()));
 
-                    try {
-        
-                        if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(record.get(PKIndex)) == 0))
-                            throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(record.get(PKIndex).stringValue()));
-        
-                        
-                        sm.insertRecord(tableNumber, attrs, tuple);
-        
-                        
-        
-                    } catch (IOException ioe) {
-                        throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
-                    }
-        
-
-
-
+                    sm.insertRecord(tableNumber, attrs, tuple);
+                } catch (IOException ioe) {
+                    throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
+                }
             } catch (InvalidUsage e) {
                 throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
             }
@@ -234,19 +216,18 @@ public class Update extends Command{
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple) throws ExecutionFailure {
-            int i = attributeIndex;
-            Attribute a = attrs.get(i);
-            DataType value = tuple.get(i);
+        int i = attributeIndex;
+        Attribute a = attrs.get(i);
+        DataType value = tuple.get(i);
 
-            int finalI = i;
-            if (a.isUnique() && a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
-                throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
-                        .formatted(a.getName()));
-            }
-            else if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
-                throw new ExecutionFailure("Attribute '%s' is unique"
-                        .formatted(a.getName()));
-            }
+        if (a.isUnique() && a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
+            throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
+                    .formatted(a.getName()));
+        }
+        else if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
+            throw new ExecutionFailure("Attribute '%s' is unique"
+                    .formatted(a.getName()));
+        }
     }
 
     private List<DataType> convertStringToTuple(String entry, List<Attribute> attrs) throws ExecutionFailure {
