@@ -1576,6 +1576,57 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_update_when_attributeNamesAreCapitalized_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_attributeNamesAreCapitalized_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
+        String command = "update waffle set Y = 15 where Z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_when_tableNameHasWeirdCapitalization_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_tableNameHasWeirdCapitalization_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
+        String command = "update waFFle set Y = 15 where Z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(){
+        String expected = "SUCCESS: 2 Records Changed";
+        Tester tester = new Tester("update_when_primaryKeyIsNotInPositionZero_then_workNormally");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table waffle (y integer, x integer primarykey, z double);");
+        mockCLI.mockInput("insert into waffle values (1 1 1.0), (1 2 1.0), (1 3 1.5), (1 4 1.5);");
+        String command = "update waffle set y = 15 where z = 1.5;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
     /**
@@ -1647,6 +1698,9 @@ public class TestRunner {
         exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName();
         exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName();
         exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName();
+        exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally();
+        exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally();
+        exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally();
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
