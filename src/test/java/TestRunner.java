@@ -1480,6 +1480,102 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
+    private static int test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| FOO.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT FOO.a, bar.a FROM FOO,bar WHERE foo.A = 100 and BAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesAllLower_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT foo.a, bar.a FROM FOO,BAR WHERE FOO.A = 100 and BAR.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| FOO.A | BAR.A |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT FOO.A, BAR.A FROM foo, bar WHERE Foo.A = 100 and bAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
+    private static int test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(){
+        String expected = new StrBuilder()
+                .addLine("-----------------")
+                .addLine("| foo.a | bar.a |")
+                .addLine("-----------------")
+                .addLine("|    100|      1|")
+                .build();
+        Tester tester = new Tester("select_when_tableNamesDontExist_then_outputTheUserDefinedTableName");
+
+        // Given
+        MockCLI mockCLI = buildMockCLI();
+        mockCLI.mockInput("create table foo( a integer primarykey);");
+        mockCLI.mockInput("create table bar( a integer primarykey);");
+        mockCLI.mockInput("insert into foo values (100);");
+        mockCLI.mockInput("insert into bar values (1);");
+        String command = "SELECT * FROM foo, bar WHERE Foo.A = 100 and bAr.a < 2;";
+
+        // When
+        String actual = mockCLI.mockInput(command);
+
+        // Then
+        return tester.isEquals(command, expected, actual);
+    }
+
 
 
     /**
@@ -1547,6 +1643,10 @@ public class TestRunner {
         exitCode += test_update_where_equals();
         exitCode += test_update_where_or_non_primary_key();
         exitCode += test_update_duplicate_primary_key();
+        exitCode += test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName();
+        exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName();
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
