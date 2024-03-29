@@ -49,6 +49,7 @@ public class Update extends Command{
     private WhereTree whereTree = null;
     private final List<String> tableNames;
     private Attribute primaryKey;
+    private int primaryKeyIdx;
     private Integer attributeIndex;
     private final String columnName;
 
@@ -134,6 +135,7 @@ public class Update extends Command{
         for (Attribute a : attributes) {
             if(a.isPrimaryKey()){
                 primaryKey = a;
+                primaryKeyIdx = count;
             }
             if (a.getName().equalsIgnoreCase(attr)) {
                 temp = true;
@@ -176,7 +178,7 @@ public class Update extends Command{
         }
 
         for (List<DataType> record : goodRecords) {
-            String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(0).stringValue() + ";";
+            String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(primaryKeyIdx).stringValue() + ";";
             StringBuilder values = new StringBuilder();
             for (int i = 0; i < record.size(); i++) {
                 if(i == attributeIndex){
@@ -208,7 +210,7 @@ public class Update extends Command{
                     throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
                 }
             } catch (InvalidUsage e) {
-                throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(0).stringValue());
+                throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(primaryKeyIdx).stringValue());
             }
         }
         System.out.println("SUCCESS: " + goodRecords.size() + " Records Changed");
@@ -220,7 +222,7 @@ public class Update extends Command{
         Attribute a = attrs.get(i);
         DataType value = tuple.get(i);
 
-        if (a.isUnique() && a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
+        if (a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
             throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
                     .formatted(a.getName()));
         }
