@@ -1,9 +1,6 @@
 package cli.cmd.commands;
-import cli.cmd.exception.ExecutionFailure;
-import cli.cmd.exception.InvalidUsage;
-import catalog.Attribute;
-import catalog.ICatalog;
-import catalog.Table;
+import cli.cmd.exception.*;
+import catalog.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,13 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import dataTypes.AttributeType;
-import dataTypes.DTBoolean;
-import dataTypes.DTChar;
-import dataTypes.DTDouble;
-import dataTypes.DTInteger;
-import dataTypes.DTVarchar;
-import dataTypes.DataType;
+import dataTypes.*;
 import util.where.WhereTree;
 import sm.StorageManager;
 
