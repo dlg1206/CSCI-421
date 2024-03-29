@@ -12,8 +12,8 @@ public class LeafNode extends Node{
     AttributeType ReturnType;
 
     LeafNode(String table, String attribute){
-        TableName = table;
-        Attribute = attribute;
+        TableName = table == null ? null : table.toLowerCase();
+        Attribute = attribute.toLowerCase();
     }
 
     LeafNode(String value){

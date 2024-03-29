@@ -43,7 +43,7 @@ public class WhereTree {
         int totalAttrCount = 0;
 
         for (String tName : TableNames) {
-            TableAttrOffsets.put(tName, totalAttrCount);
+            TableAttrOffsets.put(tName.toLowerCase(), totalAttrCount);
             for (Attribute a : Catalog.getRecordSchema(tName).getAttributes()) {
                 totalAttrCount++;
                 if (!attrNameCounts.containsKey(a.getName())) {
@@ -55,8 +55,8 @@ public class WhereTree {
 
         attrNameCounts.forEach((k, v) -> {
             if (v.size() == 1)
-                DistinctAttrNames.put(k, v.getFirst());
-            AllAttrNames.add(k);
+                DistinctAttrNames.put(k.toLowerCase(), v.getFirst());
+            AllAttrNames.add(k.toLowerCase());
         });
 
         parseInput(input);
@@ -188,26 +188,26 @@ public class WhereTree {
             if (leaf.Attribute == null)
                 return true;    // constants are always valid
             if (leaf.TableName == null) {
-                if (!AllAttrNames.contains(leaf.Attribute)) {
+                if (AllAttrNames.stream().noneMatch(n -> n.equalsIgnoreCase(leaf.Attribute))) {
                     parseErrors.add(leaf.Attribute);
                     parseErrors.add("^ This attribute is not part of any of the requested tables.");
                     return false;
-                } else if (!DistinctAttrNames.containsKey(leaf.Attribute)) {
+                } else if (DistinctAttrNames.keySet().stream().noneMatch(n -> n.equalsIgnoreCase(leaf.Attribute))) {
                     parseErrors.add(leaf.Attribute);
                     parseErrors.add("^ This attribute name is ambiguous between multiple tables.");
                     return false;
                 } else {
-                    leaf.TableName = DistinctAttrNames.get(leaf.Attribute);
+                    leaf.TableName = DistinctAttrNames.get(leaf.Attribute.toLowerCase());
                 }
             }
-            if (!TableNames.contains(leaf.TableName)) {
+            if (TableNames.stream().noneMatch(n -> n.equalsIgnoreCase(leaf.TableName))) {
                 parseErrors.add(leaf.TableName);
                 parseErrors.add("^ This table name does not exist.");
                 return false;
             }
 
             if (Catalog.getRecordSchema(leaf.TableName).getAttributes().stream().map(Attribute::getName)
-                    .noneMatch(n -> n.equals(leaf.Attribute))) {
+                    .noneMatch(n -> n.equalsIgnoreCase(leaf.Attribute))) {
                 parseErrors.add(leaf.toString());
                 parseErrors.add(" ".repeat(leaf.TableName.length() + 1) +   // Extra 1 for the dot separator
                         "^".repeat(leaf.Attribute.length()) +

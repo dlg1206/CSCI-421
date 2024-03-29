@@ -141,7 +141,11 @@ public class Select extends Command {
                 int attrIdx = getTableAttrOffsets().get(attr.TableName) + catalog.getRecordSchema(attr.TableName).getIndexOfAttribute(attr.AttributeName);
                 Attribute oldAttr = getAllAttrs().get(attrIdx);
 
-                String displayName = getDistinctAttrNames().containsKey(oldAttr.getName()) ? attr.RequestedName : attr.getFullName();
+                String displayName =
+                        getDistinctAttrNames().containsKey(oldAttr.getName()) ||
+                                attr.RequestedName.equalsIgnoreCase(attr.getFullName())
+                        ? attr.RequestedName
+                        : attr.getFullName();
 
                 if (oldAttr.getDataType() == AttributeType.CHAR || oldAttr.getDataType() == AttributeType.VARCHAR)
                     finalAttrs.add(new Attribute(displayName, oldAttr.getDataType(), oldAttr.getMaxDataLength()));
@@ -186,23 +190,28 @@ public class Select extends Command {
             if (!attrNameMatcher.matches())
                 throw new InvalidUsage(args, "The attribute %s is not parsable.".formatted(name));
             String preDot = attrNameMatcher.group(1);
+            String preDotFinal = preDot.toLowerCase();
             String postDot = attrNameMatcher.group(2);
 
             if (postDot == null) {
-                if (!AllAttrNames.contains(preDot)) {
+                if (AllAttrNames.stream().noneMatch(n -> n.equalsIgnoreCase(preDotFinal))) {
                     parseErrors.add(preDot);
                     parseErrors.add("^ This attribute is not part of any of the requested tables.");
                     break;
-                } else if (!DistinctAttrNames.containsKey(preDot)) {
+                } else if (DistinctAttrNames.keySet().stream().noneMatch(n -> n.equalsIgnoreCase(preDotFinal))) {
                     parseErrors.add(preDot);
                     parseErrors.add("^ This attribute name is ambiguous between multiple tables.");
                     break;
                 } else {
                     postDot = preDot;
-                    preDot = DistinctAttrNames.get(preDot);
+                    preDot = DistinctAttrNames.get(preDot).toLowerCase();
                 }
             }
-            if (!tableNames.contains(preDot)) {
+
+            postDot = postDot.toLowerCase();
+            String tNameFinal = preDot;
+
+            if (tableNames.stream().noneMatch(n -> n.equalsIgnoreCase(tNameFinal))) {
                 parseErrors.add(preDot);
                 parseErrors.add("^ This table name does not exist.");
                 break;
@@ -242,8 +251,8 @@ public class Select extends Command {
 
         AttributeName(String requestedName, String tableName, String attributeName) {
             RequestedName = requestedName;
-            TableName = tableName;
-            AttributeName = attributeName;
+            TableName = tableName.toLowerCase();
+            AttributeName = attributeName.toLowerCase();
         }
 
         String getFullName() {
@@ -351,7 +360,7 @@ public class Select extends Command {
 
 
         for (String tName : tableNames) {
-            TableAttrOffsets.put(tName, totalAttrCount);
+            TableAttrOffsets.put(tName.toLowerCase(), totalAttrCount);
             for (Attribute a : catalog.getRecordSchema(tName).getAttributes()) {
                 AllAttrs.add(a);
                 totalAttrCount++;
@@ -364,7 +373,7 @@ public class Select extends Command {
 
         attrNameCounts.forEach((k, v) -> {
             if (v.size() == 1)
-                DistinctAttrNames.put(k, v.getFirst());
+                DistinctAttrNames.put(k.toLowerCase(), v.getFirst());
         });
     }
 }
