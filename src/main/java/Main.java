@@ -43,19 +43,23 @@ public class Main {
         } catch (Exception e) {
             System.err.println("Failed to validate arguments!");
             System.err.println("Reason: " + e.getMessage());
-            System.err.println("Expected Usage: java Main <db loc> <page size> <buffer size>");
+            System.err.println("Expected Usage: java Main <db loc> <page size> <buffer size> <index>");
             System.err.println("\t<db loc>:         Path to the database root");
             System.err.println("\t<page size>:      Size of page ( in bytes )");
             System.err.println("\t<buffer size>:    Size of page buffer ( page capacity )");
+            System.err.println("\t<index>:          optional param, if true initialize database using indexes");
             System.exit(1);
         }
 
         // Build CLI
         int bufferSize = Integer.parseInt(args[2]);
         int pageSize = Integer.parseInt(args[1]);
-
         // Make the catalog (initialize the DB)
-        Catalog catalog = new Catalog(pageSize, bufferSize, args[0]);
+        Catalog catalog = new Catalog(
+                pageSize, bufferSize,
+                args[0],
+                args.length < 5 && Boolean.parseBoolean(args[3])    // if index param present, convert to bool
+        );
 
         CLI cli = new CLI(
                 catalog,
