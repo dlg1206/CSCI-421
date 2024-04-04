@@ -12,6 +12,11 @@ import java.util.regex.Pattern;
 
 public class WhereTree {
 
+    public static final int NO_RESTRICTIONS = 0;
+    public static final int ONLY_PKS = 1;
+
+    private int Restrictions = NO_RESTRICTIONS;
+
     private final ICatalog Catalog;
     private final List<String> TableNames;
     public final Map<String, Integer> TableAttrOffsets = new HashMap<>();
@@ -35,6 +40,11 @@ public class WhereTree {
     private static final Pattern BOOLEAN_PATTERN = Pattern.compile("true|false", Pattern.CASE_INSENSITIVE);
 
     public WhereTree(String input, ICatalog catalog, List<String> tableNames) throws ExecutionFailure {
+        this(input, catalog, tableNames, NO_RESTRICTIONS);
+    }
+
+    public WhereTree(String input, ICatalog catalog, List<String> tableNames, int restrictions) throws ExecutionFailure {
+        Restrictions = restrictions;
         Catalog = catalog;
         TableNames = tableNames;
 
@@ -266,10 +276,19 @@ public class WhereTree {
 
     private void createOptimization(LeafNode tableNode, InternalNode parentNode) {
         try {
-            if (!TableOptimizations.containsKey(tableNode.TableName) ||
-                    (TableOptimizations.containsKey(tableNode.TableName) &&
-                            Catalog.getRecordSchema(tableNode.TableName).getAttribute(tableNode.Attribute).isPrimaryKey())) {
-                TableOptimizations.put(tableNode.TableName, new WhereTree(parentNode, Catalog, List.of(tableNode.TableName)));
+            if (Restrictions == NO_RESTRICTIONS) {
+                // if there are no restrictions on the filtering (i.e., this is being used in select) then we should make
+                // an optimization for any
+                if (!TableOptimizations.containsKey(tableNode.TableName) ||
+                        (TableOptimizations.containsKey(tableNode.TableName) &&
+                                Catalog.getRecordSchema(tableNode.TableName).getAttribute(tableNode.Attribute).isPrimaryKey())) {
+                    TableOptimizations.put(tableNode.TableName, new WhereTree(parentNode, Catalog, List.of(tableNode.TableName)));
+                }
+            } else if (Restrictions == ONLY_PKS) {
+                if (!TableOptimizations.containsKey(tableNode.TableName) &&
+                        Catalog.getRecordSchema(tableNode.TableName).getAttribute(tableNode.Attribute).isPrimaryKey()) {
+                    TableOptimizations.put(tableNode.TableName, new WhereTree(parentNode, Catalog, List.of(tableNode.TableName)));
+                }
             }
         } catch (ExecutionFailure ignored) {} // By the time we get to here, we know the tree will be valid.
     }
