@@ -13,6 +13,7 @@ import java.util.*;
 public class Catalog implements ICatalog {
 
     private static final String DB_SETTING_STR = "Using DB settings: Page size: %s, IsIndexed: %s.";
+    private static final String CRIT_DELETE_ERROR_STR = "A critical error occurred while deleting the table from the catalog.";
 
     private static final String PAGE_SIZE_PATH = "ps";
     private static final int TABLE_DATA_NUM = Integer.MIN_VALUE;
@@ -190,30 +191,27 @@ public class Catalog implements ICatalog {
     }
 
 
-    public void deleteTable(String name) throws ExecutionFailure, IOException {
+    public void deleteTable(String name) throws ExecutionFailure {
         name = name.toLowerCase();
         Table t = Tables.remove(name);
 
-
-        //TODO: Actually use a proper delete method, this ain't gonna work
-
-        List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA)
-                .stream().filter(t1 -> ((DTInteger) t1.get(0)).getValue() != t.getNumber()).toList();
-
-        StorageManager.dropTable(TABLE_DATA_NUM);
-        for (List<DataType> table : allTables) {
-            StorageManager.insertRecord(TABLE_DATA_NUM, TABLE_SCHEMA, table);
+        // Delete the entry from the table data relation
+        try {
+            StorageManager.deleteRecord(TABLE_DATA_NUM, new DTInteger(Integer.toString(t.getNumber())), TABLE_SCHEMA);
+        } catch (IOException e) {
+            throw new ExecutionFailure(CRIT_DELETE_ERROR_STR);
         }
 
-
-        List<List<DataType>> allAttributes = StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA)
-                .stream().filter(t1 -> ((DTInteger) t1.get(1)).getValue() != t.getNumber()).toList();
-
-        StorageManager.dropTable(ATTR_DATA_NUM);
-        for (List<DataType> attr : allAttributes) {
-            StorageManager.insertRecord(ATTR_DATA_NUM, ATTR_SCHEMA, attr);
+        // Delete all related entries from the attribute data relation
+        for (List<DataType> record: StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA)) {
+            try {
+                if (((DTInteger) record.get(1)).getValue() == t.getNumber()) {
+                    StorageManager.deleteRecord(ATTR_DATA_NUM, record.getFirst(), ATTR_SCHEMA);
+                }
+            } catch (IOException e) {
+                throw new ExecutionFailure(CRIT_DELETE_ERROR_STR);
+            }
         }
-
     }
 
     @Override
