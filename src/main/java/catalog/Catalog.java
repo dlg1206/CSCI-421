@@ -37,14 +37,16 @@ public class Catalog implements ICatalog {
     private int PageSize;
     private final int BufferSize;
     private final String DBPath;
+    private final boolean IsIndexed;
     private final Map<String, Table> Tables = new HashMap<>();
     private int NextNum = 1;
     public StorageManager StorageManager;
 
-    public Catalog(int pageSize, int bufferSize, String DBPath) {
+    public Catalog(int pageSize, int bufferSize, String DBPath, boolean isIndexed) {
         this.PageSize = pageSize;
         this.BufferSize = bufferSize;
         this.DBPath = DBPath;
+        this.IsIndexed = isIndexed;
         initStorageManager();
     }
 
@@ -71,17 +73,20 @@ public class Catalog implements ICatalog {
         try {
             Files.createDirectories(Paths.get(this.DBPath));
             DTInteger pageSizeInt = new DTInteger(Objects.toString(this.PageSize));
+            DTBoolean isIndexedBool = new DTBoolean(Objects.toString(this.IsIndexed));
             Files.write(pageSizePath, pageSizeInt.convertToBytes());
+            Files.write(pageSizePath, isIndexedBool.convertToBytes());
         } catch (IOException ioe) {
             Console.err("The db location is unusable.");
             System.exit(-2);
         }
-        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath);
+        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath); // TODO: , this.IsIndexed);
     }
 
     private void loadOldDB(Path pageSizePath) throws ExecutionFailure {
         try {
-            this.PageSize = new DTInteger(Files.readAllBytes(pageSizePath)).getValue();
+            byte[] dbData = Files.readAllBytes(pageSizePath);
+            this.PageSize = new DTInteger(dbData).getValue();
         } catch (IOException ioe) {
             Console.err("The db has become corrupt.");
             System.exit(-1);

@@ -43,30 +43,36 @@ public class Main {
         } catch (Exception e) {
             System.err.println("Failed to validate arguments!");
             System.err.println("Reason: " + e.getMessage());
-            System.err.println("Expected Usage: java Main <db loc> <page size> <buffer size>");
+            System.err.println("Expected Usage: java Main <db loc> <page size> <buffer size> <index>");
             System.err.println("\t<db loc>:         Path to the database root");
             System.err.println("\t<page size>:      Size of page ( in bytes )");
             System.err.println("\t<buffer size>:    Size of page buffer ( page capacity )");
+            System.err.println("\t<index>:          optional param, if true initialize database using indexes");
             System.exit(1);
         }
 
         // Build CLI
         int bufferSize = Integer.parseInt(args[2]);
         int pageSize = Integer.parseInt(args[1]);
-
         // Make the catalog (initialize the DB)
-        Catalog catalog = new Catalog(pageSize, bufferSize, args[0]);
+        Catalog catalog = new Catalog(
+                pageSize, bufferSize,
+                args[0],
+                args.length < 5 && Boolean.parseBoolean(args[3])    // if index param present, convert to bool
+        );
 
         CLI cli = new CLI(
                 catalog,
                 catalog.StorageManager
         );
 
-        // If dev argument is present, run the CLI with those commands first
-        if(args.length >= 5 && args[3].equals("-d")){
+        // If dev argument is present (2nd to last arg), run the CLI with those commands first
+        // -d <path to cmds>: Dev
+        // -ds <path to cmd>: Dev Silent
+        if(args[args.length - 2].equals("-d") || args[args.length - 2].equals("-ds")){
             cli.runWith(
-                    args[4],
-                    args.length >= 6 && args[5].equals("-s")
+                    args[args.length - 1],
+                    args[args.length - 2].equals("-ds")
             );
         } else {
             // else just start the CLI

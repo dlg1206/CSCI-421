@@ -29,6 +29,7 @@ public class MockCLI {
 
     /**
      * Mimicked Constructor of the actual CLI class
+     * Will default to not use the index
      *
      * @param dbRoot Root path of database
      * @param pageSize Page size in bytes
@@ -37,7 +38,23 @@ public class MockCLI {
     public MockCLI(String dbRoot, int pageSize, int bufferSize){
         PrintStream stdout = System.out;
         System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
-        this.DBCatalog = new Catalog(pageSize, bufferSize, dbRoot);
+        this.DBCatalog = new Catalog(pageSize, bufferSize, dbRoot, false);
+        this.DBStorageManager = this.DBCatalog.StorageManager;
+        System.setOut(stdout);
+    }
+
+    /**
+     * Mimicked Constructor of the actual CLI class
+     *
+     * @param dbRoot Root path of database
+     * @param pageSize Page size in bytes
+     * @param bufferSize Number of pages buffer can hold
+     * @param index Boolean to determine whether to use an index or not
+     */
+    public MockCLI(String dbRoot, int pageSize, int bufferSize, boolean index){
+        PrintStream stdout = System.out;
+        System.setOut(new PrintStream(OutputStream.nullOutputStream()));    // temp suppress output
+        this.DBCatalog = new Catalog(pageSize, bufferSize, dbRoot, index);
         this.DBStorageManager = this.DBCatalog.StorageManager;
         System.setOut(stdout);
     }
