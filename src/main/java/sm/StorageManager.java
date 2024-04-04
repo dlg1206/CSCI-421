@@ -40,7 +40,7 @@ public class StorageManager {
      * @param pageSize     Max page size in number of records
      * @param databasePath Path to database directory
      */
-    public StorageManager(int bufferSize, int pageSize, String databasePath) {
+    public StorageManager(int bufferSize, int pageSize, String databasePath, boolean isIndexed) {
         this.buffer = new PageBuffer(bufferSize, pageSize, databasePath);
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;

@@ -6,12 +6,13 @@ import dataTypes.*;
 import sm.StorageManager;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.RandomAccessFile;
+import java.nio.file.*;
 import java.util.*;
 
 public class Catalog implements ICatalog {
+
+    private static final String DB_SETTING_STR = "Using DB settings: Page size: %s, IsIndexed: %s.";
 
     private static final String PAGE_SIZE_PATH = "ps";
     private static final int TABLE_DATA_NUM = Integer.MIN_VALUE;
@@ -37,7 +38,7 @@ public class Catalog implements ICatalog {
     private int PageSize;
     private final int BufferSize;
     private final String DBPath;
-    private final boolean IsIndexed;
+    private boolean IsIndexed;
     private final Map<String, Table> Tables = new HashMap<>();
     private int NextNum = 1;
     public StorageManager StorageManager;
@@ -75,23 +76,34 @@ public class Catalog implements ICatalog {
             DTInteger pageSizeInt = new DTInteger(Objects.toString(this.PageSize));
             DTBoolean isIndexedBool = new DTBoolean(Objects.toString(this.IsIndexed));
             Files.write(pageSizePath, pageSizeInt.convertToBytes());
-            Files.write(pageSizePath, isIndexedBool.convertToBytes());
+            Files.write(pageSizePath, isIndexedBool.convertToBytes(), StandardOpenOption.APPEND);
+            Console.out(DB_SETTING_STR.formatted(this.PageSize, this.IsIndexed));
         } catch (IOException ioe) {
             Console.err("The db location is unusable.");
             System.exit(-2);
         }
-        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath); // TODO: , this.IsIndexed);
+        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath, this.IsIndexed);
     }
 
     private void loadOldDB(Path pageSizePath) throws ExecutionFailure {
         try {
             byte[] dbData = Files.readAllBytes(pageSizePath);
             this.PageSize = new DTInteger(dbData).getValue();
+
+            byte[] pageSizeData = new byte[4];
+            byte[] isIndexedData = new byte[1];
+            try (RandomAccessFile raf = new RandomAccessFile(pageSizePath.toString(), "r")) {
+                raf.read(pageSizeData, 0, 4);
+                raf.read(isIndexedData, 0, 1);
+            }
+            this.PageSize = new DTInteger(pageSizeData).getValue();
+            this.IsIndexed = new DTBoolean(isIndexedData).getValue();
+            Console.out(DB_SETTING_STR.formatted(this.PageSize, this.IsIndexed));
         } catch (IOException ioe) {
             Console.err("The db has become corrupt.");
             System.exit(-1);
         }
-        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath);
+        this.StorageManager = new StorageManager(this.BufferSize, this.PageSize, this.DBPath , this.IsIndexed);
 
         HashMap<Integer, Table> tableObjects = new HashMap<>();
 
@@ -184,6 +196,7 @@ public class Catalog implements ICatalog {
 
 
         //TODO: Actually use a proper delete method, this ain't gonna work
+
         List<List<DataType>> allTables = StorageManager.getAllRecords(TABLE_DATA_NUM, TABLE_SCHEMA)
                 .stream().filter(t1 -> ((DTInteger) t1.get(0)).getValue() != t.getNumber()).toList();
 
