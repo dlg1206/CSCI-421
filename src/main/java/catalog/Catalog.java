@@ -195,22 +195,21 @@ public class Catalog implements ICatalog {
         name = name.toLowerCase();
         Table t = Tables.remove(name);
 
-        // Delete the entry from the table data relation
         try {
+            // Delete the entry from the table data relation
             StorageManager.deleteRecord(TABLE_DATA_NUM, new DTInteger(Integer.toString(t.getNumber())), TABLE_SCHEMA);
-        } catch (IOException e) {
-            throw new ExecutionFailure(CRIT_DELETE_ERROR_STR);
-        }
 
-        // Delete all related entries from the attribute data relation
-        for (List<DataType> record: StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA)) {
-            try {
+            // Delete all related entries from the attribute data relation
+            //      Note: I wish we could use StorageManager.selectRecords, but because the catalog does not know about
+            //      the attr data relation (i.e., the relation does not have a "name"), it will not be able to build a
+            //      where tree.
+            for (List<DataType> record: StorageManager.getAllRecords(ATTR_DATA_NUM, ATTR_SCHEMA)) {
                 if (((DTInteger) record.get(1)).getValue() == t.getNumber()) {
                     StorageManager.deleteRecord(ATTR_DATA_NUM, record.getFirst(), ATTR_SCHEMA);
                 }
-            } catch (IOException e) {
-                throw new ExecutionFailure(CRIT_DELETE_ERROR_STR);
             }
+        } catch (IOException e) {
+            throw new ExecutionFailure(CRIT_DELETE_ERROR_STR);
         }
     }
 
