@@ -106,7 +106,6 @@ public class InsertInto extends Command {
         List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
         int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
 
-
         for (int i = 0; i < tuples.size(); i++) {
             List<DataType> tuple = convertStringToTuple(tuples.get(i), attrs, i);
             try {
