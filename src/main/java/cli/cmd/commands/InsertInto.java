@@ -104,36 +104,34 @@ public class InsertInto extends Command {
     public void execute() throws ExecutionFailure {
         int tableNumber = catalog.getTableNumber(tableName);
         List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
-        int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
 
         for (int i = 0; i < tuples.size(); i++) {
             List<DataType> tuple = convertStringToTuple(tuples.get(i), attrs, i);
             try {
-
-                if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(tuple.get(PKIndex)) == 0))
-                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
-
                 checkUniqueConstraint(tableNumber, attrs, tuple, i);
-
                 sm.insertRecord(tableNumber, attrs, tuple);
-
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
-
         }
         Console.out("SUCCESS");
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple, int tupleNum) throws ExecutionFailure {
+        List<List<DataType>> allRecords = null;
         for (int i = 0; i < attrs.size(); i++) {
             Attribute a = attrs.get(i);
             DataType value = tuple.get(i);
 
             int finalI = i;
-            if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
-                throw new ExecutionFailure("Attribute '%s' is unique, you violate this constraint in tuple #%s"
-                        .formatted(a.getName(), tupleNum));
+            if (a.isUnique() && !a.isPrimaryKey()) {
+                if (allRecords == null) {
+                    allRecords = sm.getAllRecords(tableNum, attrs);
+                }
+
+                if (allRecords.stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0))
+                    throw new ExecutionFailure("Attribute '%s' is unique, you violate this constraint in tuple #%s"
+                            .formatted(a.getName(), tupleNum));
             }
         }
     }

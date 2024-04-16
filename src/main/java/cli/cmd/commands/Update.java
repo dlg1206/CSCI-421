@@ -189,21 +189,24 @@ public class Update extends Command{
             }
         }
         System.out.println("SUCCESS: " + allRecords.size() + " Records Changed");
-
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple) throws ExecutionFailure {
-        int i = attributeIndex;
-        Attribute a = attrs.get(i);
-        DataType value = tuple.get(i);
+        List<List<DataType>> allRecords = null;
+        for (int i = 0; i < attrs.size(); i++) {
+            Attribute a = attrs.get(i);
+            DataType value = tuple.get(i);
 
-        if (a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
-            throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
-                    .formatted(a.getName()));
-        }
-        else if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
-            throw new ExecutionFailure("Attribute '%s' is unique"
-                    .formatted(a.getName()));
+            int finalI = i;
+            if (a.isUnique() && !a.isPrimaryKey()) {
+                if (allRecords == null) {
+                    allRecords = sm.getAllRecords(tableNum, attrs);
+                }
+
+                if (allRecords.stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0))
+                    throw new ExecutionFailure("Attribute '%s' is unique"
+                            .formatted(a.getName()));
+            }
         }
     }
 
