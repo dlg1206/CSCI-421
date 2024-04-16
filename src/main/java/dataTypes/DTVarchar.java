@@ -1,5 +1,7 @@
 package dataTypes;
 
+import java.util.Objects;
+
 import util.Console;
 
 public class DTVarchar implements DataType, Comparable<DataType> {
@@ -39,6 +41,14 @@ public class DTVarchar implements DataType, Comparable<DataType> {
     public String stringValue() {
         return this.isNull() ? "NULL" : value;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    DTVarchar dtVarchar = (DTVarchar) obj;
+    return Objects.equals(value, dtVarchar.value);
+    }   
 
     public int compareTo(DataType o) {
         if (o.isNull() && this.isNull()) { return 0; } // both null
