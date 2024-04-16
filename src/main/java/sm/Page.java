@@ -71,7 +71,7 @@ class Page {
             int order = record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex));
             // == 0 means same value
             if(order == 0)
-                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(record.get(primaryKeyIndex)));
+                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(record.get(primaryKeyIndex).stringValue()));
 
             // > 0 means record is less than stored
             if (order > 0) {
