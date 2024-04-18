@@ -4,7 +4,7 @@ public class RecordPointer {
     int pageNumber;
     int index;
 
-    RecordPointer(int pageNumber, int index) {
+    public RecordPointer(int pageNumber, int index) {
         this.pageNumber = pageNumber;
         this.index = index;
     }
