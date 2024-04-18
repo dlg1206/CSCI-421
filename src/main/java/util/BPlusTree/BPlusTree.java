@@ -1,18 +1,16 @@
 package util.BPlusTree;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 import dataTypes.DataType;
 
 
 public class BPlusTree {
-    private final int pairSize;
     private final int N;
     private Node root;
 
     public BPlusTree(int pageSize, int keySize, int pointerSize) {
         root = new LeafNode();
-        this.pairSize = keySize + pointerSize;
+        int pairSize = keySize + pointerSize;
         this.N = pageSize / pairSize - 1;
     }
 
@@ -61,17 +59,17 @@ public class BPlusTree {
         } else {
             InternalNode internal = (InternalNode) node;
             for (int i = 0; i < internal.keys.size(); i++) {
-                if (key.compareTo(internal.keys.get(i)) < 0) {
+                if (key.compareTo(internal.keys.get(i)) > 0) {
                     return findLeafNode(internal.children.get(i), key);
                 }
             }
-            return findLeafNode(internal.children.get(internal.children.size() - 1), key);
+            return findLeafNode(internal.children.getLast(), key);
         }
     }
 
     private void insertInLeafNode(LeafNode leaf, DataType key, RecordPointer pointer) {
         int i = 0;
-        while (i < leaf.keys.size() && key.compareTo(leaf.keys.get(i)) > 0) {
+        while (i < leaf.keys.size() && key.compareTo(leaf.keys.get(i)) < 0) {
             i++;
         }
         leaf.keys.add(i, key);
@@ -89,14 +87,14 @@ public class BPlusTree {
 
         if (leaf == root) {
             InternalNode newRoot = new InternalNode();
-            newRoot.keys.add(newLeaf.keys.get(0));
+            newRoot.keys.add(newLeaf.keys.getFirst());
             newRoot.children.add(leaf);
             newRoot.children.add(newLeaf);
             leaf.parent = newRoot;
             newLeaf.parent = newRoot;
             root = newRoot;
         } else {
-            insertInParent(leaf, newLeaf.keys.get(0), newLeaf);
+            insertInParent(leaf, newLeaf.keys.getFirst(), newLeaf);
         }
     }
 
@@ -104,7 +102,7 @@ public class BPlusTree {
         InternalNode parent = oldNode.parent;
         int index = parent.keys.size();
         for (int i = 0; i < parent.keys.size(); i++) {
-            if (key.compareTo(parent.keys.get(i)) < 0) {
+            if (key.compareTo(parent.keys.get(i)) > 0) {
                 index = i;
                 break;
             }
@@ -159,10 +157,10 @@ public class BPlusTree {
 
     private void printTree(Node node, String indent, boolean last) {
         if (indent.isEmpty()) {
-            System.out.println("Root: " + node.keys.stream().map(DataType::stringValue).collect(Collectors.toList()));
+            System.out.println("Root: " + node.keys.stream().map(DataType::stringValue).toList());
         } else {
             String connector = last ? "└── " : "├── ";
-            System.out.println(indent + connector + (node.isLeaf ? "Leaf: " : "Internal: ") + node.keys.stream().map(DataType::stringValue).collect(Collectors.toList()));
+            System.out.println(indent + connector + (node.isLeaf ? "Leaf: " : "Internal: ") + node.keys.stream().map(DataType::stringValue).toList());
         }
     
         if (!node.isLeaf) {
@@ -180,17 +178,15 @@ public class BPlusTree {
 
     public void delete(DataType key) {
         LeafNode leaf = findLeafNode(root, key);
-        if (leaf != null) {
-            int index = leaf.keys.indexOf(key);
-            if (index != -1) {
-                // Remove the key and pointer from the leaf
-                leaf.keys.remove(index);
-                leaf.pointers.remove(index);
-    
-                if (leaf.keys.size() < N / 2) {
-                    // Handle underflow
-                    handleUnderflow(leaf);
-                }
+        int index = leaf.keys.indexOf(key);
+        if (index != -1) {
+            // Remove the key and pointer from the leaf
+            leaf.keys.remove(index);
+            leaf.pointers.remove(index);
+
+            if (leaf.keys.size() < N / 2) {
+                // Handle underflow
+                handleUnderflow(leaf);
             }
         }
     }
@@ -250,11 +246,11 @@ public class BPlusTree {
         if (leafIndex > 0) {
             LeafNode leftSibling = (LeafNode) parent.children.get(leafIndex - 1);
             if (leftSibling.keys.size() > N / 2) {
-                DataType borrowedKey = leftSibling.keys.remove(leftSibling.keys.size() - 1);
-                RecordPointer borrowedPointer = leftSibling.pointers.remove(leftSibling.pointers.size() - 1);
-                leaf.keys.add(0, borrowedKey);
-                leaf.pointers.add(0, borrowedPointer);
-                parent.keys.set(leafIndex - 1, leaf.keys.get(0));
+                DataType borrowedKey = leftSibling.keys.removeLast();
+                RecordPointer borrowedPointer = leftSibling.pointers.removeLast();
+                leaf.keys.addFirst(borrowedKey);
+                leaf.pointers.addFirst(borrowedPointer);
+                parent.keys.set(leafIndex - 1, leaf.keys.getFirst());
                 return;
             }
         }
@@ -263,11 +259,11 @@ public class BPlusTree {
         if (leafIndex < parent.children.size() - 1) {
             LeafNode rightSibling = (LeafNode) parent.children.get(leafIndex + 1);
             if (rightSibling.keys.size() > N / 2) {
-                DataType borrowedKey = rightSibling.keys.remove(0);
-                RecordPointer borrowedPointer = rightSibling.pointers.remove(0);
+                DataType borrowedKey = rightSibling.keys.removeFirst();
+                RecordPointer borrowedPointer = rightSibling.pointers.removeFirst();
                 leaf.keys.add(borrowedKey);
                 leaf.pointers.add(borrowedPointer);
-                parent.keys.set(leafIndex, rightSibling.keys.get(0));
+                parent.keys.set(leafIndex, rightSibling.keys.getFirst());
             }
         }
     }
@@ -276,8 +272,8 @@ public class BPlusTree {
         InternalNode parent = internal.parent;
         if (parent == null) {
             // Check if the internal node is now empty and needs to be removed
-            if (internal.keys.size() == 0 && internal.children.size() == 1) {
-                root = internal.children.get(0);
+            if (internal.keys.isEmpty() && internal.children.size() == 1) {
+                root = internal.children.getFirst();
                 root.parent = null;
             }
             return;
@@ -332,13 +328,13 @@ public class BPlusTree {
             InternalNode leftSibling = (InternalNode) parent.children.get(index - 1);
             if (leftSibling.keys.size() > N / 2) {
                 // Borrow the largest key from the left sibling
-                DataType borrowedKey = leftSibling.keys.remove(leftSibling.keys.size() - 1);
-                Node borrowedChild = leftSibling.children.remove(leftSibling.children.size() - 1);
+                DataType borrowedKey = leftSibling.keys.removeLast();
+                Node borrowedChild = leftSibling.children.removeLast();
                 borrowedChild.parent = internal;
     
                 // Insert the borrowed key and child at the beginning of the internal node
-                internal.keys.add(0, parent.keys.get(index - 1));
-                internal.children.add(0, borrowedChild);
+                internal.keys.addFirst(parent.keys.get(index - 1));
+                internal.children.addFirst(borrowedChild);
                 parent.keys.set(index - 1, borrowedKey);
                 return;
             }
@@ -349,15 +345,14 @@ public class BPlusTree {
             InternalNode rightSibling = (InternalNode) parent.children.get(index + 1);
             if (rightSibling.keys.size() > N / 2) {
                 // Borrow the smallest key from the right sibling
-                DataType borrowedKey = rightSibling.keys.remove(0);
-                Node borrowedChild = rightSibling.children.remove(0);
+                DataType borrowedKey = rightSibling.keys.removeFirst();
+                Node borrowedChild = rightSibling.children.removeFirst();
                 borrowedChild.parent = internal;
     
                 // Append the borrowed key and child to the end of the internal node
                 internal.keys.add(parent.keys.get(index));
                 internal.children.add(borrowedChild);
                 parent.keys.set(index, borrowedKey);
-                return;
             }
         }
     }
