@@ -76,7 +76,7 @@ public class StorageManager {
      * @return Record pointer to the page and index of the newly inserted record
      * @throws IOException Failed to read or write to file
      */
-    private RecordPointer insertRecord(TableFile tf, List<Attribute> attributes, List<DataType> record) throws IOException {
+    private RecordPointer insertRecord(TableFile tf, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
         int pageCount = tf.readPageCount();
         int pki = getPrimaryKeyIndex(attributes);
         RecordPointer recordPointer = null;
