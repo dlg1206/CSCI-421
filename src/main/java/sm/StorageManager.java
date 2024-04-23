@@ -32,6 +32,7 @@ public class StorageManager {
     private final int pageSize;
     private final int bufferSize;
     private final String databaseRoot;
+    private final boolean isIndexed;
 
 
     /**
@@ -40,12 +41,14 @@ public class StorageManager {
      * @param bufferSize   Max buffer size in number of pages
      * @param pageSize     Max page size in number of records
      * @param databasePath Path to database directory
+     * @param isIndexed    Boolean whether to use an index or not
      */
     public StorageManager(int bufferSize, int pageSize, String databasePath, boolean isIndexed) {
         this.buffer = new PageBuffer(bufferSize, pageSize, databasePath);
         this.pageSize = pageSize;
         this.bufferSize = bufferSize;
         this.databaseRoot = databasePath;
+        this.isIndexed = isIndexed;
     }
 
 
@@ -130,8 +133,12 @@ public class StorageManager {
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
         // Get table file details
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        IndexFile index = tf.getIndex();    // todo determine when to make index file
-        index.insertPointer(this.buffer, insertRecord(tf, attributes, record));
+        RecordPointer rp = insertRecord(tf, attributes, record);
+
+        // If index enabled, insert result
+        if(this.isIndexed)
+            tf.getIndex().insertPointer(this.buffer, rp);
+
     }
 
 

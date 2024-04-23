@@ -3,7 +3,7 @@ package sm;
 import java.io.*;
 
 /**
- * <b>DBFile:</b> DBFile.java
+ * <b>File:</b> DBFile.java
  * <p>
  * <b>Description:</b> Generic file to use for database operations
  *
