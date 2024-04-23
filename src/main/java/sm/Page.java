@@ -2,6 +2,7 @@ package sm;
 
 import catalog.Attribute;
 import dataTypes.DataType;
+import cli.cmd.exception.ExecutionFailure;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -60,14 +61,20 @@ class Page {
      * @param record          record to insert
      * @return True if inserted, false otherwise
      */
-    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) {
+    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) throws ExecutionFailure {
         // Get records
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
 
         // Ordered insert
         for (List<DataType> storedRecord : records) {
+
+            int order = record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex));
+            // == 0 means same value
+            if(order == 0)
+                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(record.get(primaryKeyIndex).stringValue()));
+
             // > 0 means record is less than stored
-            if (record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0) {
+            if (order > 0) {
                 records.add(records.indexOf(storedRecord), record);
                 this.data = BInterpreter.convertRecordsToPage(records);
                 return true;

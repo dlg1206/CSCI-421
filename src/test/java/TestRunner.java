@@ -203,7 +203,7 @@ public class TestRunner {
     }
 
     private static int test_insert_duplicate_entry() {
-        String expected = "Execution Failure: There already exists an entry for primary key: '1'.";
+        String expected = "Execution Failure: Duplicate primary key '1'";
         Tester tester = new Tester("insert_duplicate_entry");
 
         // Given
@@ -1464,7 +1464,7 @@ public class TestRunner {
     }
 
     private static int test_update_duplicate_primary_key(){
-        String expected = "Execution Failure: Attribute 'x' is a primarykey: cannot duplicate";
+        String expected = "Execution Failure: Duplicate primary key '1'";
         Tester tester = new Tester("update_duplicate_primary_key");
 
         // Given

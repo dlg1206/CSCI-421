@@ -75,7 +75,7 @@ public class StorageManager {
      * @param record     record contents
      * @throws IOException failed to write to file
      */
-    public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException {
+    public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
 
         // Get table file details
         TableFile tf = new TableFile(this.databaseRoot, tableID);
