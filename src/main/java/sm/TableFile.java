@@ -44,6 +44,16 @@ class TableFile extends DBFile {
     }
 
     /**
+     * Get Index file for this table file. Will create a file if one doesn't exist
+     *
+     * @return Index File
+     * @throws IOException Failed to create index file
+     */
+    public IndexFile getIndex() throws IOException {
+        return new IndexFile(this.databaseRoot, this.fileID);
+    }
+
+    /**
      * Read the first byte of the database file to get the page count
      *
      * @return Number of pages

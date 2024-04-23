@@ -128,15 +128,10 @@ public class StorageManager {
      * @throws IOException failed to write to file
      */
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
-
         // Get table file details
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        insertRecord(tf, attributes, record);
-        /*
-        TODO replace line 126 with below
-        BPlusTreeFile index = new BPlusTreeFile(this.databaseRoot, tableID);
+        IndexFile index = tf.getIndex();    // todo determine when to make index file
         index.insertPointer(this.buffer, insertRecord(tf, attributes, record));
-         */
     }
 
 
