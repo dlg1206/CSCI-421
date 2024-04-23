@@ -280,6 +280,10 @@ public class StorageManager {
             // Record deleted, done
             if (recordDeleted) break;
         }
+
+        // Delete from index if in use
+        if(this.isIndexed)
+            tf.getIndex().deletePointer(primaryKey);
     }
 
     /**

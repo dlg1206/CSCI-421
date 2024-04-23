@@ -1,5 +1,6 @@
 package sm;
 
+import dataTypes.DataType;
 import util.BPlusTree.RecordPointer;
 
 import java.io.IOException;
@@ -29,5 +30,9 @@ class IndexFile extends DBFile{
 
     public void insertPointer(PageBuffer buffer, RecordPointer recordPointer){
         // TODO b+ tree logic?
+    }
+
+    public void deletePointer(DataType primaryKey){
+        // TODO b+ delete pointer
     }
 }
