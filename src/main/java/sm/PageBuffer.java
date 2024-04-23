@@ -56,7 +56,7 @@ class PageBuffer {
      * @throws IOException Failed to open table file
      */
     private void writeToDisk(Page page) throws IOException {
-        TableFile writeFile = page.getWriteFile();
+        DBFile writeFile = page.getWriteFile();
         try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
             // Write page data
             raf.seek(1 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
@@ -74,8 +74,13 @@ class PageBuffer {
      * @param tableID    Table ID to read from
      * @param pageNumber Page number to get
      */
-    private void readFromDisk(int tableID, int pageNumber) throws IOException {
-        TableFile writeFile = new TableFile(this.databaseRoot, tableID);
+    private void readFromDisk(int tableID, int pageNumber, boolean isIndexFile) throws IOException {
+        DBFile writeFile;
+        if (!isIndexFile)
+            writeFile = new TableFile(this.databaseRoot, tableID);
+        else
+            writeFile = new IndexFile(this.databaseRoot, tableID);
+
         byte[] buffer = new byte[this.pageSize];
 
         // Read page from file
@@ -99,7 +104,7 @@ class PageBuffer {
             writeToDisk(this.buffer.remove(this.capacity - 1));
 
         // Push list
-        this.buffer.add(0, page);
+        this.buffer.addFirst(page);
     }
 
 
@@ -111,21 +116,21 @@ class PageBuffer {
      * @param removeFromBuffer Remove this page from the buffer ( used for splitting pages )
      * @return Page
      */
-    public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer) throws IOException {
+    public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer, boolean isIndexFile) throws IOException {
 
         Page page = searchBuffer(tableID, pageNumber);
 
         // Read page from disk if not in buffer
         // set to first to reduce search time
         if (page == null) {
-            readFromDisk(tableID, pageNumber);
+            readFromDisk(tableID, pageNumber, isIndexFile);
             page = searchBuffer(tableID, pageNumber);
         }
 
         // Push to top of buffer
         this.buffer.remove(page);
         if (!removeFromBuffer)
-            this.buffer.add(0, page);
+            this.buffer.addFirst(page);
 
         return page;
     }
@@ -150,7 +155,7 @@ class PageBuffer {
      */
     public void flush() throws IOException {
         while (!this.buffer.isEmpty())
-            writeToDisk(this.buffer.remove(0));
+            writeToDisk(this.buffer.removeFirst());
     }
 
 }

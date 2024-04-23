@@ -20,7 +20,7 @@ import java.util.List;
  */
 class Page {
 
-    private final TableFile writeFile;
+    private final DBFile writeFile;
     private final int pageSize;
     private final int pageNumber;
     private byte[] data;
@@ -33,7 +33,7 @@ class Page {
      * @param pageNumber Page Number
      * @param data       Page byte data
      */
-    public Page(TableFile writeFile, int pageSize, int pageNumber, byte[] data) {
+    public Page(DBFile writeFile, int pageSize, int pageNumber, byte[] data) {
         this.writeFile = writeFile;
         this.pageSize = pageSize;
         this.pageNumber = pageNumber;
@@ -199,7 +199,7 @@ class Page {
     /**
      * @return Page write file
      */
-    public TableFile getWriteFile() {
+    public DBFile getWriteFile() {
         return this.writeFile;
     }
 
