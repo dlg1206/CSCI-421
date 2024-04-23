@@ -294,7 +294,9 @@ public class StorageManager {
      */
     public void dropTable(int tableID) throws IOException {
         this.buffer.flush();
-        new TableFile(this.databaseRoot, tableID).delete();
+        TableFile tf = new TableFile(this.databaseRoot, tableID);
+        tf.getIndex().delete();
+        tf.delete();
     }
 
     public void flush() throws IOException {
