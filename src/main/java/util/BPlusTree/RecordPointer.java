@@ -1,8 +1,8 @@
 package util.BPlusTree;
 
 public class RecordPointer {
-    int pageNumber;
-    int index;
+    public int pageNumber;
+    public int index;
 
     public RecordPointer(int pageNumber, int index) {
         this.pageNumber = pageNumber;
