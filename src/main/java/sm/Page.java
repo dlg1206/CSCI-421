@@ -2,6 +2,7 @@ package sm;
 
 import catalog.Attribute;
 import dataTypes.DataType;
+import util.BPlusTree.RecordPointer;
 import cli.cmd.exception.ExecutionFailure;
 
 import java.io.IOException;
@@ -59,9 +60,9 @@ class Page {
      *
      * @param primaryKeyIndex Index of the primary key to sort by
      * @param record          record to insert
-     * @return True if inserted, false otherwise
+     * @return Record Pointer to new record, null if not inserted
      */
-    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) throws ExecutionFailure {
+    public RecordPointer insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) throws ExecutionFailure {
         // Get records
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
 
@@ -75,14 +76,14 @@ class Page {
 
             // > 0 means record is less than stored
             if (order > 0) {
-                records.add(records.indexOf(storedRecord), record);
+                records.add(records.indexOf(storedRecord), record);     // [..., stored, ...] -> [..., new, stored, ...]
                 this.data = BInterpreter.convertRecordsToPage(records);
-                return true;
+                return new RecordPointer(this.pageNumber, records.indexOf(record));
             }
         }
 
         // Record wasn't added
-        return false;
+        return null;
     }
 
     /**
@@ -113,14 +114,20 @@ class Page {
     /**
      * Append record to end of page
      * SHOULD ONLY BE USED IF LAST PAGE
-     * todo better implementation?
      *
      * @param record record to append
+     * @return Record Pointer to new record
      */
-    public void appendRecord(List<Attribute> attributes, List<DataType> record) {
+    public RecordPointer appendRecord(List<Attribute> attributes, List<DataType> record) {
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
         records.add(record);
         this.data = BInterpreter.convertRecordsToPage(records);
+        return new RecordPointer(this.pageNumber, records.indexOf(record));
+    }
+
+    public int indexOf(List<Attribute> attributes, List<DataType> record) {
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+        return records.indexOf(record);
     }
 
 
@@ -129,7 +136,7 @@ class Page {
      *
      * @return the second half of the page
      */
-    public Page split(List<Attribute> attributes) throws IOException {
+    public Page split(List<Attribute> attributes) {
         List<List<DataType>> leftRecords = BInterpreter.convertPageToRecords(this.data, attributes);
 
         // Split right from all records

@@ -1,6 +1,8 @@
 package sm;
 
 import catalog.Attribute;
+import dataTypes.DataType;
+import util.BPlusTree.RecordPointer;
 
 import java.io.*;
 import java.util.List;
@@ -105,7 +107,7 @@ class TableFile {
     private void deleteLastPageFromFile(int pageSize) throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
             // update page count
-            byte[] buffer = new byte[] {(byte) (readPageCount() - 1)};
+            byte[] buffer = new byte[]{(byte) (readPageCount() - 1)};
             raf.write(buffer, 0, 1);
 
             // remove last page from file
@@ -116,21 +118,38 @@ class TableFile {
     /**
      * Insert a split page into the table file
      *
-     * @throws IOException Failed to read file
+     * @param buffer       Page buffer to use to iterate through pages
+     * @param splitPageNum Page index to split on
+     * @param attributes   Constants of data types
+     * @param p            Page to split
+     * @param record       Record that has been inserted
+     * @return Record pointer to the split page containing the given record
+     * @throws IOException Failed tor read from file
      */
-    public void splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes, Page p) throws IOException {
+    public RecordPointer splitPage(PageBuffer buffer, int splitPageNum, List<Attribute> attributes, Page p, List<DataType> record) throws IOException {
         int swapOffset = 0;
         int pageCount = readPageCount();
+        RecordPointer recordPointer = null;
 
         // Read each page from the original table file to the swap file
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             Page page = buffer.readFromBuffer(this.tableID, pageNumber, true);
             // add split page
             if (pageNumber == splitPageNum) {
+                // Get left and right swap pages
                 Page rightPage = p.split(attributes);
-                buffer.writeToBuffer(p.getSwapPage(swapOffset));         // add leftPage
+                SwapPage leftSwapPage = p.getSwapPage(swapOffset);
                 swapOffset = 1;
-                buffer.writeToBuffer(rightPage.getSwapPage(swapOffset));    // add rightPage
+                SwapPage rightSwapPage = rightPage.getSwapPage(swapOffset);
+
+                buffer.writeToBuffer(leftSwapPage);     // add leftPage
+                buffer.writeToBuffer(rightSwapPage);    // add rightPage
+
+                // If left swap  has record, point to left swap else point to right swap
+                recordPointer = leftSwapPage.indexOf(attributes, record) != -1
+                        ? new RecordPointer(leftSwapPage.getPageNumber(), leftSwapPage.indexOf(attributes, record))
+                        : new RecordPointer(rightSwapPage.getPageNumber(), rightSwapPage.indexOf(attributes, record));
+
             } else {
                 // add rest of page
                 buffer.writeToBuffer(page.getSwapPage(swapOffset));
@@ -138,6 +157,7 @@ class TableFile {
         }
         buffer.flush();     // Write out any remaining files
         closeSwapFile();    // Save the swap file as the actual file
+        return recordPointer;
     }
 
     /**
@@ -146,7 +166,6 @@ class TableFile {
      * @throws IOException Failed to read file
      */
     public void deletePage(PageBuffer buffer, int emptyPageNum) throws IOException {
-        int swapOffset = -1;
         int pageCount = readPageCount();
 
         // get page size and remove empty page from buffer
