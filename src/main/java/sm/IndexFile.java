@@ -228,4 +228,25 @@ public class IndexFile extends DBFile{
         Page p = new Page(this, nodeData.length, n.pageNum, nodeData, true);
         Buffer.writeToBuffer(p);
     }
+
+    public void print() throws IOException {
+        printTree(Root, "", true);
+    }
+
+    private void printTree(Node node, String indent, boolean last) throws IOException {
+        if (indent.isEmpty()) {
+            System.out.println("Root: " + node.keys.stream().map(DataType::stringValue).toList());
+        } else {
+            String connector = last ? "└── " : "├── ";
+            System.out.println(indent + connector + (node.isLeaf ? "Leaf: " : "Internal: ") + node.keys.stream().map(DataType::stringValue).toList());
+        }
+
+        if (!node.isLeaf) {
+            InternalNode internal = (InternalNode) node;
+            for (int i = 0; i < internal.children.size(); i++) {
+                String nextIndent = indent + (last ? "    " : "│   ");
+                printTree(getNodeFromBuffer(internal.children.get(i)), nextIndent, i == internal.children.size() - 1);
+            }
+        }
+    }
 }
