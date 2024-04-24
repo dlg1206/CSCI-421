@@ -18,7 +18,7 @@ import java.util.List;
  *
  * @author Derek Garcia, Ryan Nowak
  */
-class Page {
+public class Page {
 
     private final DBFile writeFile;
     private final int pageSize;
@@ -230,6 +230,10 @@ class Page {
      */
     public byte[] getData() {
         return this.data;
+    }
+
+    public void setData(byte[] newData) {
+        this.data = newData;
     }
 
 

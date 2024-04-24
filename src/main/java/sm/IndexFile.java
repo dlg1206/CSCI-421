@@ -20,7 +20,6 @@ public class IndexFile extends DBFile{
     private final static int POINTER_SIZE = 8; // Size of 2 integers (Page Num, Page Index)
     private final int Capacity;
     private int NodeCount;
-    private Node Root;
     private final Attribute PKAttr;
     private final PageBuffer Buffer;
 
@@ -44,7 +43,6 @@ public class IndexFile extends DBFile{
             updateRootNode(root);
             buffer.flush();
         }
-        Root = getRootNode();
     }
 
     private Node getRootNode() throws IOException {
@@ -57,12 +55,11 @@ public class IndexFile extends DBFile{
     }
 
     private void updateRootNode(Node newRoot) throws IOException {
-        Root = newRoot;
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] rootPageNum = new DTInteger(Integer.toString(Root.pageNum)).convertToBytes();
-            raf.seek(4);
+            byte[] rootPageNum = new DTInteger(Integer.toString(newRoot.pageNum)).convertToBytes();
+            raf.seek(1);
             raf.write(rootPageNum, 0, 4);
-            writeNodeToBuffer(Root);
+            writeNode(newRoot);
         }
     }
 
@@ -85,7 +82,7 @@ public class IndexFile extends DBFile{
     }
 
     public void insertPointer(DataType key, RecordPointer recordPointer) throws IOException {
-        LeafNode leaf = findLeafNode(Root, key);
+        LeafNode leaf = findLeafNode(getRootNode(), key);
         insertInLeafNode(leaf, key, recordPointer);
     }
 
@@ -119,13 +116,12 @@ public class IndexFile extends DBFile{
             splitLeafNode(leaf);
         }
 
-        writeNodeToBuffer(leaf);
+        writeNode(leaf);
     }
 
     private void splitLeafNode(LeafNode leaf) throws IOException {
         int splitIndex = leaf.keys.size() / 2;
-        LeafNode newLeaf;
-        newLeaf = new LeafNode(Capacity, nextNodeValue(), leaf.parentNum);
+        LeafNode newLeaf = new LeafNode(Capacity, nextNodeValue(), leaf.parentNum);
         newLeaf.keys.addAll(leaf.keys.subList(splitIndex, leaf.keys.size()));
         newLeaf.pointers.addAll(leaf.pointers.subList(splitIndex, leaf.pointers.size()));
 
@@ -140,11 +136,11 @@ public class IndexFile extends DBFile{
             leaf.parentNum = newRoot.pageNum;
             newLeaf.parentNum = newRoot.pageNum;
             updateRootNode(newRoot);
-            writeNodeToBuffer(leaf);
+            writeNode(leaf);
         } else {
             insertInParent(leaf, newLeaf.keys.getFirst(), newLeaf);
         }
-        writeNodeToBuffer(newLeaf);
+        writeNode(newLeaf);
     }
 
     private void insertInParent(Node oldNode, DataType key, Node newNode) throws IOException {
@@ -164,7 +160,7 @@ public class IndexFile extends DBFile{
         if (parent.keys.size() > Capacity) {
             splitInternalNode(parent);
         }
-        writeNodeToBuffer(parent);
+        writeNode(parent);
     }
 
     private void splitInternalNode(InternalNode node) throws IOException {
@@ -191,15 +187,15 @@ public class IndexFile extends DBFile{
             node.parentNum = newRoot.pageNum;
             newInternal.parentNum = newRoot.pageNum;
             updateRootNode(newRoot);
-            writeNodeToBuffer(node);
+            writeNode(node);
         } else {
             insertInParent(node, upKey, newInternal);
         }
-        writeNodeToBuffer(newInternal);
+        writeNode(newInternal);
     }
 
     public RecordPointer search(DataType key) throws IOException {
-        LeafNode leaf = findLeafNode(Root, key);
+        LeafNode leaf = findLeafNode(getRootNode(), key);
         for (int i = 0; i < leaf.keys.size(); i++) {
             if (leaf.keys.get(i).compareTo(key) == 0) {
                 return leaf.pointers.get(i);
@@ -220,17 +216,20 @@ public class IndexFile extends DBFile{
 
     private Node getNodeFromBuffer(int pageNum) throws IOException {
         Page p = Buffer.readFromBuffer(fileID, pageNum, false, this);
-        return BPlusTreeInterpreter.convertBinaryToNode(p.getData(), 0, PKAttr, Capacity);
+        return BPlusTreeInterpreter.convertBinaryToNode(p, pageNum, PKAttr, Capacity);
     }
 
-    private void writeNodeToBuffer(Node n) throws IOException {
+    private void writeNode(Node n) throws IOException {
         byte[] nodeData = BPlusTreeInterpreter.convertNodeToBinary(n);
-        Page p = new Page(this, nodeData.length, n.pageNum, nodeData, true);
-        Buffer.writeToBuffer(p);
+        if (n.page == null) {
+            n.page = new Page(this, nodeData.length, n.pageNum, nodeData, true);
+            Buffer.writeToBuffer(n.page);
+        }
+        n.page.setData(nodeData);
     }
 
     public void print() throws IOException {
-        printTree(Root, "", true);
+        printTree(getRootNode(), "", true);
     }
 
     private void printTree(Node node, String indent, boolean last) throws IOException {
