@@ -39,10 +39,10 @@ public class PageBuffer {
      * @param pageNumber Page number
      * @return Page if in buffer, null otherwise
      */
-    private Page searchBuffer(int tableID, int pageNumber) {
+    private Page searchBuffer(int tableID, int pageNumber, boolean findIndexFile) {
         for (Page p : this.buffer) {
             // Find page
-            if (p.match(tableID, pageNumber))
+            if (p.match(tableID, pageNumber, findIndexFile))
                 return p;
         }
         return null;
@@ -129,13 +129,13 @@ public class PageBuffer {
      */
     public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer, IndexFile indexFile) throws IOException {
 
-        Page page = searchBuffer(tableID, pageNumber);
+        Page page = searchBuffer(tableID, pageNumber, indexFile != null);
 
         // Read page from disk if not in buffer
         // set to first to reduce search time
         if (page == null) {
             readFromDisk(tableID, pageNumber, indexFile);
-            page = searchBuffer(tableID, pageNumber);
+            page = searchBuffer(tableID, pageNumber, indexFile != null);
         }
 
         // Push to top of buffer

@@ -51,11 +51,16 @@ class Page {
      * @param otherPageNumber Page number of the other page
      * @return true if match, false otherwise
      */
-    public boolean match(int otherTableID, int otherPageNumber) {
-        return this.writeFile.getTableID() == otherTableID
-                && this.pageNumber == otherPageNumber
-                && !this.writeFile.isSwap()
-                && !this.writeFile.isIndex();    // cannot read from swap or index
+    public boolean match(int otherTableID, int otherPageNumber, boolean findIndexFile) {
+        if (findIndexFile)
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && this.writeFile.isIndex();
+        else
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && !this.writeFile.isSwap()
+                    && !this.writeFile.isIndex();    // cannot read from swap
     }
 
     /**
