@@ -17,7 +17,7 @@ public class SwapPage extends Page {
      * @param data       Page byte data
      */
     public SwapPage(DBFile writeFile, int pageSize, int pageNumber, byte[] data) {
-        super(writeFile, pageSize, pageNumber, data);
+        super(writeFile, pageSize, pageNumber, data, false);
     }
 
     @Override

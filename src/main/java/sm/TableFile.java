@@ -47,7 +47,7 @@ class TableFile extends DBFile {
      * @throws IOException Failed to create index file
      */
     public IndexFile getIndex() throws IOException {
-        return new IndexFile(this.databaseRoot, this.fileID);
+        return null; //new IndexFile(this.databaseRoot, this.fileID);
     }
 
     /**
@@ -98,7 +98,7 @@ class TableFile extends DBFile {
 
         // Read each page from the original table file to the swap file
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, false);
+            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, null);
             // add split page
             if (pageNumber == splitPageNum) {
                 // Get left and right swap pages
@@ -134,13 +134,13 @@ class TableFile extends DBFile {
         int pageCount = readPageCount();
 
         // get page size and remove empty page from buffer
-        int pageSize = buffer.readFromBuffer(this.fileID, emptyPageNum, true, false).getPageSize();
+        int pageSize = buffer.readFromBuffer(this.fileID, emptyPageNum, true, null).getPageSize();
 
         // move all pages after empty page forward
         for (int pageNumber = emptyPageNum + 1; pageNumber < pageCount; pageNumber++) {
-            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, false);
+            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, null);
             //buffer.writeToBuffer(page.getSwapPage(swapOffset));
-            buffer.writeToBuffer(new Page(this, pageSize, pageNumber - 1, page.getData()));
+            buffer.writeToBuffer(new Page(this, pageSize, pageNumber - 1, page.getData(), false));
         }
 
         // Write out any remaining files

@@ -24,6 +24,7 @@ class Page {
     private final int pageSize;
     private final int pageNumber;
     private byte[] data;
+    public boolean IsIndexPage;
 
     /**
      * Create new Page
@@ -33,11 +34,12 @@ class Page {
      * @param pageNumber Page Number
      * @param data       Page byte data
      */
-    public Page(DBFile writeFile, int pageSize, int pageNumber, byte[] data) {
+    public Page(DBFile writeFile, int pageSize, int pageNumber, byte[] data, boolean isIndexPage) {
         this.writeFile = writeFile;
         this.pageSize = pageSize;
         this.pageNumber = pageNumber;
         this.data = new byte[pageSize];
+        IsIndexPage = isIndexPage;
 
         System.arraycopy(data, 0, this.data, 0, data.length);   // copy existing data
     }
@@ -52,7 +54,8 @@ class Page {
     public boolean match(int otherTableID, int otherPageNumber) {
         return this.writeFile.getTableID() == otherTableID
                 && this.pageNumber == otherPageNumber
-                && !this.writeFile.isSwap();    // cannot read from swap
+                && !this.writeFile.isSwap()
+                && !this.writeFile.isIndex();    // cannot read from swap or index
     }
 
     /**

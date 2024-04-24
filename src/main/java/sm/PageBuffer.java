@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Derek Garcia
  */
-class PageBuffer {
+public class PageBuffer {
     private final List<Page> buffer = new ArrayList<>();
     private final int capacity;
     private final int pageSize;
@@ -55,15 +55,21 @@ class PageBuffer {
      * @param page Page to write to disk
      * @throws IOException Failed to open table file
      */
-    private void writeToDisk(Page page) throws IOException {
+    private void writeToDisk(Page page, boolean isIndexPage) throws IOException {
         DBFile writeFile = page.getWriteFile();
         try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
             // Write page data
-            raf.seek(1 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
+            if (!isIndexPage)
+                raf.seek(1 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
+            else
+                raf.seek(5 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
             raf.write(page.getData());
             // Update page count
             raf.seek(0);
-            raf.write((int) ((raf.length() - 1) / this.pageSize));
+            if (!isIndexPage)
+                raf.write((int) ((raf.length() - 1) / this.pageSize));
+            else
+                raf.write((int) ((raf.length() - 5) / this.pageSize));
         }
     }
 
@@ -74,22 +80,25 @@ class PageBuffer {
      * @param tableID    Table ID to read from
      * @param pageNumber Page number to get
      */
-    private void readFromDisk(int tableID, int pageNumber, boolean isIndexFile) throws IOException {
+    private void readFromDisk(int tableID, int pageNumber, IndexFile indexFile) throws IOException {
         DBFile writeFile;
-        if (!isIndexFile)
+        if (indexFile == null)
             writeFile = new TableFile(this.databaseRoot, tableID);
         else
-            writeFile = new IndexFile(this.databaseRoot, tableID);
+            writeFile = indexFile;
 
         byte[] buffer = new byte[this.pageSize];
 
         // Read page from file
         try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
-            raf.seek(1 + (long) pageNumber * this.pageSize);  // +1 is page count byte
+            if (indexFile == null)
+                raf.seek(1 + (long) pageNumber * this.pageSize);  // +1 is page count byte
+            else
+                raf.seek(5 + (long) pageNumber * this.pageSize);  // +1 is page count byte
             raf.read(buffer, 0, this.pageSize);
         }
 
-        writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer));
+        writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer, indexFile != null));
     }
 
     /**
@@ -100,8 +109,10 @@ class PageBuffer {
     public void writeToBuffer(Page page) throws IOException {
 
         // Make room if needed
-        if (this.buffer.size() == this.capacity)
-            writeToDisk(this.buffer.remove(this.capacity - 1));
+        if (this.buffer.size() == this.capacity) {
+            Page toRemove = this.buffer.remove(this.capacity - 1);
+            writeToDisk(toRemove, toRemove.IsIndexPage);
+        }
 
         // Push list
         this.buffer.addFirst(page);
@@ -116,14 +127,14 @@ class PageBuffer {
      * @param removeFromBuffer Remove this page from the buffer ( used for splitting pages )
      * @return Page
      */
-    public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer, boolean isIndexFile) throws IOException {
+    public Page readFromBuffer(int tableID, int pageNumber, boolean removeFromBuffer, IndexFile indexFile) throws IOException {
 
         Page page = searchBuffer(tableID, pageNumber);
 
         // Read page from disk if not in buffer
         // set to first to reduce search time
         if (page == null) {
-            readFromDisk(tableID, pageNumber, isIndexFile);
+            readFromDisk(tableID, pageNumber, indexFile);
             page = searchBuffer(tableID, pageNumber);
         }
 
@@ -145,17 +156,19 @@ class PageBuffer {
      * @throws IOException Failed to write to file
      */
     public void fullWrite(TableFile writeFile, int pageNumber, byte[] data) throws IOException {
-        Page page = new Page(writeFile, this.pageSize, pageNumber, data);
+        Page page = new Page(writeFile, this.pageSize, pageNumber, data, true);
         writeToBuffer(page);
-        writeToDisk(page);
+        writeToDisk(page, page.IsIndexPage);
     }
 
     /**
      * Pop and write each entry in the buffer to file
      */
     public void flush() throws IOException {
-        while (!this.buffer.isEmpty())
-            writeToDisk(this.buffer.removeFirst());
+        while (!this.buffer.isEmpty()) {
+            Page toRemove = this.buffer.removeFirst();
+            writeToDisk(toRemove, toRemove.IsIndexPage);
+        }
     }
 
 }

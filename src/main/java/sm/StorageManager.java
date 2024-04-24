@@ -92,12 +92,12 @@ public class StorageManager {
         // Iterate through all pages and attempt to insert the record
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             // read page from buffer and attempt to insert
-            Page page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, false, false);
+            Page page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, false, null);
             recordPointer = page.insertRecord(pki, attributes, record);
 
             // Record added, split if needed
             if (recordPointer != null && page.isOverfull()) {
-                page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, false);
+                page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, null);
                 recordPointer = tf.splitPage(this.buffer, pageNumber, attributes, page, record);
             }
 
@@ -109,7 +109,7 @@ public class StorageManager {
             if (pageNumber == pageCount - 1) {
                 recordPointer = page.appendRecord(attributes, record);
                 if (page.isOverfull()) {
-                    page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, false);
+                    page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, null);
                     recordPointer = tf.splitPage(this.buffer, pageNumber, attributes, page, record);
                 }
             }
@@ -137,7 +137,7 @@ public class StorageManager {
 
         // If index enabled, insert result
         if(this.isIndexed)
-            tf.getIndex().insertPointer(this.buffer, rp);
+            tf.getIndex().insertPointer(record.get(getPrimaryKeyIndex(attributes)), rp);
 
     }
 
@@ -163,7 +163,7 @@ public class StorageManager {
             // Get all records
             List<List<DataType>> records = new ArrayList<>();
             for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, false);
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
                 List<List<DataType>> readRecords = BInterpreter.convertPageToRecords(page.getData(), attributes);
                 List<List<DataType>> goodRecords = new ArrayList<>();
 
@@ -199,7 +199,7 @@ public class StorageManager {
             // Get all records
             List<List<DataType>> records = new ArrayList<>();
             for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, false);
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
                 records.addAll(BInterpreter.convertPageToRecords(page.getData(), attributes));
             }
 
@@ -268,7 +268,7 @@ public class StorageManager {
         // read each table page in order from the table file
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             // read page from buffer and attempt to delete
-            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, false);
+            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
             boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
 
 
@@ -295,7 +295,7 @@ public class StorageManager {
     public void dropTable(int tableID) throws IOException {
         this.buffer.flush();
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        tf.getIndex().delete();
+//        tf.getIndex().delete(); //TODO: replace
         tf.delete();
     }
 

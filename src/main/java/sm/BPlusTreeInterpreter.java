@@ -23,6 +23,10 @@ public class BPlusTreeInterpreter {
         else
             pageData.writeBytes(new byte[] {0});
 
+        // write parent's page number (4 bytes)
+        int parentNum = node.parentNum == null ? -1 : node.parentNum;
+        pageData.writeBytes(ByteBuffer.allocate(4).putInt(parentNum).array());
+
         // write number of pairs (4 bytes)
         pageData.writeBytes(ByteBuffer.allocate(4).putInt(node.keys.size()).array());
 
@@ -57,22 +61,24 @@ public class BPlusTreeInterpreter {
     }
 
 
-    public static Node convertBinaryToNode(byte[] data, Attribute attribute, int N) {
+    public static Node convertBinaryToNode(byte[] data, Integer pageNum, Attribute attribute, int N) {
         Node node;
 
         // read flag indicating if node is leaf or internal node
-        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 1));
+        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(data, 0, 5));
         int isLeaf =  numRecBuff.get();
+        Integer parentNum =  numRecBuff.getInt();
+        parentNum = parentNum == -1 ? null : parentNum;
         if (isLeaf == 1) {
-            node = new LeafNode(N);
+            node = new LeafNode(N, pageNum, parentNum);
             node.isLeaf = true;
         }
         else {
-            node = new InternalNode(N);
+            node = new InternalNode(N, pageNum, parentNum);
             node.isLeaf = false;
         }
 
-        int dataIdx = 1; // skip index 0
+        int dataIdx = 5; // skip index 0 (isLeaf) and index 1-4 (parentNum)
 
         // read number of pairs (key-pointer pairs)
         int numPairs = ByteBuffer.wrap(Arrays.copyOfRange(data, dataIdx, dataIdx + 4)).getInt();

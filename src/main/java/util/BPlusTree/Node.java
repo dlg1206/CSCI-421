@@ -6,12 +6,14 @@ import java.util.ArrayList;
 
 public abstract class Node {
     public ArrayList<DataType> keys;
-    public InternalNode parent;
+    public Integer parentNum;
+    public int pageNum;
     public boolean isLeaf;
 
-    public Node(int N) {
+    public Node(int N, int pageNum, Integer parentNum) {
         this.keys = new ArrayList<>(N);
-        this.parent = null;
+        this.parentNum = parentNum;
+        this.pageNum = pageNum;
     }
 }
 
