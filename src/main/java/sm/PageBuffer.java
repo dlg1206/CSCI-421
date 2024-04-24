@@ -156,7 +156,7 @@ public class PageBuffer {
      * @throws IOException Failed to write to file
      */
     public void fullWrite(TableFile writeFile, int pageNumber, byte[] data) throws IOException {
-        Page page = new Page(writeFile, this.pageSize, pageNumber, data, true);
+        Page page = new Page(writeFile, this.pageSize, pageNumber, data, false);
         writeToBuffer(page);
         writeToDisk(page, page.IsIndexPage);
     }
