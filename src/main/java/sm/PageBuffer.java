@@ -60,16 +60,16 @@ public class PageBuffer {
         try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
             // Write page data
             if (!isIndexPage)
-                raf.seek(1 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
+                raf.seek(4 + (long) page.getPageNumber() * this.pageSize);  // 4 bytes reserved for num pages
             else
-                raf.seek(5 + (long) page.getPageNumber() * this.pageSize);  // +1 is page count byte
+                raf.seek(8 + (long) page.getPageNumber() * this.pageSize);  // 4 bytes reserved for num pages, 4 bytes for root node number
             raf.write(page.getData());
             // Update page count
             raf.seek(0);
             if (!isIndexPage)
-                raf.write((int) ((raf.length() - 1) / this.pageSize));
+                raf.writeInt((int) ((raf.length() - 4) / this.pageSize));
             else
-                raf.write((int) ((raf.length() - 5) / this.pageSize));
+                raf.writeInt((int) ((raf.length() - 8) / this.pageSize));
         }
     }
 
@@ -92,13 +92,34 @@ public class PageBuffer {
         // Read page from file
         try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
             if (indexFile == null)
-                raf.seek(1 + (long) pageNumber * this.pageSize);  // +1 is page count byte
+                raf.seek(4 + (long) pageNumber * this.pageSize);  // 4 bytes reserved for num pages
             else
-                raf.seek(5 + (long) pageNumber * this.pageSize);  // +1 is page count byte
+                raf.seek(8 + (long) pageNumber * this.pageSize);  // 4 bytes reserved for num pages, 4 bytes for root node number
             raf.read(buffer, 0, this.pageSize);
         }
 
         writeToBuffer(new Page(writeFile, this.pageSize, pageNumber, buffer, indexFile != null));
+    }
+
+    /**
+     *
+     */
+    private void writeRootNodeToDisk(Page page, boolean isIndexPage) throws IOException {
+        DBFile writeFile = page.getWriteFile();
+        try (RandomAccessFile raf = writeFile.toRandomAccessFile()) {
+            // Write page data
+            if (!isIndexPage)
+                raf.seek(4 + (long) page.getPageNumber() * this.pageSize);  // 4 bytes reserved for num pages
+            else
+                raf.seek(8 + (long) page.getPageNumber() * this.pageSize);  // 4 bytes reserved for num pages, 4 bytes for root node number
+            raf.write(page.getData());
+            // Update page count
+            raf.seek(0);
+            if (!isIndexPage)
+                raf.writeInt((int) ((raf.length() - 4) / this.pageSize));
+            else
+                raf.writeInt((int) ((raf.length() - 8) / this.pageSize));
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import dataTypes.DataType;
 import util.BPlusTree.*;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -47,9 +48,11 @@ public class IndexFile extends DBFile{
 
     private Node getRootNode() throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] buffer = new byte[5];
-            raf.read(buffer, 0, 5);
-            int rootPageNum = new DTInteger(Arrays.copyOfRange(buffer, 1, 5)).getValue();
+            // first 4 bytes of index file is reserved for number of pages,
+            // next 4 bytes contains the root node page number
+            byte[] buffer = new byte[4];
+            raf.read(buffer, 4, 4);
+            int rootPageNum = new DTInteger(Arrays.copyOfRange(buffer, 0, 4)).getValue();
             return getNodeFromBuffer(rootPageNum);
         }
     }
@@ -57,7 +60,7 @@ public class IndexFile extends DBFile{
     private void updateRootNode(Node newRoot) throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
             byte[] rootPageNum = new DTInteger(Integer.toString(newRoot.pageNum)).convertToBytes();
-            raf.seek(1);
+            raf.seek(4);
             raf.write(rootPageNum, 0, 4);
             writeNode(newRoot);
         }
@@ -65,9 +68,9 @@ public class IndexFile extends DBFile{
 
     private int readNodeCount() throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] buffer = new byte[1];
-            raf.read(buffer, 0, 1);
-            return buffer[0];
+            byte[] buffer = new byte[4];
+            raf.read(buffer, 0, 4);
+            return ByteBuffer.wrap(buffer).getInt();
         }
     }
 
@@ -75,8 +78,7 @@ public class IndexFile extends DBFile{
         try (RandomAccessFile raf = toRandomAccessFile()) {
             // update page count
             NodeCount = readNodeCount() + 1;
-            byte[] buffer = new byte[]{(byte) (NodeCount)};
-            raf.write(buffer, 0, 1);
+            raf.write(ByteBuffer.allocate(4).putInt(NodeCount).array(), 0, 4);
             return NodeCount;
         }
     }

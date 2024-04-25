@@ -6,6 +6,7 @@ import util.BPlusTree.RecordPointer;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
@@ -58,9 +59,9 @@ class TableFile extends DBFile {
      */
     public int readPageCount() throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] buffer = new byte[1];
-            raf.read(buffer, 0, 1);
-            return buffer[0];
+            byte[] buffer = new byte[4];
+            raf.read(buffer, 0, 4);
+            return ByteBuffer.wrap(buffer).getInt();
         }
     }
 
