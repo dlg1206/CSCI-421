@@ -1,13 +1,11 @@
 package sm;
 
 import catalog.Attribute;
-import dataTypes.DTInteger;
 import dataTypes.DataType;
 import util.BPlusTree.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * <b>DBFile:</b> IndexFile.java
@@ -21,6 +19,7 @@ public class IndexFile extends DBFile{
     private final static int POINTER_SIZE = 8; // Size of 2 integers (Page Num, Page Index)
     private final int Capacity;
     private int NodeCount;
+    private final int PageSize;
     private final Attribute PKAttr;
     private final PageBuffer Buffer;
 
@@ -35,6 +34,7 @@ public class IndexFile extends DBFile{
         super(databaseRoot, tableID, INDEX_FILE_EXTENSION);
         PKAttr = pkAttr;
         int pairSize = PKAttr.getMaxDataLength() + POINTER_SIZE;
+        this.PageSize = pageSize;
         this.Capacity = (pageSize / pairSize) - 1;
         this.Buffer = buffer;
         NodeCount = readNodeCount();
@@ -87,8 +87,21 @@ public class IndexFile extends DBFile{
         insertInLeafNode(leaf, key, recordPointer);
     }
 
-    public void deletePointer(DataType primaryKey){
-        // TODO b+ delete pointer
+    public void deletePointer(DataType primaryKey) throws IOException {
+        LeafNode leaf = findLeafNode(getRootNode(), primaryKey);
+        int index = leaf.keys.indexOf(primaryKey);
+        if (index != -1) {
+            // Remove the key and pointer from the leaf
+            leaf.keys.remove(index);
+            leaf.pointers.remove(index);
+
+            if (leaf.keys.size() < Capacity / 2) {
+                // Handle underflow
+                handleUnderflow(leaf);
+            } else {
+                writeNode(leaf);
+            }
+        }
     }
 
     private LeafNode findLeafNode(Node node, DataType key) throws IOException {
@@ -205,6 +218,205 @@ public class IndexFile extends DBFile{
         return null;
     }
 
+    private void handleUnderflow(Node node) throws IOException {
+        if (node.isLeaf) {
+            LeafNode leaf = (LeafNode) node;
+            handleLeafUnderflow(leaf);
+        } else {
+            InternalNode internal = (InternalNode) node;
+            handleInternalUnderflow(internal);
+        }
+    }
+
+    private void handleLeafUnderflow(LeafNode leaf) throws IOException {
+        if (leaf.parentNum == null) {
+            if (leaf.keys.isEmpty()) {
+                leaf.pointers.clear();
+            }
+            return;
+        }
+
+        InternalNode parent = (InternalNode) getNodeFromBuffer(leaf.parentNum);
+
+        int leafIndex = parent.children.indexOf(leaf.pageNum);
+
+        // Try to merge left
+        if (leafIndex > 0) {
+            LeafNode leftSibling = (LeafNode) getNodeFromBuffer(parent.children.get(leafIndex - 1));
+            if (leftSibling.keys.size() + leaf.keys.size() <= Capacity) {
+                leftSibling.keys.addAll(leaf.keys);
+                leftSibling.pointers.addAll(leaf.pointers);
+                parent.keys.remove(leafIndex - 1);
+                parent.children.remove(leafIndex);
+                if (parent.keys.isEmpty()) {
+                    handleUnderflow(parent);
+                }
+                writeNode(leftSibling);
+                writeNode(parent);
+                return;
+            }
+        }
+
+        // Try to merge right
+        if (leafIndex < parent.children.size() - 1) {
+            LeafNode rightSibling = (LeafNode) getNodeFromBuffer(parent.children.get(leafIndex + 1));
+            if (leaf.keys.size() + rightSibling.keys.size() <= Capacity) {
+                leaf.keys.addAll(rightSibling.keys);
+                leaf.pointers.addAll(rightSibling.pointers);
+                parent.keys.remove(leafIndex);
+                parent.children.remove(leafIndex + 1);
+                if (parent.keys.isEmpty()) {
+                    handleUnderflow(parent);
+                }
+                writeNode(leaf);
+                writeNode(parent);
+                return;
+            }
+        }
+
+        // Try to borrow from the left sibling
+        if (leafIndex > 0) {
+            LeafNode leftSibling = (LeafNode) getNodeFromBuffer(parent.children.get(leafIndex - 1));
+            if (leftSibling.keys.size() > Capacity / 2) {
+                DataType borrowedKey = leftSibling.keys.removeLast();
+                RecordPointer borrowedPointer = leftSibling.pointers.removeLast();
+                leaf.keys.addFirst(borrowedKey);
+                leaf.pointers.addFirst(borrowedPointer);
+                parent.keys.set(leafIndex - 1, leaf.keys.getFirst());
+                writeNode(leftSibling);
+                writeNode(parent);
+                writeNode(leaf);
+                return;
+            }
+        }
+
+        // Try to borrow from the right sibling
+        if (leafIndex < parent.children.size() - 1) {
+            LeafNode rightSibling = (LeafNode) getNodeFromBuffer(parent.children.get(leafIndex + 1));
+            if (rightSibling.keys.size() > Capacity / 2) {
+                DataType borrowedKey = rightSibling.keys.removeFirst();
+                RecordPointer borrowedPointer = rightSibling.pointers.removeFirst();
+                leaf.keys.add(borrowedKey);
+                leaf.pointers.add(borrowedPointer);
+                parent.keys.set(leafIndex, rightSibling.keys.getFirst());
+                writeNode(rightSibling);
+                writeNode(parent);
+                writeNode(leaf);
+            }
+        }
+    }
+
+    private void handleInternalUnderflow(InternalNode internal) throws IOException {
+        if (internal.parentNum == null) {
+            // Check if the internal node is now empty and needs to be removed
+            if (internal.keys.isEmpty() && internal.children.size() == 1) {
+                Node newRoot = getNodeFromBuffer(internal.children.getFirst());
+                newRoot.parentNum = null;
+                updateRootNode(newRoot);
+            }
+            return;
+        }
+
+        InternalNode parent = (InternalNode) getNodeFromBuffer(internal.parentNum);
+
+        int index = parent.children.indexOf(internal.pageNum);
+
+        // Try to merge left
+        if (index > 0) {
+            InternalNode leftSibling = (InternalNode) getNodeFromBuffer(parent.children.get(index - 1));
+            if (leftSibling.keys.size() + internal.keys.size() < Capacity) {
+                // Transfer keys and children from internal to leftSibling
+                leftSibling.keys.add(parent.keys.get(index - 1));
+                leftSibling.keys.addAll(internal.keys);
+                leftSibling.children.addAll(internal.children);
+                for (int i = 0; i < internal.children.size(); i++) {
+                    Node child = getNodeFromBuffer(internal.children.get(i));
+                    child.parentNum = leftSibling.pageNum;
+                    writeNode(child);
+                }
+
+                // Remove the reference from the parent
+                parent.keys.remove(index - 1);
+                parent.children.remove(internal.pageNum);
+
+                if (parent.keys.size() < Capacity / 2) {
+                    handleInternalUnderflow(parent);
+                }
+                writeNode(parent);
+                writeNode(leftSibling);
+                return;
+            }
+        }
+
+        // Try to merge right
+        if (index < parent.children.size() - 1) {
+            InternalNode rightSibling = (InternalNode) getNodeFromBuffer(parent.children.get(index + 1));
+            if (internal.keys.size() + rightSibling.keys.size() < Capacity) {
+                // Transfer keys and children from rightSibling to internal
+                internal.keys.add(parent.keys.get(index));
+                internal.keys.addAll(rightSibling.keys);
+                internal.children.addAll(rightSibling.children);
+                for (int i = 0; i < internal.children.size(); i++) {
+                    Node child = getNodeFromBuffer(internal.children.get(i));
+                    child.parentNum = rightSibling.pageNum;
+                    writeNode(child);
+                }
+
+                // Remove the reference from the parent
+                parent.keys.remove(index);
+                parent.children.remove(rightSibling.pageNum);
+                writeNode(internal);
+                writeNode(parent);
+
+                if (parent.keys.size() < Capacity / 2) {
+                    handleInternalUnderflow(parent);
+                }
+                return;
+            }
+        }
+
+        // Try to borrow from the left sibling
+        if (index > 0) {
+            InternalNode leftSibling = (InternalNode) getNodeFromBuffer(parent.children.get(index - 1));
+            if (leftSibling.keys.size() > Capacity / 2) {
+                // Borrow the largest key from the left sibling
+                DataType borrowedKey = leftSibling.keys.removeLast();
+                Node borrowedChild = getNodeFromBuffer(leftSibling.children.removeLast());
+                borrowedChild.parentNum = internal.pageNum;
+
+                // Insert the borrowed key and child at the beginning of the internal node
+                internal.keys.addFirst(parent.keys.get(index - 1));
+                internal.children.addFirst(borrowedChild.pageNum);
+                parent.keys.set(index - 1, borrowedKey);
+                writeNode(borrowedChild);
+                writeNode(leftSibling);
+                writeNode(parent);
+                writeNode(internal);
+                return;
+            }
+        }
+
+        // Try to borrow from the right sibling
+        if (index < parent.children.size() - 1) {
+            InternalNode rightSibling = (InternalNode) getNodeFromBuffer(parent.children.get(index + 1));
+            if (rightSibling.keys.size() > Capacity / 2) {
+                // Borrow the smallest key from the right sibling
+                DataType borrowedKey = rightSibling.keys.removeFirst();
+                Node borrowedChild = getNodeFromBuffer(rightSibling.children.removeFirst());
+                borrowedChild.parentNum = internal.pageNum;
+
+                // Append the borrowed key and child to the end of the internal node
+                internal.keys.add(parent.keys.get(index));
+                internal.children.add(borrowedChild.pageNum);
+                parent.keys.set(index, borrowedKey);
+                writeNode(borrowedChild);
+                writeNode(rightSibling);
+                writeNode(parent);
+                writeNode(internal);
+            }
+        }
+    }
+
     @Override
     public int getTableID() {
         return fileID;
@@ -212,7 +424,7 @@ public class IndexFile extends DBFile{
 
     @Override
     public TableFile getSwapFile() throws IOException {
-        return null;
+        return null; // This better not ever run
     }
 
     private Node getNodeFromBuffer(int pageNum) throws IOException {
@@ -223,8 +435,9 @@ public class IndexFile extends DBFile{
     private void writeNode(Node n) throws IOException {
         byte[] nodeData = BPlusTreeInterpreter.convertNodeToBinary(n);
         if (n.page == null) {
-            n.page = new Page(this, nodeData.length, n.pageNum, nodeData, true);
+            n.page = new Page(this, PageSize, n.pageNum, nodeData, true);
             Buffer.writeToBuffer(n.page);
+            Buffer.flush();
         }
         n.page.setData(nodeData);
     }
