@@ -37,9 +37,8 @@ public class IndexFile extends DBFile{
         int pairSize = PKAttr.getMaxDataLength() + POINTER_SIZE;
         this.Capacity = (pageSize / pairSize) - 1;
         this.Buffer = buffer;
-        File f = toFile();
         NodeCount = readNodeCount();
-        if (f.length() == 1) {
+        if (NodeCount == 0) {
             LeafNode root = new LeafNode(Capacity, 0, null);
             updateRootNode(root);
             buffer.flush();
@@ -50,26 +49,26 @@ public class IndexFile extends DBFile{
         try (RandomAccessFile raf = toRandomAccessFile()) {
             // first 4 bytes of index file is reserved for number of pages,
             // next 4 bytes contains the root node page number
-            byte[] buffer = new byte[4];
-            raf.read(buffer, 4, 4);
-            int rootPageNum = new DTInteger(Arrays.copyOfRange(buffer, 0, 4)).getValue();
+            byte[] buffer = new byte[Integer.BYTES];
+            raf.seek(Integer.BYTES);
+            raf.read(buffer, 0, Integer.BYTES);
+            int rootPageNum = ByteBuffer.wrap(buffer).getInt();
             return getNodeFromBuffer(rootPageNum);
         }
     }
 
     private void updateRootNode(Node newRoot) throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] rootPageNum = new DTInteger(Integer.toString(newRoot.pageNum)).convertToBytes();
-            raf.seek(4);
-            raf.write(rootPageNum, 0, 4);
+            raf.seek(Integer.BYTES);    // Skip the page count int
+            raf.write(ByteBuffer.allocate(Integer.BYTES).putInt(newRoot.pageNum).array(), 0, Integer.BYTES);
             writeNode(newRoot);
         }
     }
 
     private int readNodeCount() throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] buffer = new byte[4];
-            raf.read(buffer, 0, 4);
+            byte[] buffer = new byte[Integer.BYTES];
+            raf.read(buffer, 0, Integer.BYTES);
             return ByteBuffer.wrap(buffer).getInt();
         }
     }
@@ -78,7 +77,7 @@ public class IndexFile extends DBFile{
         try (RandomAccessFile raf = toRandomAccessFile()) {
             // update page count
             NodeCount = readNodeCount() + 1;
-            raf.write(ByteBuffer.allocate(4).putInt(NodeCount).array(), 0, 4);
+            raf.write(ByteBuffer.allocate(Integer.BYTES).putInt(NodeCount).array(), 0, Integer.BYTES);
             return NodeCount;
         }
     }
