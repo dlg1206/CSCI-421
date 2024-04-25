@@ -65,7 +65,7 @@ public class BPlusTreeInterpreter {
         Node node;
 
         // read flag indicating if node is leaf or internal node
-        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(p.getData(), 0, 5));
+        ByteBuffer numRecBuff = ByteBuffer.wrap(Arrays.copyOfRange(p.getData(), 0, 1 + Integer.BYTES));
         int isLeaf =  numRecBuff.get();
         Integer parentNum =  numRecBuff.getInt();
         parentNum = parentNum == -1 ? null : parentNum;
@@ -78,7 +78,7 @@ public class BPlusTreeInterpreter {
             node.isLeaf = false;
         }
 
-        int dataIdx = 5; // skip index 0 (isLeaf) and index 1-4 (parentNum)
+        int dataIdx = 1 + Integer.BYTES; // skip index 0 (isLeaf) and index 1-4 (parentNum)
 
         // read number of pairs (key-pointer pairs)
         int numPairs = ByteBuffer.wrap(Arrays.copyOfRange(p.getData(), dataIdx, dataIdx + 4)).getInt();
