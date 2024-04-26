@@ -1657,7 +1657,10 @@ public class TestRunner {
 
         int exitCode = 0;
 
+        double[] elapsedTimes = new double[2];
+        int i = 0;
         for (boolean isIdxed : List.of(true, false)) {
+            long startTime = System.currentTimeMillis();
             exitCode += test_display_schema(isIdxed);
             exitCode += test_display_info_for_missing_table(isIdxed);
             exitCode += test_select_from_missing_table(isIdxed);
@@ -1708,10 +1711,18 @@ public class TestRunner {
             exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally(isIdxed);
             exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally(isIdxed);
             exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(isIdxed);
+            long endTime = System.currentTimeMillis();
+            elapsedTimes[i] = (endTime - startTime) / 1000.;
+            i++;
         }
 
 
         cleanUp();  // rm any testing db files
+
+        System.out.println(new StrBuilder()
+                .addLine("Non-Indexed elapsed time:\t%s seconds.".formatted(elapsedTimes[1]))
+                .addLine("    Indexed elapsed time:\t%s seconds.".formatted(elapsedTimes[0]))
+                .build());
         System.out.println("Tests Failed: " + exitCode);
 
         System.exit(exitCode > 0 ? 1 : 0);
