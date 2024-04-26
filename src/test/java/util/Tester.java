@@ -14,26 +14,29 @@ public class Tester {
     private static final String RED = "\033[0;31m";
     private static final String GREEN = "\033[0;32m";
     private final String testName;
+    private final boolean usedIndex;
 
 
     /**
      * Create new tester
      *
-     * @param testName Name of the test
+     * @param testName  Name of the test
+     * @param usedIndex Whether index files were used for the given test
      */
-    public Tester(String testName){
+    public Tester(String testName, boolean usedIndex) {
         this.testName = testName;
+        this.usedIndex = usedIndex;
     }
 
     /**
      * Build a diff message
      *
-     * @param command Command that was executed
+     * @param command  Command that was executed
      * @param expected Expected String
-     * @param actual Actual String
+     * @param actual   Actual String
      * @return Formatted diff message
      */
-    private String buildMessage(String command, String expected, String actual){
+    private String buildMessage(String command, String expected, String actual) {
         return new StrBuilder()
                 .addLine("COMMAND: " + command)
                 .addLine("===Expected===")
@@ -51,19 +54,19 @@ public class Tester {
     /**
      * Test if the strings match
      *
-     * @param command Command that was executed
+     * @param command  Command that was executed
      * @param expected Expected String
-     * @param actual Actual String
+     * @param actual   Actual String
      * @return 0 if match, 1 otherwise
      */
-    public int isEquals(String command, String expected, String actual){
+    public int isEquals(String command, String expected, String actual) {
         boolean isEquals = expected.trim().equals(actual.trim());
         StrBuilder msg = new StrBuilder()
-                .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
-                .addLine((isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!" ) + RESET);
+                .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName + " ( INDEX %s )".formatted(this.usedIndex ? "ON" : "OFF"))
+                .addLine((isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!") + RESET);
 
         // Only show diff if err
-        if(!isEquals){
+        if (!isEquals) {
             msg.addLine(buildMessage(command, expected, actual));
         } else {
             msg.skipLine();

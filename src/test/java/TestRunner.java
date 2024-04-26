@@ -34,11 +34,12 @@ public class TestRunner {
     /**
      * Create a new CLI with no database
      *
+     * @param useIndex Use index files or not
      * @return MockCLI
      */
-    private static MockCLI buildMockCLI() {
+    private static MockCLI buildMockCLI(boolean useIndex) {
         cleanUp();
-        return new MockCLI(DB_ROOT, PAGE_SIZE, BUFFER_SIZE);
+        return new MockCLI(DB_ROOT, PAGE_SIZE, BUFFER_SIZE, useIndex);
     }
 
     /**
@@ -51,7 +52,7 @@ public class TestRunner {
             }
     }
 
-    private static int test_display_schema() {
+    private static int test_display_schema(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
@@ -60,10 +61,10 @@ public class TestRunner {
                 .addLine("No tables to display")
                 .addLine("SUCCESS")
                 .build();
-        Tester tester = new Tester("display_schema");
+        Tester tester = new Tester("display_schema", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "display schema;";
 
         // When
@@ -73,15 +74,15 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_display_info_for_missing_table() {
+    private static int test_display_info_for_missing_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (display info foo;): Table foo does not Exist in the Catalog ")
                 .addLine("ERROR")
                 .build();
-        Tester tester = new Tester("display_info_for_missing_table");
+        Tester tester = new Tester("display_info_for_missing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "display info foo;";
 
         // When
@@ -91,12 +92,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_missing_table() {
+    private static int test_select_from_missing_table(boolean useIndex) {
         String expected = "Invalid Usage (select * from foo;): Table foo does not exist in the Catalog";
-        Tester tester = new Tester("select_from_missing_table");
+        Tester tester = new Tester("select_from_missing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "select * from foo;";
 
         // When
@@ -106,7 +107,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_display_table_info() {
+    private static int test_display_table_info(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Table Name: foo")
                 .addLine("Table Schema: ")
@@ -115,10 +116,10 @@ public class TestRunner {
                 .addLine("Records: 0")
                 .addLine("SUCCESS")
                 .build();
-        Tester tester = new Tester("display_table_info");
+        Tester tester = new Tester("display_table_info", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "display info foo;";
 
         // When
@@ -129,7 +130,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_display_schema_with_one_table() {
+    private static int test_display_schema_with_one_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("DB location: " + DB_ROOT)
                 .addLine("Page Size: " + PAGE_SIZE)
@@ -145,10 +146,10 @@ public class TestRunner {
                 .skipLine()
                 .addLine("SUCCESS")
                 .build();
-        Tester tester = new Tester("display_schema_with_one_table");
+        Tester tester = new Tester("display_schema_with_one_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "display schema;";
 
         // When
@@ -159,17 +160,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_empty_table() {
+    private static int test_select_from_empty_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
                 .addLine("-------")
                 .skipLine()
                 .build();
-        Tester tester = new Tester("select_from_empty_table");
+        Tester tester = new Tester("select_from_empty_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "select * from foo;";
 
         // When
@@ -180,17 +181,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_non_empty_table() {
+    private static int test_select_from_non_empty_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
                 .addLine("-------")
                 .addLine("|    1|")
                 .build();
-        Tester tester = new Tester("select_from_non_empty_table");
+        Tester tester = new Tester("select_from_non_empty_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "select * from foo;";
@@ -202,12 +203,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_duplicate_entry() {
+    private static int test_insert_duplicate_entry(boolean useIndex) {
         String expected = "Execution Failure: Duplicate primary key '1'";
-        Tester tester = new Tester("insert_duplicate_entry");
+        Tester tester = new Tester("insert_duplicate_entry", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "insert into foo values (1);";
@@ -219,7 +220,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_ten_entries_into_existing_table() {
+    private static int test_insert_ten_entries_into_existing_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
@@ -235,10 +236,10 @@ public class TestRunner {
                 .addLine("|    9|")
                 .addLine("|   10|")
                 .build();
-        Tester tester = new Tester("test_insert_ten_entries_into_existing_table");
+        Tester tester = new Tester("test_insert_ten_entries_into_existing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10);");
         String command = "select * from foo;";
@@ -250,7 +251,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_1000_entries_into_existing_table() {
+    private static int test_insert_1000_entries_into_existing_table(boolean useIndex) {
         String expected;
         try {
             expected = new Scanner(new File(THOUSAND_OUT_FILE_PATH)).useDelimiter("\\Z").next().replace("\r", "");
@@ -259,10 +260,10 @@ public class TestRunner {
             return 1;
         }
 
-        Tester tester = new Tester("test_insert_1000_entries_into_existing_table");
+        Tester tester = new Tester("test_insert_1000_entries_into_existing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values " +
                 "(1),(2),(3),(4),(5),(6),(7),(8),(9)," +
@@ -374,17 +375,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_add_new_column_to_existing_table() {
+    private static int test_alter_add_new_column_to_existing_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("| id  | bar |")
                 .addLine("-------------")
                 .skipLine()
                 .build();
-        Tester tester = new Tester("alter_add_new_column_to_existing_table");
+        Tester tester = new Tester("alter_add_new_column_to_existing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo add bar double;";
         mockCLI.mockInput(command);
@@ -396,17 +397,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_add_new_column_to_existing_table_with_default() {
+    private static int test_alter_add_new_column_to_existing_table_with_default(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("--------------------")
                 .addLine("| id  |    baz     |")
                 .addLine("--------------------")
                 .addLine("|    1|       hello|")
                 .build();
-        Tester tester = new Tester("alter_add_new_column_to_existing_table");
+        Tester tester = new Tester("alter_add_new_column_to_existing_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         mockCLI.mockInput("insert into foo values (1);");
         String command = "alter table foo add baz varchar(10) default \"hello\";";
@@ -419,12 +420,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_missing_column_from_table() {
+    private static int test_alter_drop_missing_column_from_table(boolean useIndex) {
         String expected = "Invalid Usage (alter table foo drop bar;): The table 'foo' does not contain the attribute 'bar'.";
-        Tester tester = new Tester("alter_drop_missing_column_from_table");
+        Tester tester = new Tester("alter_drop_missing_column_from_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo drop bar;";
 
@@ -435,17 +436,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_existing_column_from_table() {
+    private static int test_alter_drop_existing_column_from_table(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("| id  |")
                 .addLine("-------")
                 .skipLine()
                 .build();
-        Tester tester = new Tester("alter_drop_existing_column_from_table");
+        Tester tester = new Tester("alter_drop_existing_column_from_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey, bar integer);");
         String command = "alter table foo drop bar;";
         mockCLI.mockInput(command);
@@ -457,12 +458,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_alter_drop_primary_key_column_from_table() {
+    private static int test_alter_drop_primary_key_column_from_table(boolean useIndex) {
         String expected = "Execution Failure: Execution failure cannot drop primary key";
-        Tester tester = new Tester("alter_drop_primary_key_column_from_table");
+        Tester tester = new Tester("alter_drop_primary_key_column_from_table", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( id integer primarykey);");
         String command = "alter table foo drop id;";
 
@@ -473,12 +474,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_create_table_with_two_primary_keys() {
+    private static int test_create_table_with_two_primary_keys(boolean useIndex) {
         String expected = "Invalid Usage (create table baz( name varchar(10), gpa double primarykey, id integer primarykey);): Only one attribute can be the primary key.";
-        Tester tester = new Tester("create_table_with_two_primary_keys");
+        Tester tester = new Tester("create_table_with_two_primary_keys", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         String command = "create table baz( name varchar(10), gpa double primarykey, id integer primarykey);";
 
         // When
@@ -488,12 +489,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_tuple_out_of_order() {
+    private static int test_insert_tuple_out_of_order(boolean useIndex) {
         String expected = "Execution Failure: The attribute 'name' takes a string, which must be wrapped in quotes. You did not do this for tuple #0";
-        Tester tester = new Tester("insert_tuple_out_of_order");
+        Tester tester = new Tester("insert_tuple_out_of_order", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (1 \"test\" 2.1);";
 
@@ -504,12 +505,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_tuple_with_missing_value() {
+    private static int test_insert_tuple_with_missing_value(boolean useIndex) {
         String expected = "Execution Failure: Table baz expects 3 attributes and you provided 2 for tuple #0";
-        Tester tester = new Tester("insert_tuple_with_missing_value");
+        Tester tester = new Tester("insert_tuple_with_missing_value", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (\"test\" 2.1);";
 
@@ -520,12 +521,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_insert_tuple_with_invalid_varchar() {
+    private static int test_insert_tuple_with_invalid_varchar(boolean useIndex) {
         String expected = "Execution Failure: The attribute 'name' has a max length of 10 characters. You provided too many characters in tuple #0";
-        Tester tester = new Tester("insert_tuple_with_invalid_varchar");
+        Tester tester = new Tester("insert_tuple_with_invalid_varchar", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table baz(name varchar(10), gpa double, id integer primarykey);");
         String command = "insert into baz values (\"this is too long\" 2.1 1);";
 
@@ -555,17 +556,17 @@ public class TestRunner {
             public Attribute getTableAttribute(String tableName, String attrName) {
                 return tableName.equals("a")
                         ? attrName.equals("x")
-                            ? new Attribute("x", AttributeType.INTEGER)
-                            : attrName.equals("d")
-                                ? new Attribute("d", AttributeType.DOUBLE, false, false)
-                                : new Attribute("i", AttributeType.INTEGER, false, false)
+                        ? new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("d")
+                        ? new Attribute("d", AttributeType.DOUBLE, false, false)
+                        : new Attribute("i", AttributeType.INTEGER, false, false)
                         : attrName.equals("x")
-                            ? new Attribute("x", AttributeType.INTEGER)
-                            : attrName.equals("z")
-                                ? new Attribute("z", AttributeType.BOOLEAN, false, false)
-                                : attrName.equals("q")
-                                    ? new Attribute("q", AttributeType.CHAR, 10, false, false)
-                                    : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
+                        ? new Attribute("x", AttributeType.INTEGER)
+                        : attrName.equals("z")
+                        ? new Attribute("z", AttributeType.BOOLEAN, false, false)
+                        : attrName.equals("q")
+                        ? new Attribute("q", AttributeType.CHAR, 10, false, false)
+                        : new Attribute("f", AttributeType.VARCHAR, 5, false, false);
             }
 
             @Override
@@ -584,13 +585,16 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) {}
+            public void createTable(String name, List<Attribute> attributes) {
+            }
 
             @Override
-            public void deleteTable(String name) {}
+            public void deleteTable(String name) {
+            }
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) {}
+            public void addAttribute(String tableName, Attribute attribute) {
+            }
         };
 
         List<String> tests = List.of(
@@ -765,8 +769,8 @@ public class TestRunner {
         int failedCount = 0;
 
         for (List<String> tNames : List.of(
-            List.of("b"), List.of("a"), List.of("c", "d"),
-            List.of("a", "b"))) {
+                List.of("b"), List.of("a"), List.of("c", "d"),
+                List.of("a", "b"))) {
             for (String t : tests) {
                 String result;
                 try {
@@ -775,7 +779,7 @@ public class TestRunner {
                 } catch (ExecutionFailure e) {
                     result = e.getMessage();
                 }
-                Tester tester = new Tester("test_whereTreeCreation_with_variousInputs_" + testI);
+                Tester tester = new Tester("test_whereTreeCreation_with_variousInputs_" + testI, false);
                 failedCount += tester.isEquals(tests.get(testI % tests.size()) + " - " + tNames, expected.get(testI), result);
                 testI++;
             }
@@ -829,13 +833,16 @@ public class TestRunner {
             }
 
             @Override
-            public void createTable(String name, List<Attribute> attributes) {}
+            public void createTable(String name, List<Attribute> attributes) {
+            }
 
             @Override
-            public void deleteTable(String name) {}
+            public void deleteTable(String name) {
+            }
 
             @Override
-            public void addAttribute(String tableName, Attribute attribute) {}
+            public void addAttribute(String tableName, Attribute attribute) {
+            }
         };
         List<String> expected = List.of("true",
                 "false",
@@ -907,22 +914,22 @@ public class TestRunner {
             } catch (ExecutionFailure ef) {
                 actual = ef.getMessage();
             }
-            Tester tester = new Tester("test_whereCompare_with_variousInputs_" + i);
+            Tester tester = new Tester("test_whereCompare_with_variousInputs_" + i, false);
             failedTests += tester.isEquals(test, exp, actual);
         }
         return failedTests;
     }
 
-    private static int test_select_missing_attribute(){
+    private static int test_select_missing_attribute(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (select f from foo;): The attribute names could not be parsed:")
                 .addLine("\tf")
                 .addLine("\t^ This attribute is not part of any of the requested tables.")
                 .build();
-        Tester tester = new Tester("select_missing_attribute");
+        Tester tester = new Tester("select_missing_attribute", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         String command = "select f from foo;";
 
@@ -933,7 +940,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_attribute_by_alias(){
+    private static int test_select_attribute_by_alias(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("---------")
                 .addLine("| foo.x |")
@@ -944,10 +951,10 @@ public class TestRunner {
                 .addLine("|      4|")
                 .addLine("|      5|")
                 .build();
-        Tester tester = new Tester("select_attribute_by_alias");
+        Tester tester = new Tester("select_attribute_by_alias", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select foo.x from foo;";
@@ -959,7 +966,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_order_by_value(){
+    private static int test_select_order_by_value(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -970,10 +977,10 @@ public class TestRunner {
                 .addLine("|    4|  0.1|")
                 .addLine("|    5|  7.8|")
                 .build();
-        Tester tester = new Tester("select_order_by_value");
+        Tester tester = new Tester("select_order_by_value", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo orderby x;";
@@ -985,17 +992,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_equals(){
+    private static int test_select_where_equals(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
                 .addLine("-------------")
                 .addLine("|    2|  3.7|")
                 .build();
-        Tester tester = new Tester("select_where_equals");
+        Tester tester = new Tester("select_where_equals", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo where x = 2;";
@@ -1007,7 +1014,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_alias_less_than_equals(){
+    private static int test_select_where_alias_less_than_equals(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1016,10 +1023,10 @@ public class TestRunner {
                 .addLine("|    2|  3.7|")
                 .addLine("|    3|  2.1|")
                 .build();
-        Tester tester = new Tester("select_where_alias_less_than_equals");
+        Tester tester = new Tester("select_where_alias_less_than_equals", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo where foo.x <= 3;";
@@ -1031,7 +1038,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_alias_greater_than(){
+    private static int test_select_where_alias_greater_than(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1039,10 +1046,10 @@ public class TestRunner {
                 .addLine("|    2|  3.7|")
                 .addLine("|    5|  7.8|")
                 .build();
-        Tester tester = new Tester("select_where_alias_greater_than");
+        Tester tester = new Tester("select_where_alias_greater_than", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo where foo.y > 2.1;";
@@ -1054,7 +1061,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_attribute_where_greater_than_equals(){
+    private static int test_select_attribute_where_greater_than_equals(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------")
                 .addLine("|  x  |")
@@ -1062,10 +1069,10 @@ public class TestRunner {
                 .addLine("|    2|")
                 .addLine("|    5|")
                 .build();
-        Tester tester = new Tester("select_attribute_where_greater_than_equals");
+        Tester tester = new Tester("select_attribute_where_greater_than_equals", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select x from foo where foo.y > 2.1;";
@@ -1077,17 +1084,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_and_condition(){
+    private static int test_select_where_and_condition(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
                 .addLine("-------------")
                 .addLine("|    4|  0.1|")
                 .build();
-        Tester tester = new Tester("where_and_condition");
+        Tester tester = new Tester("where_and_condition", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo where x > 2 and foo.y < 2.0;";
@@ -1099,7 +1106,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_alias_or_condition_orderby(){
+    private static int test_select_where_alias_or_condition_orderby(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  y  |  x  |")
@@ -1109,10 +1116,10 @@ public class TestRunner {
                 .addLine("|  3.7|    2|")
                 .addLine("|  7.8|    5|")
                 .build();
-        Tester tester = new Tester("select_where_alias_or_condition_orderby");
+        Tester tester = new Tester("select_where_alias_or_condition_orderby", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select y, x from foo where foo.x = 2 or y > 2.0 orderby foo.y;";
@@ -1124,16 +1131,16 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_different_types(){
+    private static int test_select_where_different_types(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (select * from foo, bar where foo.x = bar.x;): Execution Failure: The where clause is invalid:")
                 .addLine("\tfoo.x = bar.x")
                 .addLine("\t^^^^^   ^^^^^ The return types of these two expressions are not comparable ( INTEGER and DOUBLE ).")
                 .build();
-        Tester tester = new Tester("select_where_different_type");
+        Tester tester = new Tester("select_where_different_type", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1147,7 +1154,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_from_multiple_tables(){
+    private static int test_select_from_multiple_tables(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------------------")
                 .addLine("| foo.x |  y  |  a  | bar.x |")
@@ -1178,10 +1185,10 @@ public class TestRunner {
                 .addLine("|      5|  7.8|    6|    3.7|")
                 .addLine("|      5|  7.8|    9|   34.6|")
                 .build();
-        Tester tester = new Tester("select_from_multiple_tables");
+        Tester tester = new Tester("select_from_multiple_tables", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1195,13 +1202,13 @@ public class TestRunner {
         return tester.isUnorderedEquals(command, expected, actual);
     }
 
-    private static int test_select_missing_table_from_multiple_tables(){
+    private static int test_select_missing_table_from_multiple_tables(boolean useIndex) {
         String expected = "Invalid Usage (select * from foo, baz;): Table baz does not exist in the Catalog";
 
-        Tester tester = new Tester("select_missing_table_from_multiple_tables");
+        Tester tester = new Tester("select_missing_table_from_multiple_tables", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "select * from foo, baz;";
@@ -1213,16 +1220,16 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_ambiguous_columns(){
+    private static int test_select_where_ambiguous_columns(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (select * from foo, bar where x = 2;): Execution Failure: The where clause is invalid:")
                 .addLine("\tx")
                 .addLine("\t^ This attribute name is ambiguous between multiple tables.")
                 .build();
-        Tester tester = new Tester("select_where_ambiguous_columns");
+        Tester tester = new Tester("select_where_ambiguous_columns", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1236,16 +1243,16 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_orderby_ambiguous_columns(){
+    private static int test_select_orderby_ambiguous_columns(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (select * from foo, bar orderby x;): The attribute names could not be parsed:")
                 .addLine("\tx")
                 .addLine("\t^ This attribute name is ambiguous between multiple tables.")
                 .build();
-        Tester tester = new Tester("select_orderby_ambiguous_columns");
+        Tester tester = new Tester("select_orderby_ambiguous_columns", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1259,7 +1266,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_ambiguous_by_alias(){
+    private static int test_select_where_ambiguous_by_alias(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------")
                 .addLine("| foo.x | bar.x |")
@@ -1290,10 +1297,10 @@ public class TestRunner {
                 .addLine("|      5|    3.7|")
                 .addLine("|      5|   34.6|")
                 .build();
-        Tester tester = new Tester("select_where_ambiguous_by_alias");
+        Tester tester = new Tester("select_where_ambiguous_by_alias", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1307,16 +1314,16 @@ public class TestRunner {
         return tester.isUnorderedEquals(command, expected, actual);
     }
 
-    private static int test_select_where_ambiguous_by_alias_and_attribute(){
+    private static int test_select_where_ambiguous_by_alias_and_attribute(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("Invalid Usage (select foo.x, x from foo, bar;): The attribute names could not be parsed:")
                 .addLine("\tx")
                 .addLine("\t^ This attribute name is ambiguous between multiple tables.")
                 .build();
-        Tester tester = new Tester("select_where_ambiguous_by_alias_and_attribute");
+        Tester tester = new Tester("select_where_ambiguous_by_alias_and_attribute", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1330,7 +1337,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_where_alias_from_multiple_tables(){
+    private static int test_select_where_alias_from_multiple_tables(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------------------")
                 .addLine("| foo.x |  y  |  a  | bar.x |")
@@ -1339,10 +1346,10 @@ public class TestRunner {
                 .addLine("|      2|  3.7|    2|   21.2|")
                 .addLine("|      5|  7.8|    5|    2.1|")
                 .build();
-        Tester tester = new Tester("select_where_alias_from_multiple_tables");
+        Tester tester = new Tester("select_where_alias_from_multiple_tables", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         mockCLI.mockInput("create table bar( a integer primarykey, x double );");
@@ -1356,7 +1363,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_delete_where_equals(){
+    private static int test_delete_where_equals(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1366,10 +1373,10 @@ public class TestRunner {
                 .addLine("|    4|  0.1|")
                 .addLine("|    5|  7.8|")
                 .build();
-        Tester tester = new Tester("delete_where_equals");
+        Tester tester = new Tester("delete_where_equals", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "delete from foo where x = 2;";
@@ -1383,7 +1390,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_delete_where_no_change(){
+    private static int test_delete_where_no_change(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1394,10 +1401,10 @@ public class TestRunner {
                 .addLine("|    4|  0.1|")
                 .addLine("|    5|  7.8|")
                 .build();
-        Tester tester = new Tester("delete_where_no_change");
+        Tester tester = new Tester("delete_where_no_change", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "delete from foo where x > 100;";
@@ -1410,7 +1417,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_where_equals(){
+    private static int test_update_where_equals(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1421,10 +1428,10 @@ public class TestRunner {
                 .addLine("|    5|  7.8|")
                 .addLine("|    7|  0.1|")
                 .build();
-        Tester tester = new Tester("update_where_equals");
+        Tester tester = new Tester("update_where_equals", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "update foo set x = 7 where foo.y = 0.1;";
@@ -1436,7 +1443,7 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_where_or_non_primary_key(){
+    private static int test_update_where_or_non_primary_key(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-------------")
                 .addLine("|  x  |  y  |")
@@ -1447,10 +1454,10 @@ public class TestRunner {
                 .addLine("|    4|  0.1|")
                 .addLine("|    5|  0.0|")
                 .build();
-        Tester tester = new Tester("update_where_or_non_primary_key");
+        Tester tester = new Tester("update_where_or_non_primary_key", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "update foo set y = 0.00 where x = 1 or y = 7.8;";
@@ -1463,12 +1470,12 @@ public class TestRunner {
         return tester.isUnorderedEquals(command, expected, actual);
     }
 
-    private static int test_update_duplicate_primary_key(){
+    private static int test_update_duplicate_primary_key(boolean useIndex) {
         String expected = "Execution Failure: Duplicate primary key '1'";
-        Tester tester = new Tester("update_duplicate_primary_key");
+        Tester tester = new Tester("update_duplicate_primary_key", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( x integer primarykey, y double );");
         mockCLI.mockInput("insert into foo values (1 2.1), (2 3.7), (3 2.1), (4 0.1), (5 7.8);");
         String command = "update foo set x = 1 where foo.y = 7.8;";
@@ -1480,17 +1487,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(){
+    private static int test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------")
                 .addLine("| FOO.a | bar.a |")
                 .addLine("-----------------")
                 .addLine("|    100|      1|")
                 .build();
-        Tester tester = new Tester("select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName");
+        Tester tester = new Tester("select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( a integer primarykey);");
         mockCLI.mockInput("create table bar( a integer primarykey);");
         mockCLI.mockInput("insert into foo values (100);");
@@ -1504,17 +1511,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(){
+    private static int test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------")
                 .addLine("| foo.a | bar.a |")
                 .addLine("-----------------")
                 .addLine("|    100|      1|")
                 .build();
-        Tester tester = new Tester("select_when_tableNamesAllLower_then_outputTheUserDefinedTableName");
+        Tester tester = new Tester("select_when_tableNamesAllLower_then_outputTheUserDefinedTableName", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( a integer primarykey);");
         mockCLI.mockInput("create table bar( a integer primarykey);");
         mockCLI.mockInput("insert into foo values (100);");
@@ -1528,17 +1535,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(){
+    private static int test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------")
                 .addLine("| FOO.A | BAR.A |")
                 .addLine("-----------------")
                 .addLine("|    100|      1|")
                 .build();
-        Tester tester = new Tester("select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName");
+        Tester tester = new Tester("select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( a integer primarykey);");
         mockCLI.mockInput("create table bar( a integer primarykey);");
         mockCLI.mockInput("insert into foo values (100);");
@@ -1552,17 +1559,17 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(){
+    private static int test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(boolean useIndex) {
         String expected = new StrBuilder()
                 .addLine("-----------------")
                 .addLine("| foo.a | bar.a |")
                 .addLine("-----------------")
                 .addLine("|    100|      1|")
                 .build();
-        Tester tester = new Tester("select_when_tableNamesDontExist_then_outputTheUserDefinedTableName");
+        Tester tester = new Tester("select_when_tableNamesDontExist_then_outputTheUserDefinedTableName", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table foo( a integer primarykey);");
         mockCLI.mockInput("create table bar( a integer primarykey);");
         mockCLI.mockInput("insert into foo values (100);");
@@ -1576,12 +1583,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_when_attributeNamesAreCapitalized_then_workNormally(){
+    private static int test_update_when_attributeNamesAreCapitalized_then_workNormally(boolean useIndex) {
         String expected = "SUCCESS: 2 Records Changed";
-        Tester tester = new Tester("update_when_attributeNamesAreCapitalized_then_workNormally");
+        Tester tester = new Tester("update_when_attributeNamesAreCapitalized_then_workNormally", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
         mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
         String command = "update waffle set Y = 15 where Z = 1.5;";
@@ -1593,12 +1600,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_when_tableNameHasWeirdCapitalization_then_workNormally(){
+    private static int test_update_when_tableNameHasWeirdCapitalization_then_workNormally(boolean useIndex) {
         String expected = "SUCCESS: 2 Records Changed";
-        Tester tester = new Tester("update_when_tableNameHasWeirdCapitalization_then_workNormally");
+        Tester tester = new Tester("update_when_tableNameHasWeirdCapitalization_then_workNormally", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table waffle (x integer primarykey, y integer, z double);");
         mockCLI.mockInput("insert into waffle values (1 1 1.0), (2 1 1.0), (3 1 1.5), (4 1 1.5);");
         String command = "update waFFle set Y = 15 where Z = 1.5;";
@@ -1610,12 +1617,12 @@ public class TestRunner {
         return tester.isEquals(command, expected, actual);
     }
 
-    private static int test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(){
+    private static int test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(boolean useIndex) {
         String expected = "SUCCESS: 2 Records Changed";
-        Tester tester = new Tester("update_when_primaryKeyIsNotInPositionZero_then_workNormally");
+        Tester tester = new Tester("update_when_primaryKeyIsNotInPositionZero_then_workNormally", useIndex);
 
         // Given
-        MockCLI mockCLI = buildMockCLI();
+        MockCLI mockCLI = buildMockCLI(useIndex);
         mockCLI.mockInput("create table waffle (y integer, x integer primarykey, z double);");
         mockCLI.mockInput("insert into waffle values (1 1 1.0), (1 2 1.0), (1 3 1.5), (1 4 1.5);");
         String command = "update waffle set y = 15 where z = 1.5;";
@@ -1626,7 +1633,6 @@ public class TestRunner {
         // Then
         return tester.isEquals(command, expected, actual);
     }
-
 
 
     /**
@@ -1651,56 +1657,107 @@ public class TestRunner {
 
         int exitCode = 0;
 
-        exitCode += test_display_schema();
-        exitCode += test_display_info_for_missing_table();
-        exitCode += test_select_from_missing_table();
-        exitCode += test_display_table_info();
-        exitCode += test_display_schema_with_one_table();
-        exitCode += test_select_from_empty_table();
-        exitCode += test_select_from_non_empty_table();
-        exitCode += test_insert_duplicate_entry();
-        exitCode += test_insert_ten_entries_into_existing_table();
-        exitCode += test_insert_1000_entries_into_existing_table();
-        exitCode += test_alter_add_new_column_to_existing_table();
-        exitCode += test_alter_add_new_column_to_existing_table_with_default();
-        exitCode += test_alter_drop_missing_column_from_table();
-        exitCode += test_alter_drop_existing_column_from_table();
-        exitCode += test_alter_drop_primary_key_column_from_table();
-        exitCode += test_create_table_with_two_primary_keys();
-        exitCode += test_insert_tuple_out_of_order();
-        exitCode += test_insert_tuple_with_missing_value();
-        exitCode += test_insert_tuple_with_invalid_varchar();
+        // No idex
+        exitCode += test_display_schema(false);
+        exitCode += test_display_info_for_missing_table(false);
+        exitCode += test_select_from_missing_table(false);
+        exitCode += test_display_table_info(false);
+        exitCode += test_display_schema_with_one_table(false);
+        exitCode += test_select_from_empty_table(false);
+        exitCode += test_select_from_non_empty_table(false);
+        exitCode += test_insert_duplicate_entry(false);
+        exitCode += test_insert_ten_entries_into_existing_table(false);
+        exitCode += test_insert_1000_entries_into_existing_table(false);
+        exitCode += test_alter_add_new_column_to_existing_table(false);
+        exitCode += test_alter_add_new_column_to_existing_table_with_default(false);
+        exitCode += test_alter_drop_missing_column_from_table(false);
+        exitCode += test_alter_drop_existing_column_from_table(false);
+        exitCode += test_alter_drop_primary_key_column_from_table(false);
+        exitCode += test_create_table_with_two_primary_keys(false);
+        exitCode += test_insert_tuple_out_of_order(false);
+        exitCode += test_insert_tuple_with_missing_value(false);
+        exitCode += test_insert_tuple_with_invalid_varchar(false);
         exitCode += test_whereTreeCreation_with_variousInputs();
         exitCode += test_whereCompare_with_variousInputs();
-        exitCode += test_select_missing_attribute();
-        exitCode += test_select_attribute_by_alias();
-        exitCode += test_select_order_by_value();
-        exitCode += test_select_where_equals();
-        exitCode += test_select_where_alias_less_than_equals();
-        exitCode += test_select_where_alias_greater_than();
-        exitCode += test_select_attribute_where_greater_than_equals();
-        exitCode += test_select_where_and_condition();
-        exitCode += test_select_where_alias_or_condition_orderby();
-        exitCode += test_select_where_different_types();
-        exitCode += test_select_from_multiple_tables();
-        exitCode += test_select_missing_table_from_multiple_tables();
-        exitCode += test_select_where_ambiguous_columns();
-        exitCode += test_select_orderby_ambiguous_columns();
-        exitCode += test_select_where_ambiguous_by_alias();
-        exitCode += test_select_where_ambiguous_by_alias_and_attribute();
-        exitCode += test_select_where_alias_from_multiple_tables();
-        exitCode += test_delete_where_equals();
-        exitCode += test_delete_where_no_change();
-        exitCode += test_update_where_equals();
-        exitCode += test_update_where_or_non_primary_key();
-        exitCode += test_update_duplicate_primary_key();
-        exitCode += test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName();
-        exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName();
-        exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName();
-        exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName();
-        exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally();
-        exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally();
-        exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally();
+        exitCode += test_select_missing_attribute(false);
+        exitCode += test_select_attribute_by_alias(false);
+        exitCode += test_select_order_by_value(false);
+        exitCode += test_select_where_equals(false);
+        exitCode += test_select_where_alias_less_than_equals(false);
+        exitCode += test_select_where_alias_greater_than(false);
+        exitCode += test_select_attribute_where_greater_than_equals(false);
+        exitCode += test_select_where_and_condition(false);
+        exitCode += test_select_where_alias_or_condition_orderby(false);
+        exitCode += test_select_where_different_types(false);
+        exitCode += test_select_from_multiple_tables(false);
+        exitCode += test_select_missing_table_from_multiple_tables(false);
+        exitCode += test_select_where_ambiguous_columns(false);
+        exitCode += test_select_orderby_ambiguous_columns(false);
+        exitCode += test_select_where_ambiguous_by_alias(false);
+        exitCode += test_select_where_ambiguous_by_alias_and_attribute(false);
+        exitCode += test_select_where_alias_from_multiple_tables(false);
+        exitCode += test_delete_where_equals(false);
+        exitCode += test_delete_where_no_change(false);
+        exitCode += test_update_where_equals(false);
+        exitCode += test_update_where_or_non_primary_key(false);
+        exitCode += test_update_duplicate_primary_key(false);
+        exitCode += test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(false);
+        exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(false);
+        exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(false);
+        exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(false);
+        exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally(false);
+        exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally(false);
+        exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(false);
+
+        // Use index
+        exitCode += test_display_schema(true);
+        exitCode += test_display_info_for_missing_table(true);
+        exitCode += test_select_from_missing_table(true);
+        exitCode += test_display_table_info(true);
+        exitCode += test_display_schema_with_one_table(true);
+        exitCode += test_select_from_empty_table(true);
+        exitCode += test_select_from_non_empty_table(true);
+        exitCode += test_insert_duplicate_entry(true);
+        exitCode += test_insert_ten_entries_into_existing_table(true);
+        exitCode += test_insert_1000_entries_into_existing_table(true);
+        exitCode += test_alter_add_new_column_to_existing_table(true);
+        exitCode += test_alter_add_new_column_to_existing_table_with_default(true);
+        exitCode += test_alter_drop_missing_column_from_table(true);
+        exitCode += test_alter_drop_existing_column_from_table(true);
+        exitCode += test_alter_drop_primary_key_column_from_table(true);
+        exitCode += test_create_table_with_two_primary_keys(true);
+        exitCode += test_insert_tuple_out_of_order(true);
+        exitCode += test_insert_tuple_with_missing_value(true);
+        exitCode += test_insert_tuple_with_invalid_varchar(true);
+        exitCode += test_select_missing_attribute(true);
+        exitCode += test_select_attribute_by_alias(true);
+        exitCode += test_select_order_by_value(true);
+        exitCode += test_select_where_equals(true);
+        exitCode += test_select_where_alias_less_than_equals(true);
+        exitCode += test_select_where_alias_greater_than(true);
+        exitCode += test_select_attribute_where_greater_than_equals(true);
+        exitCode += test_select_where_and_condition(true);
+        exitCode += test_select_where_alias_or_condition_orderby(true);
+        exitCode += test_select_where_different_types(true);
+        exitCode += test_select_from_multiple_tables(true);
+        exitCode += test_select_missing_table_from_multiple_tables(true);
+        exitCode += test_select_where_ambiguous_columns(true);
+        exitCode += test_select_orderby_ambiguous_columns(true);
+        exitCode += test_select_where_ambiguous_by_alias(true);
+        exitCode += test_select_where_ambiguous_by_alias_and_attribute(true);
+        exitCode += test_select_where_alias_from_multiple_tables(true);
+        exitCode += test_delete_where_equals(true);
+        exitCode += test_delete_where_no_change(true);
+        exitCode += test_update_where_equals(true);
+        exitCode += test_update_where_or_non_primary_key(true);
+        exitCode += test_update_duplicate_primary_key(true);
+        exitCode += test_select_when_tableNamesDontMatch_then_outputTheUserDefinedTableName(true);
+        exitCode += test_select_when_tableNamesAllLower_then_outputTheUserDefinedTableName(true);
+        exitCode += test_select_when_tableNamesAllUpper_then_outputTheUserDefinedTableName(true);
+        exitCode += test_select_when_tableNamesDontExist_then_outputTheUserDefinedTableName(true);
+        exitCode += test_update_when_attributeNamesAreCapitalized_then_workNormally(true);
+        exitCode += test_update_when_tableNameHasWeirdCapitalization_then_workNormally(true);
+        exitCode += test_update_when_primaryKeyIsNotInPositionZero_then_workNormally(true);
 
         cleanUp();  // rm any testing db files
         System.out.println("Tests Failed: " + exitCode);
