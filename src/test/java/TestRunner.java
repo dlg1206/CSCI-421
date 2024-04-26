@@ -1657,6 +1657,7 @@ public class TestRunner {
 
         int exitCode = 0;
 
+        // Run tests with and without index
         double[] elapsedTimes = new double[2];
         int i = 0;
         for (boolean isIdxed : List.of(true, false)) {
@@ -1680,8 +1681,6 @@ public class TestRunner {
             exitCode += test_insert_tuple_out_of_order(isIdxed);
             exitCode += test_insert_tuple_with_missing_value(isIdxed);
             exitCode += test_insert_tuple_with_invalid_varchar(isIdxed);
-            exitCode += test_whereTreeCreation_with_variousInputs();
-            exitCode += test_whereCompare_with_variousInputs();
             exitCode += test_select_missing_attribute(isIdxed);
             exitCode += test_select_attribute_by_alias(isIdxed);
             exitCode += test_select_order_by_value(isIdxed);
@@ -1716,6 +1715,9 @@ public class TestRunner {
             i++;
         }
 
+        // tests not related to index
+        exitCode += test_whereTreeCreation_with_variousInputs();
+        exitCode += test_whereCompare_with_variousInputs();
 
         cleanUp();  // rm any testing db files
 
