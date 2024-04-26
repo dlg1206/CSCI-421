@@ -2,11 +2,14 @@ package sm;
 
 import catalog.Attribute;
 import dataTypes.DataType;
+import util.BPlusTree.RecordPointer;
+import cli.cmd.exception.ExecutionFailure;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -16,12 +19,13 @@ import java.util.List;
  *
  * @author Derek Garcia, Ryan Nowak
  */
-class Page {
+public class Page {
 
-    private final TableFile writeFile;
+    private final DBFile writeFile;
     private final int pageSize;
     private final int pageNumber;
     private byte[] data;
+    public boolean IsIndexPage;
 
     /**
      * Create new Page
@@ -31,11 +35,12 @@ class Page {
      * @param pageNumber Page Number
      * @param data       Page byte data
      */
-    public Page(TableFile writeFile, int pageSize, int pageNumber, byte[] data) {
+    public Page(DBFile writeFile, int pageSize, int pageNumber, byte[] data, boolean isIndexPage) {
         this.writeFile = writeFile;
         this.pageSize = pageSize;
         this.pageNumber = pageNumber;
         this.data = new byte[pageSize];
+        IsIndexPage = isIndexPage;
 
         System.arraycopy(data, 0, this.data, 0, data.length);   // copy existing data
     }
@@ -47,10 +52,16 @@ class Page {
      * @param otherPageNumber Page number of the other page
      * @return true if match, false otherwise
      */
-    public boolean match(int otherTableID, int otherPageNumber) {
-        return this.writeFile.getTableID() == otherTableID
-                && this.pageNumber == otherPageNumber
-                && !this.writeFile.isSwap();    // cannot read from swap
+    public boolean match(int otherTableID, int otherPageNumber, boolean findIndexFile) {
+        if (findIndexFile)
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && this.writeFile.isIndex();
+        else
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && !this.writeFile.isSwap()
+                    && !this.writeFile.isIndex();    // cannot read from swap
     }
 
     /**
@@ -58,24 +69,30 @@ class Page {
      *
      * @param primaryKeyIndex Index of the primary key to sort by
      * @param record          record to insert
-     * @return True if inserted, false otherwise
+     * @return Record Pointer to new record, null if not inserted
      */
-    public boolean insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) {
+    public RecordPointer insertRecord(int primaryKeyIndex, List<Attribute> attributes, List<DataType> record) throws ExecutionFailure {
         // Get records
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
 
         // Ordered insert
         for (List<DataType> storedRecord : records) {
+
+            int order = record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex));
+            // == 0 means same value
+            if(order == 0)
+                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(record.get(primaryKeyIndex).stringValue()));
+
             // > 0 means record is less than stored
-            if (record.get(primaryKeyIndex).compareTo(storedRecord.get(primaryKeyIndex)) > 0) {
-                records.add(records.indexOf(storedRecord), record);
+            if (order > 0) {
+                records.add(records.indexOf(storedRecord), record);     // [..., stored, ...] -> [..., new, stored, ...]
                 this.data = BInterpreter.convertRecordsToPage(records);
-                return true;
+                return new RecordPointer(this.pageNumber, records.indexOf(record));
             }
         }
 
         // Record wasn't added
-        return false;
+        return null;
     }
 
     /**
@@ -104,16 +121,41 @@ class Page {
     }
 
     /**
+     * Delete a record from the page (Note: the record is assumed to exist)
+     *
+     * @param attributes    Constraints of dataTypes
+     * @param index         Index of the record to remove
+     */
+    public HashMap<DataType, Integer> deleteRecordByIndex(List<Attribute> attributes, int pkIndex, int index) {
+        // Get records
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+
+        records.remove(records.get(index));
+        this.data = BInterpreter.convertRecordsToPage(records);
+        HashMap<DataType, Integer> toUpdate = new HashMap<>();
+        for (int i = 0; i < records.size(); i++) {
+            toUpdate.put(records.get(i).get(pkIndex), i);
+        }
+        return toUpdate;
+    }
+
+    /**
      * Append record to end of page
      * SHOULD ONLY BE USED IF LAST PAGE
-     * todo better implementation?
      *
      * @param record record to append
+     * @return Record Pointer to new record
      */
-    public void appendRecord(List<Attribute> attributes, List<DataType> record) {
+    public RecordPointer appendRecord(List<Attribute> attributes, List<DataType> record) {
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
         records.add(record);
         this.data = BInterpreter.convertRecordsToPage(records);
+        return new RecordPointer(this.pageNumber, records.indexOf(record));
+    }
+
+    public int indexOf(List<Attribute> attributes, List<DataType> record) {
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+        return records.indexOf(record);
     }
 
 
@@ -122,7 +164,7 @@ class Page {
      *
      * @return the second half of the page
      */
-    public Page split(List<Attribute> attributes) throws IOException {
+    public Page split(List<Attribute> attributes) {
         List<List<DataType>> leftRecords = BInterpreter.convertPageToRecords(this.data, attributes);
 
         // Split right from all records
@@ -185,7 +227,7 @@ class Page {
     /**
      * @return Page write file
      */
-    public TableFile getWriteFile() {
+    public DBFile getWriteFile() {
         return this.writeFile;
     }
 
@@ -208,6 +250,10 @@ class Page {
      */
     public byte[] getData() {
         return this.data;
+    }
+
+    public void setData(byte[] newData) {
+        this.data = newData;
     }
 
 

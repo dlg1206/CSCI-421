@@ -3,19 +3,13 @@ import cli.cmd.exception.ExecutionFailure;
 import cli.cmd.exception.InvalidUsage;
 import catalog.Attribute;
 import catalog.ICatalog;
-import catalog.Table;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import dataTypes.AttributeType;
 import dataTypes.DataType;
-import util.Console;
 import sm.StorageManager;
 import util.where.WhereTree;
 
@@ -30,21 +24,14 @@ public class Delete extends Command{
     private static final Pattern FULL_MATCH = Pattern.compile(
         "delete\\s+from\\s+([a-z0-9]+)\\s*(where\\s+.+)?;", Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern EACH_CONDITIONAL_MATCH = Pattern.compile(
-        "([a-z0-9_]+)\\s*(=|>|<|>=|<=|!=)\\s*" +
-        "([a-z0-9_]+|'[^']*'|\"[^\"]*\"|true|false|\\d+(?:\\.\\d+)?)\\s*",
-        Pattern.CASE_INSENSITIVE);
-
     private final ICatalog catalog;
     private final StorageManager sm;
     private final String tableName;
-    private final HashMap<String, List<String>> conditionMap;
     private WhereTree whereTree;
 
     public Delete(String args, ICatalog catalog, StorageManager storageManager) throws InvalidUsage {
         this.catalog = catalog;
         this.sm = storageManager;
-        this.conditionMap = new HashMap<>();
 
         Matcher fullMatcher = FULL_MATCH.matcher(args);
 
@@ -64,7 +51,6 @@ public class Delete extends Command{
                 throw new InvalidUsage(args, e.getMessage());
             }
         }
-
     }
 
     private void validateTableName(String tableName) throws InvalidUsage {
@@ -92,18 +78,19 @@ public class Delete extends Command{
         int pki = this.catalog.getRecordSchema(this.tableName).getIndexOfPrimaryKey();
         List<Attribute> attributes = this.catalog.getRecordSchema(this.tableName).getAttributes();
 
+        // note: if no where clause is given, delete all records
+        List<List<DataType>> allRecords = whereTree == null
+                ? this.sm.getAllRecords(tableID, attributes)
+                : this.sm.selectRecords(tableID, attributes, whereTree);
+
         // For each record, if where clause matches delete from table
-        for (List<DataType> record: this.sm.getAllRecords(tableID, attributes)) {
+        for (List<DataType> record: allRecords) {
             try {
-                // note: if no where clause is given, delete all records
-                if (whereTree == null || this.whereTree.passesTree(record)) {
-                    this.sm.deleteRecord(tableID, record.get(pki), attributes);
-                }
+                this.sm.deleteRecord(tableID, record.get(pki), attributes);
             } catch (IOException e) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
         }
     }
 
-    
 }

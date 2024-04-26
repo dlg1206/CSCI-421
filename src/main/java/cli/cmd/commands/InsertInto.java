@@ -39,7 +39,7 @@ public class InsertInto extends Command {
     private static final String INVALID_ATTR_LENGTH_MSG = "The attribute '%s' has a max length of %s characters. You provided too many characters in tuple #%s";
     private static final String NO_QUOTES_MSG = "The attribute '%s' takes a string, which must be wrapped in quotes. You did not do this for tuple #%s";
 
-    private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+(\\(.*\\));", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FULL_PATTERN = Pattern.compile("insert[\\s\\t]+into[\\s\\t]+([a-z0-9]*)[\\s\\t]+values[\\s\\t]+(\\(.*\\))\\s*;", Pattern.CASE_INSENSITIVE);
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("[a-z][a-z0-9]*", Pattern.CASE_INSENSITIVE);
     private static final Pattern TUPLE_PATTERN = Pattern.compile("\\s*\\(\\s*([-0-9\\s\"a-z.]+)\\s*\\)\\s*", Pattern.CASE_INSENSITIVE);
     private static final Pattern STRING_PATTERN = Pattern.compile("\"(.*)\"", Pattern.CASE_INSENSITIVE);
@@ -104,37 +104,34 @@ public class InsertInto extends Command {
     public void execute() throws ExecutionFailure {
         int tableNumber = catalog.getTableNumber(tableName);
         List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
-        int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
-
 
         for (int i = 0; i < tuples.size(); i++) {
             List<DataType> tuple = convertStringToTuple(tuples.get(i), attrs, i);
             try {
-
-                if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(tuple.get(PKIndex)) == 0))
-                    throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(tuple.get(PKIndex).stringValue()));
-
                 checkUniqueConstraint(tableNumber, attrs, tuple, i);
-
                 sm.insertRecord(tableNumber, attrs, tuple);
-
             } catch (IOException ioe) {
                 throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
             }
-
         }
         Console.out("SUCCESS");
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple, int tupleNum) throws ExecutionFailure {
+        List<List<DataType>> allRecords = null;
         for (int i = 0; i < attrs.size(); i++) {
             Attribute a = attrs.get(i);
             DataType value = tuple.get(i);
 
             int finalI = i;
-            if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0)) {
-                throw new ExecutionFailure("Attribute '%s' is unique, you violate this constraint in tuple #%s"
-                        .formatted(a.getName(), tupleNum));
+            if (a.isUnique() && !a.isPrimaryKey()) {
+                if (allRecords == null) {
+                    allRecords = sm.getAllRecords(tableNum, attrs);
+                }
+
+                if (allRecords.stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0))
+                    throw new ExecutionFailure("Attribute '%s' is unique, you violate this constraint in tuple #%s"
+                            .formatted(a.getName(), tupleNum));
             }
         }
     }

@@ -38,7 +38,6 @@ public class Update extends Command{
     private final String updateValue;
     private Attribute setAttribute;
     private WhereTree whereTree = null;
-    private final List<String> tableNames;
     private Attribute primaryKey;
     private int primaryKeyIdx;
     private Integer attributeIndex;
@@ -94,11 +93,9 @@ public class Update extends Command{
         }
         
         String allConditions = fullMatcher.group(4);
-        this.tableNames = new ArrayList<>();
-        this.tableNames.add(tableName);
         if (allConditions != null) {
             try {
-                whereTree = new WhereTree(allConditions, catalog, tableNames);
+                whereTree = new WhereTree(allConditions, catalog, List.of(tableName));
             } catch (ExecutionFailure ef) {
                 throw new InvalidUsage(args, ef.getMessage());
             }
@@ -150,25 +147,15 @@ public class Update extends Command{
 
     @Override
     public void execute() throws ExecutionFailure {
-        List<List<DataType>> cartesianProduct = new ArrayList<>();
+        int tableID = this.catalog.getTableNumber(this.tableName);
+        List<Attribute> attributes = this.catalog.getRecordSchema(this.tableName).getAttributes();
+        int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
 
-        for (String tName : tableNames) {
-            int tableNum = catalog.getTableNumber(tName);
-            List<List<DataType>> allRecords = sm.getAllRecords(tableNum, catalog.getRecordSchema(tName).getAttributes());
+        List<List<DataType>> allRecords = whereTree == null
+                ? this.sm.getAllRecords(tableID, attributes)
+                : this.sm.selectRecords(tableID, attributes, whereTree);
 
-            if (cartesianProduct.isEmpty()) {
-                cartesianProduct = allRecords;
-            }
-        }
-
-        List<List<DataType>> goodRecords = new ArrayList<>();
-
-        for (List<DataType> record : cartesianProduct) {
-            if (whereTree == null || whereTree.passesTree(record))
-                goodRecords.add(record);
-        }
-
-        for (List<DataType> record : goodRecords) {
+        for (List<DataType> record : allRecords) {
             String deleteCommand = "DELETE FROM " + tableName + " WHERE " + primaryKey.getName() + " = " + record.get(primaryKeyIdx).stringValue() + ";";
             StringBuilder values = new StringBuilder();
             for (int i = 0; i < record.size(); i++) {
@@ -183,20 +170,17 @@ public class Update extends Command{
             values = new StringBuilder(values.toString().replace("\"", "").strip());
             try {
                 // Run each command
-                int tableNumber = catalog.getTableNumber(tableName);
-                List<Attribute> attrs = catalog.getRecordSchema(tableName).getAttributes();
-                int PKIndex = catalog.getRecordSchema(tableName).getIndexOfPrimaryKey();
-                List<DataType> tuple = convertStringToTuple(values.toString(), attrs);
-                checkUniqueConstraint(tableNumber, attrs, tuple);
+                List<DataType> tuple = convertStringToTuple(values.toString(), attributes);
+                checkUniqueConstraint(tableID, attributes, tuple);
                 
                 Delete newDeleteExecutable = new Delete(deleteCommand, this.catalog, this.sm);
                 newDeleteExecutable.execute();
 
                 try {
-                    if (sm.getAllRecords(tableNumber, attrs).stream().anyMatch(r -> r.get(PKIndex).compareTo(record.get(PKIndex)) == 0))
+                    if (sm.getAllRecords(tableID, attributes).stream().anyMatch(r -> r.get(PKIndex).compareTo(record.get(PKIndex)) == 0))
                         throw new ExecutionFailure("There already exists an entry for primary key: '%s'.".formatted(record.get(PKIndex).stringValue()));
 
-                    sm.insertRecord(tableNumber, attrs, tuple);
+                    sm.insertRecord(tableID, attributes, tuple);
                 } catch (IOException ioe) {
                     throw new ExecutionFailure("The file for the table '%s' could not be opened or modified.".formatted(tableName));
                 }
@@ -204,22 +188,25 @@ public class Update extends Command{
                 throw new ExecutionFailure("Execution failure to update record where " + primaryKey.getName() + " = " + record.get(primaryKeyIdx).stringValue());
             }
         }
-        System.out.println("SUCCESS: " + goodRecords.size() + " Records Changed");
-
+        System.out.println("SUCCESS: " + allRecords.size() + " Records Changed");
     }
 
     private void checkUniqueConstraint(int tableNum, List<Attribute> attrs, List<DataType> tuple) throws ExecutionFailure {
-        int i = attributeIndex;
-        Attribute a = attrs.get(i);
-        DataType value = tuple.get(i);
+        List<List<DataType>> allRecords = null;
+        for (int i = 0; i < attrs.size(); i++) {
+            Attribute a = attrs.get(i);
+            DataType value = tuple.get(i);
 
-        if (a.isPrimaryKey() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
-            throw new ExecutionFailure("Attribute '%s' is a primarykey: cannot duplicate"
-                    .formatted(a.getName()));
-        }
-        else if (a.isUnique() && sm.getAllRecords(tableNum, attrs).stream().anyMatch(r -> r.get(i).compareTo(value) == 0)) {
-            throw new ExecutionFailure("Attribute '%s' is unique"
-                    .formatted(a.getName()));
+            int finalI = i;
+            if (a.isUnique() && !a.isPrimaryKey()) {
+                if (allRecords == null) {
+                    allRecords = sm.getAllRecords(tableNum, attrs);
+                }
+
+                if (allRecords.stream().anyMatch(r -> r.get(finalI).compareTo(value) == 0))
+                    throw new ExecutionFailure("Attribute '%s' is unique"
+                            .formatted(a.getName()));
+            }
         }
     }
 

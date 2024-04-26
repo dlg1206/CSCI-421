@@ -1,5 +1,7 @@
 package dataTypes;
 
+import java.util.Objects;
+
 import util.Console;
 
 public class DTBoolean implements DataType, Comparable<DataType> {
@@ -42,6 +44,14 @@ public class DTBoolean implements DataType, Comparable<DataType> {
     public String stringValue() {
         return this.isNull() ? "NULL" : (value ? "T" : "F");
     }
+
+    @Override
+    public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    DTBoolean dtBoolean = (DTBoolean) obj;
+    return Objects.equals(value, dtBoolean.value);
+    }   
   
     public int compareTo(DataType o) {
         if (o.isNull() && this.isNull()) { return 0; } // both null

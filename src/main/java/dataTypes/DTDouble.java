@@ -3,6 +3,7 @@ package dataTypes;
 import util.Console;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class DTDouble implements DataType, Comparable<DataType> {
     private Double value;
@@ -44,6 +45,14 @@ public class DTDouble implements DataType, Comparable<DataType> {
     public String stringValue() {
         return this.isNull() ? "NULL" : value.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    DTDouble dtDouble = (DTDouble) obj;
+    return Objects.equals(value, dtDouble.value);
+    }    
 
     public int compareTo(DataType o) {
         if (o.isNull() && this.isNull()) { return 0; } // both null
