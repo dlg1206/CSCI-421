@@ -118,6 +118,39 @@ public class StorageManager {
         return recordPointer;
     }
 
+
+    /**
+     * Internal insert record method that returns a pointer to a record for B+ Trees
+     *
+     * @param tf         Table file to insert into
+     * @param attributes Constraints of data types
+     * @param record     record contents
+     * @return Record pointer to the page and index of the newly inserted record
+     * @throws IOException Failed to read or write to file
+     */
+    private RecordPointer insertIndexedRecord(TableFile tf, List<Attribute> attributes, List<DataType> record) throws IOException {
+        int pageCount = tf.readPageCount();
+        RecordPointer recordPointer;
+
+        // If we don't need to maintain ordering, so just add to last page
+        if (pageCount == 0) {
+            List<List<DataType>> records = new ArrayList<>();
+            records.add(record);
+            this.buffer.fullWrite(tf, 0, BInterpreter.convertRecordsToPage(records));
+            return new RecordPointer(0, 0);
+        }
+
+        Page page = this.buffer.readFromBuffer(tf.getTableID(), pageCount - 1, false, null);
+
+        recordPointer = page.appendRecord(attributes, record);
+        if (page.isOverfull()) {
+            page = this.buffer.readFromBuffer(tf.getTableID(), pageCount - 1, true, null);
+            recordPointer = tf.splitPage(this.buffer, pageCount - 1, attributes, page, record);
+        }
+
+        return recordPointer;
+    }
+
     //
     // CREATE
     //
@@ -133,11 +166,15 @@ public class StorageManager {
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
         // Get table file details
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        RecordPointer rp = insertRecord(tf, attributes, record);
 
         // If index enabled, insert result
-        if(this.isIndexed)
-            tf.getIndex().insertPointer(record.get(getPrimaryKeyIndex(attributes)), rp);
+        if(this.isIndexed) {
+            RecordPointer rp = insertIndexedRecord(tf, attributes, record);
+            tf.getIndex(buffer, attributes.get(getPrimaryKeyIndex(attributes)), pageSize).insertPointer(record.get(getPrimaryKeyIndex(attributes)), rp);
+            return;
+        }
+
+        insertRecord(tf, attributes, record);
 
     }
 
@@ -264,26 +301,36 @@ public class StorageManager {
         int pageCount = tf.readPageCount();
         int pki = getPrimaryKeyIndex(attributes);
 
-
-        // read each table page in order from the table file
-        for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-            // read page from buffer and attempt to delete
-            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
-            boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
-
-
-            // Record deleted, delete page if empty
-            if (recordDeleted && page.isEmpty()) {
-                tf.deletePage(this.buffer, pageNumber);
-            }
-
-            // Record deleted, done
-            if (recordDeleted) break;
-        }
-
         // Delete from index if in use
-        if(this.isIndexed)
-            tf.getIndex().deletePointer(primaryKey);
+        if(this.isIndexed) {
+            IndexFile idxF = tf.getIndex(buffer, attributes.get(getPrimaryKeyIndex(attributes)), pageSize);
+
+            RecordPointer found = idxF.search(primaryKey);
+
+            if (found == null)
+                return;
+
+            Page page = this.buffer.readFromBuffer(tableID, found.pageNumber, false, null);
+            page.deleteRecordByIndex(attributes, found.index);
+
+            idxF.deletePointer(primaryKey);
+        } else {
+            // read each table page in order from the table file
+            for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+                // read page from buffer and attempt to delete
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
+                boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
+
+
+                // Record deleted, delete page if empty
+                if (recordDeleted && page.isEmpty()) {
+                    tf.deletePage(this.buffer, pageNumber);
+                }
+
+                // Record deleted, done
+                if (recordDeleted) break;
+            }
+        }
     }
 
     /**

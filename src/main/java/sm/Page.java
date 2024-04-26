@@ -120,6 +120,20 @@ public class Page {
     }
 
     /**
+     * Delete a record from the page (Note: the record is assumed to exist)
+     *
+     * @param attributes    Constraints of dataTypes
+     * @param index         Index of the record to remove
+     */
+    public void deleteRecordByIndex(List<Attribute> attributes, int index) {
+        // Get records
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+
+        records.remove(records.get(index));
+        this.data = BInterpreter.convertRecordsToPage(records);
+    }
+
+    /**
      * Append record to end of page
      * SHOULD ONLY BE USED IF LAST PAGE
      *

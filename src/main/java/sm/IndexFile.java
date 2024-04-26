@@ -62,6 +62,7 @@ public class IndexFile extends DBFile{
             raf.seek(Integer.BYTES);    // Skip the page count int
             raf.write(ByteBuffer.allocate(Integer.BYTES).putInt(newRoot.pageNum).array(), 0, Integer.BYTES);
             writeNode(newRoot);
+//            Buffer.flush();
         }
     }
 
@@ -149,8 +150,8 @@ public class IndexFile extends DBFile{
             newRoot.children.add(newLeaf.pageNum);
             leaf.parentNum = newRoot.pageNum;
             newLeaf.parentNum = newRoot.pageNum;
-            updateRootNode(newRoot);
             writeNode(leaf);
+            updateRootNode(newRoot);
         } else {
             insertInParent(leaf, newLeaf.keys.getFirst(), newLeaf);
         }
@@ -437,7 +438,7 @@ public class IndexFile extends DBFile{
         if (n.page == null) {
             n.page = new Page(this, PageSize, n.pageNum, nodeData, true);
             Buffer.writeToBuffer(n.page);
-            Buffer.flush();
+//            Buffer.flush();
         }
         n.page.setData(nodeData);
     }

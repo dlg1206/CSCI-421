@@ -47,8 +47,8 @@ class TableFile extends DBFile {
      * @return Index File
      * @throws IOException Failed to create index file
      */
-    public IndexFile getIndex() throws IOException {
-        return null; //new IndexFile(this.databaseRoot, this.fileID);
+    public IndexFile getIndex(PageBuffer buffer, Attribute pkAttr, int pageSize) throws IOException {
+        return new IndexFile(this.databaseRoot, this.fileID, buffer, pkAttr, pageSize);
     }
 
     /**
