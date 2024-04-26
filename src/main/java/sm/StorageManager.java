@@ -9,6 +9,7 @@ import util.where.WhereTree;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -92,12 +93,12 @@ public class StorageManager {
         // Iterate through all pages and attempt to insert the record
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
             // read page from buffer and attempt to insert
-            Page page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, false);
+            Page page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, false, null);
             recordPointer = page.insertRecord(pki, attributes, record);
 
             // Record added, split if needed
             if (recordPointer != null && page.isOverfull()) {
-                page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true);
+                page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, null);
                 recordPointer = tf.splitPage(this.buffer, pageNumber, attributes, page, record);
             }
 
@@ -109,10 +110,43 @@ public class StorageManager {
             if (pageNumber == pageCount - 1) {
                 recordPointer = page.appendRecord(attributes, record);
                 if (page.isOverfull()) {
-                    page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true);
+                    page = this.buffer.readFromBuffer(tf.getTableID(), pageNumber, true, null);
                     recordPointer = tf.splitPage(this.buffer, pageNumber, attributes, page, record);
                 }
             }
+        }
+
+        return recordPointer;
+    }
+
+
+    /**
+     * Internal insert record method that returns a pointer to a record for B+ Trees
+     *
+     * @param tf         Table file to insert into
+     * @param attributes Constraints of data types
+     * @param record     record contents
+     * @return Record pointer to the page and index of the newly inserted record
+     * @throws IOException Failed to read or write to file
+     */
+    private RecordPointer insertIndexedRecord(TableFile tf, List<Attribute> attributes, List<DataType> record) throws IOException {
+        int pageCount = tf.readPageCount();
+        RecordPointer recordPointer;
+
+        // If we don't need to maintain ordering, so just add to last page
+        if (pageCount == 0) {
+            List<List<DataType>> records = new ArrayList<>();
+            records.add(record);
+            this.buffer.fullWrite(tf, 0, BInterpreter.convertRecordsToPage(records));
+            return new RecordPointer(0, 0);
+        }
+
+        Page page = this.buffer.readFromBuffer(tf.getTableID(), pageCount - 1, false, null);
+
+        recordPointer = page.appendRecord(attributes, record);
+        if (page.isOverfull()) {
+            page = this.buffer.readFromBuffer(tf.getTableID(), pageCount - 1, true, null);
+            recordPointer = tf.splitPage(this.buffer, pageCount - 1, attributes, page, record);
         }
 
         return recordPointer;
@@ -133,11 +167,22 @@ public class StorageManager {
     public void insertRecord(int tableID, List<Attribute> attributes, List<DataType> record) throws IOException, ExecutionFailure {
         // Get table file details
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        RecordPointer rp = insertRecord(tf, attributes, record);
 
         // If index enabled, insert result
-        if(this.isIndexed)
-            tf.getIndex().insertPointer(this.buffer, rp);
+        if(this.isIndexed) {
+            Attribute pkAttr = attributes.get(getPrimaryKeyIndex(attributes));
+            DataType pk = record.get(getPrimaryKeyIndex(attributes));
+            IndexFile idxF = tf.getIndex(buffer, pkAttr, pageSize);
+
+            if (idxF.search(pk) != null)
+                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(pk.stringValue()));
+
+            RecordPointer rp = insertIndexedRecord(tf, attributes, record);
+            idxF.insertPointer(pk, rp);
+            return;
+        }
+
+        insertRecord(tf, attributes, record);
 
     }
 
@@ -163,7 +208,7 @@ public class StorageManager {
             // Get all records
             List<List<DataType>> records = new ArrayList<>();
             for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
                 List<List<DataType>> readRecords = BInterpreter.convertPageToRecords(page.getData(), attributes);
                 List<List<DataType>> goodRecords = new ArrayList<>();
 
@@ -199,7 +244,7 @@ public class StorageManager {
             // Get all records
             List<List<DataType>> records = new ArrayList<>();
             for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
                 records.addAll(BInterpreter.convertPageToRecords(page.getData(), attributes));
             }
 
@@ -264,26 +309,40 @@ public class StorageManager {
         int pageCount = tf.readPageCount();
         int pki = getPrimaryKeyIndex(attributes);
 
+        // Delete from index if in use
+        if(this.isIndexed) {
+            IndexFile idxF = tf.getIndex(buffer, attributes.get(getPrimaryKeyIndex(attributes)), pageSize);
 
-        // read each table page in order from the table file
-        for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-            // read page from buffer and attempt to delete
-            Page page = this.buffer.readFromBuffer(tableID, pageNumber, false);
-            boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
+            RecordPointer found = idxF.search(primaryKey);
 
+            if (found == null)
+                return;
 
-            // Record deleted, delete page if empty
-            if (recordDeleted && page.isEmpty()) {
-                tf.deletePage(this.buffer, pageNumber);
+            Page page = this.buffer.readFromBuffer(tableID, found.pageNumber, false, null);
+            HashMap<DataType, Integer> toUpdate = page.deleteRecordByIndex(attributes, pki, found.index);
+
+            for (DataType pk : toUpdate.keySet()) {
+                idxF.updatePointer(pk, new RecordPointer(found.pageNumber, toUpdate.get(pk)));
             }
 
-            // Record deleted, done
-            if (recordDeleted) break;
-        }
+            idxF.deletePointer(primaryKey);
+        } else {
+            // read each table page in order from the table file
+            for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
+                // read page from buffer and attempt to delete
+                Page page = this.buffer.readFromBuffer(tableID, pageNumber, false, null);
+                boolean recordDeleted = page.deleteRecord(pki, attributes, primaryKey);
 
-        // Delete from index if in use
-        if(this.isIndexed)
-            tf.getIndex().deletePointer(primaryKey);
+
+                // Record deleted, delete page if empty
+                if (recordDeleted && page.isEmpty()) {
+                    tf.deletePage(this.buffer, pageNumber);
+                }
+
+                // Record deleted, done
+                if (recordDeleted) break;
+            }
+        }
     }
 
     /**
@@ -295,7 +354,7 @@ public class StorageManager {
     public void dropTable(int tableID) throws IOException {
         this.buffer.flush();
         TableFile tf = new TableFile(this.databaseRoot, tableID);
-        tf.getIndex().delete();
+//        tf.getIndex().delete(); //TODO: replace
         tf.delete();
     }
 

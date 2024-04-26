@@ -80,7 +80,15 @@ public class Attribute implements IAttribute {
 
     @Override
     public int getMaxDataLength() {
-        return MaxDataLength;
+        if (MaxDataLength != null)
+            return MaxDataLength;
+        if (Type == AttributeType.INTEGER)
+            return Integer.BYTES;
+        if (Type == AttributeType.DOUBLE)
+            return Double.BYTES;
+        if (Type == AttributeType.BOOLEAN)
+            return 1;
+        return -1; // bad things happen here
     }
 
     @Override

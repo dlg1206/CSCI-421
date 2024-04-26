@@ -9,7 +9,11 @@ import java.io.*;
  *
  * @author Derek Garcia
  */
-abstract class DBFile {
+public abstract class DBFile {
+
+    static final String DB_FILE_EXTENSION = "db";
+    static final String DB_SWAP_FILE_EXTENSION = "swp.db";
+    static final String INDEX_FILE_EXTENSION = "idx";
 
     protected final String databaseRoot;
     protected final int fileID;
@@ -64,8 +68,32 @@ abstract class DBFile {
         return toFile().delete();
     }
 
+    /**
+     * @return True if swap file, false otherwise
+     */
+    public boolean isSwap() {
+        return this.filePath.contains(DB_SWAP_FILE_EXTENSION);
+    }
+
+    /**
+     * @return True if index file, false otherwise
+     */
+    public boolean isIndex() {
+        return this.filePath.contains(INDEX_FILE_EXTENSION);
+    }
+
     @Override
     public String toString() {
         return this.filePath;
     }
+
+    public abstract int getTableID();
+
+    /**
+     * Get the swap file for this table file
+     *
+     * @return Swap Table file
+     * @throws IOException Failed to create swap table file
+     */
+    public abstract TableFile getSwapFile() throws IOException;
 }

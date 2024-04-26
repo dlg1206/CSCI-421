@@ -6,6 +6,7 @@ import util.BPlusTree.RecordPointer;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
@@ -16,9 +17,6 @@ import java.util.List;
  * @author Derek Garcia
  */
 class TableFile extends DBFile {
-
-    private static final String DB_FILE_EXTENSION = "db";
-    private static final String DB_SWAP_FILE_EXTENSION = "swp.db";
 
     /**
      * Create a new table file
@@ -49,8 +47,8 @@ class TableFile extends DBFile {
      * @return Index File
      * @throws IOException Failed to create index file
      */
-    public IndexFile getIndex() throws IOException {
-        return new IndexFile(this.databaseRoot, this.fileID);
+    public IndexFile getIndex(PageBuffer buffer, Attribute pkAttr, int pageSize) throws IOException {
+        return new IndexFile(this.databaseRoot, this.fileID, buffer, pkAttr, pageSize);
     }
 
     /**
@@ -61,9 +59,9 @@ class TableFile extends DBFile {
      */
     public int readPageCount() throws IOException {
         try (RandomAccessFile raf = toRandomAccessFile()) {
-            byte[] buffer = new byte[1];
-            raf.read(buffer, 0, 1);
-            return buffer[0];
+            byte[] buffer = new byte[4];
+            raf.read(buffer, 0, 4);
+            return ByteBuffer.wrap(buffer).getInt();
         }
     }
 
@@ -101,7 +99,7 @@ class TableFile extends DBFile {
 
         // Read each page from the original table file to the swap file
         for (int pageNumber = 0; pageNumber < pageCount; pageNumber++) {
-            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true);
+            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, null);
             // add split page
             if (pageNumber == splitPageNum) {
                 // Get left and right swap pages
@@ -137,13 +135,13 @@ class TableFile extends DBFile {
         int pageCount = readPageCount();
 
         // get page size and remove empty page from buffer
-        int pageSize = buffer.readFromBuffer(this.fileID, emptyPageNum, true).getPageSize();
+        int pageSize = buffer.readFromBuffer(this.fileID, emptyPageNum, true, null).getPageSize();
 
         // move all pages after empty page forward
         for (int pageNumber = emptyPageNum + 1; pageNumber < pageCount; pageNumber++) {
-            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true);
+            Page page = buffer.readFromBuffer(this.fileID, pageNumber, true, null);
             //buffer.writeToBuffer(page.getSwapPage(swapOffset));
-            buffer.writeToBuffer(new Page(this, pageSize, pageNumber - 1, page.getData()));
+            buffer.writeToBuffer(new Page(this, pageSize, pageNumber - 1, page.getData(), false));
         }
 
         // Write out any remaining files
@@ -173,13 +171,6 @@ class TableFile extends DBFile {
      */
     public TableFile getSwapFile() throws IOException {
         return new TableFile(this.databaseRoot, this.fileID, DB_SWAP_FILE_EXTENSION);
-    }
-
-    /**
-     * @return True if swap file, false otherwise
-     */
-    public boolean isSwap() {
-        return this.filePath.contains(DB_SWAP_FILE_EXTENSION);
     }
 
     /**

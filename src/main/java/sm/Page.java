@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -18,12 +19,13 @@ import java.util.List;
  *
  * @author Derek Garcia, Ryan Nowak
  */
-class Page {
+public class Page {
 
-    private final TableFile writeFile;
+    private final DBFile writeFile;
     private final int pageSize;
     private final int pageNumber;
     private byte[] data;
+    public boolean IsIndexPage;
 
     /**
      * Create new Page
@@ -33,11 +35,12 @@ class Page {
      * @param pageNumber Page Number
      * @param data       Page byte data
      */
-    public Page(TableFile writeFile, int pageSize, int pageNumber, byte[] data) {
+    public Page(DBFile writeFile, int pageSize, int pageNumber, byte[] data, boolean isIndexPage) {
         this.writeFile = writeFile;
         this.pageSize = pageSize;
         this.pageNumber = pageNumber;
         this.data = new byte[pageSize];
+        IsIndexPage = isIndexPage;
 
         System.arraycopy(data, 0, this.data, 0, data.length);   // copy existing data
     }
@@ -49,10 +52,16 @@ class Page {
      * @param otherPageNumber Page number of the other page
      * @return true if match, false otherwise
      */
-    public boolean match(int otherTableID, int otherPageNumber) {
-        return this.writeFile.getTableID() == otherTableID
-                && this.pageNumber == otherPageNumber
-                && !this.writeFile.isSwap();    // cannot read from swap
+    public boolean match(int otherTableID, int otherPageNumber, boolean findIndexFile) {
+        if (findIndexFile)
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && this.writeFile.isIndex();
+        else
+            return this.writeFile.getTableID() == otherTableID
+                    && this.pageNumber == otherPageNumber
+                    && !this.writeFile.isSwap()
+                    && !this.writeFile.isIndex();    // cannot read from swap
     }
 
     /**
@@ -109,6 +118,25 @@ class Page {
 
         // No record was deleted
         return false;
+    }
+
+    /**
+     * Delete a record from the page (Note: the record is assumed to exist)
+     *
+     * @param attributes    Constraints of dataTypes
+     * @param index         Index of the record to remove
+     */
+    public HashMap<DataType, Integer> deleteRecordByIndex(List<Attribute> attributes, int pkIndex, int index) {
+        // Get records
+        List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
+
+        records.remove(records.get(index));
+        this.data = BInterpreter.convertRecordsToPage(records);
+        HashMap<DataType, Integer> toUpdate = new HashMap<>();
+        for (int i = 0; i < records.size(); i++) {
+            toUpdate.put(records.get(i).get(pkIndex), i);
+        }
+        return toUpdate;
     }
 
     /**
@@ -199,7 +227,7 @@ class Page {
     /**
      * @return Page write file
      */
-    public TableFile getWriteFile() {
+    public DBFile getWriteFile() {
         return this.writeFile;
     }
 
@@ -222,6 +250,10 @@ class Page {
      */
     public byte[] getData() {
         return this.data;
+    }
+
+    public void setData(byte[] newData) {
+        this.data = newData;
     }
 
 
