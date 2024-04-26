@@ -45,3 +45,4 @@ test.java
 *.db
 *.swp.db
 *.int
+*.idx
