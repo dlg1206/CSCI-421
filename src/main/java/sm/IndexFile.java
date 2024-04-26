@@ -88,6 +88,18 @@ public class IndexFile extends DBFile{
         insertInLeafNode(leaf, key, recordPointer);
     }
 
+
+    public void updatePointer(DataType key, RecordPointer recordPointer) throws IOException {
+        LeafNode leaf = findLeafNode(getRootNode(), key);
+        int i = 0;
+        while (i < leaf.keys.size() && key.compareTo(leaf.keys.get(i)) < 0) {
+            i++;
+        }
+        leaf.pointers.remove(i);
+        leaf.pointers.add(i, recordPointer);
+        writeNode(leaf);
+    }
+
     public void deletePointer(DataType primaryKey) throws IOException {
         LeafNode leaf = findLeafNode(getRootNode(), primaryKey);
         int index = leaf.keys.indexOf(primaryKey);
@@ -99,9 +111,8 @@ public class IndexFile extends DBFile{
             if (leaf.keys.size() < Capacity / 2) {
                 // Handle underflow
                 handleUnderflow(leaf);
-            } else {
-                writeNode(leaf);
             }
+            writeNode(leaf);
         }
     }
 

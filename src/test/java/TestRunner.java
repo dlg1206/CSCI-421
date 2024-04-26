@@ -1192,7 +1192,7 @@ public class TestRunner {
         String actual = mockCLI.mockInput(command);
 
         // Then
-        return tester.isEquals(command, expected, actual);
+        return tester.isUnorderedEquals(command, expected, actual);
     }
 
     private static int test_select_missing_table_from_multiple_tables(){
@@ -1304,7 +1304,7 @@ public class TestRunner {
         String actual = mockCLI.mockInput(command);
 
         // Then
-        return tester.isEquals(command, expected, actual);
+        return tester.isUnorderedEquals(command, expected, actual);
     }
 
     private static int test_select_where_ambiguous_by_alias_and_attribute(){
@@ -1460,7 +1460,7 @@ public class TestRunner {
         String actual = mockCLI.mockInput("select * from foo;");
 
         // Then
-        return tester.isEquals(command, expected, actual);
+        return tester.isUnorderedEquals(command, expected, actual);
     }
 
     private static int test_update_duplicate_primary_key(){

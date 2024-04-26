@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -125,12 +126,17 @@ public class Page {
      * @param attributes    Constraints of dataTypes
      * @param index         Index of the record to remove
      */
-    public void deleteRecordByIndex(List<Attribute> attributes, int index) {
+    public HashMap<DataType, Integer> deleteRecordByIndex(List<Attribute> attributes, int pkIndex, int index) {
         // Get records
         List<List<DataType>> records = BInterpreter.convertPageToRecords(this.data, attributes);
 
         records.remove(records.get(index));
         this.data = BInterpreter.convertRecordsToPage(records);
+        HashMap<DataType, Integer> toUpdate = new HashMap<>();
+        for (int i = 0; i < records.size(); i++) {
+            toUpdate.put(records.get(i).get(pkIndex), i);
+        }
+        return toUpdate;
     }
 
     /**

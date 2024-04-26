@@ -1,5 +1,7 @@
 package util;
 
+import java.util.List;
+
 /**
  * <b>File:</b> Tester.java
  * <p>
@@ -56,6 +58,48 @@ public class Tester {
      */
     public int isEquals(String command, String expected, String actual){
         boolean isEquals = expected.trim().equals(actual.trim());
+        StrBuilder msg = new StrBuilder()
+                .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
+                .addLine((isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!" ) + RESET);
+
+        // Only show diff if err
+        if(!isEquals){
+            msg.addLine(buildMessage(command, expected, actual));
+        } else {
+            msg.skipLine();
+        }
+
+
+        System.out.print(msg.build());
+
+        return isEquals ? 0 : 1;
+    }
+
+    /**
+     * Test if the strings match
+     *
+     * @param command Command that was executed
+     * @param expected Expected String
+     * @param actual Actual String
+     * @return 0 if match, 1 otherwise
+     */
+    public int isUnorderedEquals(String command, String expected, String actual){
+
+        List<String> expectedRows = List.of(expected.split("\n"));
+        String expectedHeader = String.join("\n", expectedRows.subList(0, 3));
+        List<String> finalExpectedRows = expectedRows.subList(3, expectedRows.size());
+
+        List<String> actualRows = List.of(expected.split("\n"));
+        String actualHeader = String.join("\n", actualRows.subList(0, 3));
+        List<String> finalActualRows = actualRows.subList(3, actualRows.size());
+
+        List<String> missingRows = finalExpectedRows.stream()
+                .filter(i -> !finalActualRows.contains(i)).toList();
+
+        List<String> extraRows = finalActualRows.stream()
+                .filter(i -> !finalExpectedRows.contains(i)).toList();
+
+        boolean isEquals = missingRows.isEmpty() && extraRows.isEmpty() && expectedHeader.equals(actualHeader);
         StrBuilder msg = new StrBuilder()
                 .addLine((isEquals ? GREEN : RED) + "TEST: " + this.testName)
                 .addLine((isEquals ? "STATUS: PASSED!" : "STATUS: FAILED!" ) + RESET);

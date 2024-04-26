@@ -9,6 +9,7 @@ import util.where.WhereTree;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -169,8 +170,15 @@ public class StorageManager {
 
         // If index enabled, insert result
         if(this.isIndexed) {
+            Attribute pkAttr = attributes.get(getPrimaryKeyIndex(attributes));
+            DataType pk = record.get(getPrimaryKeyIndex(attributes));
+            IndexFile idxF = tf.getIndex(buffer, pkAttr, pageSize);
+
+            if (idxF.search(pk) != null)
+                throw new ExecutionFailure("Duplicate primary key '%s'".formatted(pk.stringValue()));
+
             RecordPointer rp = insertIndexedRecord(tf, attributes, record);
-            tf.getIndex(buffer, attributes.get(getPrimaryKeyIndex(attributes)), pageSize).insertPointer(record.get(getPrimaryKeyIndex(attributes)), rp);
+            idxF.insertPointer(pk, rp);
             return;
         }
 
@@ -311,7 +319,11 @@ public class StorageManager {
                 return;
 
             Page page = this.buffer.readFromBuffer(tableID, found.pageNumber, false, null);
-            page.deleteRecordByIndex(attributes, found.index);
+            HashMap<DataType, Integer> toUpdate = page.deleteRecordByIndex(attributes, pki, found.index);
+
+            for (DataType pk : toUpdate.keySet()) {
+                idxF.updatePointer(pk, new RecordPointer(found.pageNumber, toUpdate.get(pk)));
+            }
 
             idxF.deletePointer(primaryKey);
         } else {
