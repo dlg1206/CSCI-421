@@ -1,6 +1,8 @@
 import catalog.Catalog;
 import cli.CLI;
 
+import java.util.List;
+
 /**
 * <b>File:</b> Main.java
 * <p>
@@ -58,7 +60,7 @@ public class Main {
         Catalog catalog = new Catalog(
                 pageSize, bufferSize,
                 args[0],
-                args.length < 5 && Boolean.parseBoolean(args[3])    // if index param present, convert to bool
+                List.of("true", "false").contains(args[3]) && Boolean.parseBoolean(args[3])    // if index param present, convert to bool
         );
 
         CLI cli = new CLI(
