@@ -1,3 +1,5 @@
+⚠️ **This project follows an Academic Integrity Notice. See the [NOTICE](NOTICE) file for details.** ⚠️ 
+
 # CSCI 421: Database System Implementation Project
 ## Group 13
 
